@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:pypi.org)",
+      "PowerShell($py = Get-Command py -ErrorAction SilentlyContinue; if \\($py\\) { \"py launcher found:\"; py --list } else { \"py launcher: NOT FOUND\" }; foreach \\($c in 'uv','pipx','python3'\\) { $x = Get-Command $c -ErrorAction SilentlyContinue; if \\($x\\) { \"$c : $\\($x.Source\\)\" } else { \"$c : NOT FOUND\" } })",
+      "PowerShell(py *)",
+      "PowerShell(& \"C:\\\\Users\\\\LENOVO\\\\AppData\\\\Roaming\\\\Python\\\\Python313\\\\Scripts\\\\graphify.exe\" claude --help)",
+      "PowerShell(& \"C:\\\\Users\\\\LENOVO\\\\AppData\\\\Roaming\\\\Python\\\\Python313\\\\Scripts\\\\graphify.exe\" --help)",
+      "PowerShell(& \"C:\\\\Users\\\\LENOVO\\\\AppData\\\\Roaming\\\\Python\\\\Python313\\\\Scripts\\\\graphify.exe\" claude install)",
+      "PowerShell(graphify hook-guard *)",
+      "PowerShell(foreach \\($p in \"$env:USERPROFILE\\\\.claude\\\\skills\\\\graphify\",\"C:\\\\Users\\\\LENOVO\\\\Downloads\\\\portofolio\\\\.claude\\\\skills\\\\graphify\"\\) { if \\(Test-Path $p\\) { \"EXISTS: $p\" } else { \"missing: $p\" } }; Get-ChildItem \"C:\\\\Users\\\\LENOVO\\\\Downloads\\\\portofolio\\\\CLAUDE.md\" -ErrorAction SilentlyContinue | Select-Object Name,Length)",
+      "PowerShell(graphify install *)",
+      "PowerShell(& \"C:\\\\Users\\\\LENOVO\\\\AppData\\\\Roaming\\\\Python\\\\Python313\\\\Scripts\\\\graphify.exe\" install --platform claude)",
+      "PowerShell($p = Get-Content \"C:\\\\Users\\\\LENOVO\\\\Downloads\\\\portofolio\\\\graphify-out\\\\.graphify_chunkplan.json\" -Raw | ConvertFrom-Json; $p.PSObject.Properties.Name; \"---\"; if \\($p.chunks\\) { \"planned chunks: \" + $p.chunks.Count })",
+      "Bash(graphify query *)"
+    ]
+  },
+  "enabledPlugins": {},
+  "enabledMcpjsonServers": [
+    "shadcn"
+  ]
+}

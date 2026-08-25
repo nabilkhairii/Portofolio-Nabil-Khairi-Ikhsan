@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+/* portfolio.css memegang hampir seluruh tampilan halaman ini; berkas ini cuma
+   menyalakan Tailwind di atasnya.
+
+   layer(components) bukan hiasan. portfolio.css ditulis untuk Tailwind CDN v3,
+   yang menyuntikkan <style>-nya ke <head> saat runtime — jadi utility selalu
+   menang atas kelas portfolio.css yang spesifisitasnya sama (mis.
+   `class="label text-muted"`, yang mengandalkan text-muted menimpa warna
+   .label). Tailwind v4 menaruh utility di @layer utilities; impor tanpa layer
+   berada DI LUAR layer dan justru mengalahkannya — urutannya terbalik dan
+   sebagian warna/jarak meleset. components < utilities memulihkan urutan itu,
+   sekaligus tetap menang atas preflight. */
+@import "./portfolio.css" layer(components);
+
+/* Nama-nama di bawah dipakai langsung oleh markup di page.tsx (bg-canvas,
+   text-muted, text-ink, …). var(), bukan hex mati: nilainya milik
+   :root/[data-theme] di portfolio.css, jadi utility ikut berubah saat mode
+   terang dinyalakan. */
+@theme {
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, sans-serif;
+
+  --color-canvas: var(--canvas);
+  --color-soft: var(--soft);
+  --color-card: var(--card);
+  --color-elevated: var(--elevated);
+  --color-carbon: var(--carbon);
+  --color-hairline: var(--hairline);
+  --color-ink: var(--ink);
+  --color-bodytx: var(--body);
+  --color-bodystrong: var(--body-strong);
+  --color-muted: var(--muted);
+  --color-mblue: var(--m-blue);
+  --color-mbluedark: var(--m-blue-dark);
+  --color-mred: var(--m-red);
+  --color-warning: #f4b400;
+
+  --radius-sm: 4px;
+  --container-shell: 1440px;
+
+  /* body di-zoom 0.8 (portfolio.css), tapi media query membaca viewport asli —
+     bukan ruang yang tersedia setelah diperkecil. Titik patah bawaan dibagi
+     0.8 supaya patahnya tetap pada lebar isi yang sama; angka ini berpasangan
+     dengan --zoom di portfolio.css, ubah keduanya atau tidak sama sekali. */
+  --breakpoint-sm: 800px;
+  --breakpoint-md: 960px;
+  --breakpoint-lg: 1280px;
+  --breakpoint-xl: 1600px;
+}
+
+/* ── Tiga bawaan preflight v3 yang dipulihkan ──────────────────────────────
+   portfolio.css ditulis di atas preflight Tailwind v3 dan mengandalkan
+   perilakunya. v4 mengubah ketiganya, dan tak satu pun berteriak saat rusak —
+   yang muncul cuma garis salah warna, kursor salah, dan dialog di pojok. */
+@layer base {
+  /* 1. Border tanpa utility warna. v3 memberinya gray-200, v4 currentColor.
+        `divide-y divide-hairline-c` di daftar Fokus Keahlian tidak punya
+        utility warna sama sekali — garisnya ikut warna teks kalau dibiarkan. */
+  *,
+  ::before,
+  ::after {
+    border-color: #e5e7eb;
+  }
+
+  /* 2. Dialog modal ditengahkan oleh `margin: auto` milik UA stylesheet, bukan
+        oleh CSS halaman ini. v3 hanya mereset margin sejumlah elemen; v4
+        mereset SEMUA elemen, jadi galeri proyek menempel di pojok kiri atas.
+        Berlaku untuk seluruh galeri karena <dialog id="gallery"> cuma satu dan
+        dipakai ulang oleh semua proyek. */
+  dialog {
+    margin: auto;
+  }
+
+  /* 3. v3 memberi cursor:pointer pada setiap <button>, v4 tidak. Sebagian besar
+        tombol memasangnya sendiri di portfolio.css; #menu-btn tidak, dan itu
+        satu-satunya yang jadi terasa mati saat disorot. */
+  button {
+    cursor: pointer;
+  }
+}

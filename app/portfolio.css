@@ -1,0 +1,865 @@
+/* ═══════════════════════════════════════════════════════════
+   BMW-M-design-analysis — portfolio
+   Near-black canvas, white UPPERCASE display (700) against Light body (300),
+   M tricolor reserved for brand-identity moments, radius 0 except icon
+   buttons, zero drop shadows. Depth comes from photography.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ═══ ZOOM HALAMAN ═══
+   Desainnya enak dibaca pada zoom browser 80%; blok ini yang membuatnya tampil
+   begitu saat browser di 100%. zoom dipasang di <body>, bukan di :root, supaya
+   perilakunya sama di semua mesin render — tak ada yang bergantung pada tafsir
+   masing-masing soal zoom di elemen akar.
+   Zoom browser sungguhan membesarkan viewport CSS-nya; properti zoom tidak.
+   Dua akibatnya, keduanya ditangani:
+   1. Unit viewport tidak ikut membesar. 1vh tetap diukur dari viewport asli
+      lalu ikut diperkecil, jadi apa pun yang memang harus setinggi/selebar
+      layar dikalikan var(--vh)/--vw/--dvh, bukan ditulis vh/vw langsung.
+      Nilai px dibiarkan mengecil — justru itu yang diminta.
+   2. Media query membaca viewport asli, bukan ruang yang tersedia setelah
+      diperkecil. Titik patahnya dibagi --zoom: 640 -> 800, 768 -> 960,
+      1024 -> 1280. Titik patah Tailwind digeser di @theme app/globals.css. */
+body { zoom: var(--zoom); }
+
+:root {
+  --zoom: .8;
+  /* = 1vh / var(--zoom). Ditulis lepas, bukan calc(1vh / var(--zoom)):
+     pembagian oleh var() di dalam calc() tidak seragam dukungannya.
+     Kalau --zoom diubah, ubah keempatnya. */
+  --vh: 1.25vh;
+  --vw: 1.25vw;
+  --dvh: 1.25dvh;
+
+  --canvas: #000;
+  --soft: #0d0d0d;
+  --card: #1a1a1a;
+  --elevated: #262626;
+  --carbon: #2b2b2b;
+  --hairline: #3c3c3c;
+  --ink: #fff;
+  --body: #bbb;
+  --body-strong: #e6e6e6;
+  --muted: #8f8f8f;   /* naik dari #7e7e7e: di atas --card/--elevated yang lama cuma 4.3:1 */
+  --m-blue: #0066b1;
+  --m-blue-dark: #1c69d4;
+  --m-red: #e22718;
+  /* Hijau sukses, satu nilai untuk kedua tema: 3.47:1 di atas --card gelap dan
+     4.41:1 di atas --card terang — dua-duanya lolos ambang 3:1 ikon non-teks. */
+  --m-green: #15803d;
+  /* global pointer position (spotlight-card mechanism) */
+  --px: 0.5;
+  --py: 0.5;
+
+  /* ── yang berbeda antar tema (dipakai di bawah lewat var) ── */
+  --nav-stuck: rgb(0 0 0 / .92);
+  --glass-bg: rgb(255 255 255 / .05);
+  --glass-bg-hover: rgb(255 255 255 / .12);
+  --glass-border: rgb(255 255 255 / .18);
+  --glass-rim:
+    0 0 8px rgb(0 0 0 / .03),
+    0 2px 6px rgb(0 0 0 / .08),
+    inset 3px 3px .5px -3.5px rgb(255 255 255 / .09),
+    inset -3px -3px .5px -3.5px rgb(255 255 255 / .85),
+    inset 1px 1px 1px -.5px rgb(255 255 255 / .6),
+    inset -1px -1px 1px -.5px rgb(255 255 255 / .6),
+    inset 0 0 6px 6px rgb(255 255 255 / .12),
+    inset 0 0 2px 2px rgb(255 255 255 / .06),
+    0 0 12px rgb(0 0 0 / .15);
+  /* pita shimmer: pastel terang, dibaca di atas kanvas hitam */
+  --gs-stops:
+    #B6D3EF 38%, #CAD1D7 41%, #D7CFC8 43.5%, #E1CDB9 46%, #EAC6A5 48%,
+    #EDB185 50%, #EF9B62 52%, #F18F60 54%, #F48D7A 56.5%, #F78A94 59%, #F888A0 62%;
+}
+
+/* ═══ MODE TERANG ═══
+   Nilai dibalik, bukan komponen ditulis ulang: semua chrome sudah pakai var.
+   Kontras di atas #fff — body 7.5:1, muted 4.9:1, ink 19:1. */
+:root[data-theme="light"] {
+  --canvas: #fff;
+  --soft: #f7f7f8;
+  --card: #f0f0f2;
+  --elevated: #eaeaee;
+  --carbon: #dcdce0;
+  --hairline: #d4d4d8;
+  --ink: #0a0a0a;
+  --body: #52525b;
+  --body-strong: #27272a;
+  --muted: #64646d;
+
+  --nav-stuck: rgb(255 255 255 / .92);
+  --glass-bg: rgb(0 0 0 / .04);
+  --glass-bg-hover: rgb(0 0 0 / .09);
+  --glass-border: rgb(0 0 0 / .16);
+  --glass-rim:
+    0 0 6px rgb(0 0 0 / .03),
+    0 2px 6px rgb(0 0 0 / .08),
+    inset 3px 3px .5px -3px rgb(0 0 0 / .55),
+    inset -3px -3px .5px -3px rgb(0 0 0 / .5),
+    inset 1px 1px 1px -.5px rgb(0 0 0 / .35),
+    inset -1px -1px 1px -.5px rgb(0 0 0 / .35),
+    inset 0 0 6px 6px rgb(0 0 0 / .07),
+    inset 0 0 2px 2px rgb(0 0 0 / .04),
+    0 0 12px rgb(0 0 0 / .06);
+  /* pastel akan hilang di atas putih — pita dituker ke warna M yang gelap */
+  --gs-stops:
+    #0066b1 38%, #1c69d4 44%, #4b3fb0 50%, #7a2f86 55%, #e22718 62%;
+}
+
+* { border-color: var(--hairline); }
+/* <html> di luar zoom body: 64px nav-nya tampil 51px, jadi paddingnya ikut
+   dikalikan --zoom — kalau tidak, tiap anchor berhenti 13px kelewat jauh. */
+html { scroll-behavior: smooth; scroll-padding-top: calc(64px * var(--zoom)); background: var(--canvas); }
+body { -webkit-font-smoothing: antialiased; }
+img { display: block; }
+/* fanned-out characters must never widen the page. `clip` (not `hidden`)
+   because `hidden` would make this a scroll container and break the sticky nav. */
+main { overflow-x: clip; }
+::selection { background: var(--m-blue-dark); color: #fff; }
+
+/* Tailwind's border-hairline would collide with its own width scale */
+.border-hairline-c { border-color: var(--hairline); }
+.bg-hairline-c { background: var(--hairline); }   /* 1px gap lines in the spec grid */
+
+/* ── layout shell: 1440px, generous grid-aligned rhythm ── */
+.shell { max-width: 1440px; margin-inline: auto; padding-inline: 24px; }
+@media (min-width: 1280px) { .shell { padding-inline: 48px; } }
+
+.band { padding-block: 96px; }
+/* Satu garis di antara tiap dua section, dipasang sekali di sini alih-alih
+   border-t/border-y yang ditempel per <section>: yang begitu selalu ada yang
+   kelewat (02 → 03 sempat tanpa garis) dan tepi luar halaman ikut bergaris.
+   Sasarannya <section>, bukan .band, supaya pita foto di antara 02 dan 03 —
+   yang bukan .band — ikut berbatas garis di kedua sisinya. */
+main > section + section { border-top: 1px solid var(--hairline); }
+/* Jeda bawah hero lebih longgar dari band lain: kartu lanyard menggantung
+   sampai dekat tepi, jadi pita angka di bawahnya perlu turun agar tidak
+   terbaca menempel di ujung tali. */
+.band--hero { padding-block: 88px 152px; position: relative; overflow: hidden; }
+
+/* ═══ SOFT AURORA ═══
+   Kanvas WebGL di belakang isi hero. pointer-events none supaya teks tetap
+   bisa diseleksi dan kartu lanyard tetap bisa ditarik. Di mode terang cahaya
+   sekuat ini terlalu berat di atas putih, jadi diredam. */
+.aurora { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+:root[data-theme="light"] .aurora { opacity: .38; }
+.band--hero > .shell { position: relative; z-index: 1; }
+.band--tight { padding-block: 0; }
+/* Pita foto menempel ke bagian sebelumnya: jeda 96px terasa menganga karena
+   panggung sticky-nya sendiri sudah menyisakan ruang di atas foto. */
+.band--cta { padding-block: 80px; }
+@media (max-width: 960px) {
+  .band { padding-block: 64px; }
+  .band--hero { padding-block: 56px 104px; }
+  .band--cta { padding-block: 64px; }
+}
+
+/* ═══ TYPOGRAPHY ═══
+   The weight pair IS the system: display 700 UPPERCASE, body 300 Light.
+   Display tracking is nudged to -0.5px, per the Inter-substitution note. */
+.display-xl, .display-lg, .display-md {
+  color: var(--ink); font-weight: 700; text-transform: uppercase; letter-spacing: -.5px;
+}
+.display-xl { font-size: clamp(44px, 7.2vw, 80px); line-height: 1; }
+.display-lg { font-size: clamp(32px, 5.2vw, 56px); line-height: 1.05; }
+.display-md { font-size: clamp(28px, 4vw, 40px); line-height: 1.1; }
+
+.title-lg { font-size: 24px; font-weight: 700; line-height: 1.3; color: var(--ink); }
+.title-md { font-size: 20px; font-weight: 400; line-height: 1.4; color: var(--body-strong); }
+
+.label {
+  display: block;
+  font-size: 14px; font-weight: 700; line-height: 1.3;
+  letter-spacing: 1.5px; text-transform: uppercase;   /* the "machined" feel */
+}
+.caption { font-size: 12px; font-weight: 400; line-height: 1.4; letter-spacing: .5px; }
+
+.lead  { font-size: clamp(17px, 1.5vw, 20px); font-weight: 300; line-height: 1.5; color: var(--body-strong); }
+.prose { font-size: 16px; font-weight: 300; line-height: 1.6; color: var(--body); }
+.prose .text-ink, .prose strong { color: var(--ink); font-weight: 400; }
+
+.sec-head { max-width: 60ch; }
+
+/* ═══ M STRIPE — the system's only decorative element ═══
+   4px tall, three hard stops, never a fill and never a button. */
+.m-stripe {
+  display: block; height: 4px; width: 128px;
+  background: linear-gradient(90deg,
+    var(--m-blue)      0 33.333%,
+    var(--m-blue-dark) 33.333% 66.666%,
+    var(--m-red)       66.666% 100%);
+}
+.m-stripe--brand { width: 40px; }
+
+/* ═══ TOP NAV ═══ */
+.topnav {
+  position: sticky; top: 0; z-index: 60;
+  background: var(--canvas);
+  border-bottom: 1px solid transparent;
+  transition: border-color .25s, background-color .25s;
+}
+.topnav.is-stuck { border-bottom-color: var(--hairline); background: var(--nav-stuck); backdrop-filter: blur(8px); }
+
+.brand { display: inline-flex; flex-direction: column; gap: 6px; }
+.brand__name { font-size: 14px; font-weight: 700; letter-spacing: 1.5px; color: var(--ink); }
+
+
+.menu-btn { display: grid; gap: 5px; width: 44px; height: 44px; place-content: center; }
+.menu-btn span { display: block; width: 22px; height: 2px; background: var(--ink); transition: transform .2s, opacity .2s; }
+.menu-btn[aria-expanded="true"] span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.menu-btn[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+.menu-btn[aria-expanded="true"] span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+.mobile-menu { position: fixed; inset: 64px 0 0; z-index: 55; background: var(--canvas); overflow-y: auto; }
+.mobile-menu .m-stripe { width: 100%; }
+.mobile-menu__link {
+  display: block; padding: 18px 0; border-bottom: 1px solid var(--hairline);
+  font-size: 28px; font-weight: 700; text-transform: uppercase; letter-spacing: -.5px; color: var(--ink);
+}
+
+/* ═══ BUTTONS — pil penuh, siluet gaya produk Apple ═══
+   Radius sengaja jauh lebih besar dari tingginya: sudutnya lalu terpotong ke
+   setengah tinggi apa pun ukuran tombolnya, jadi ujungnya selalu setengah
+   lingkaran penuh dan tidak perlu diatur per ukuran. */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 48px; padding: 14px 32px; border-radius: 999px;
+  font-size: 14px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+  border: 1px solid var(--ink); cursor: pointer;
+  transition: background-color .2s, color .2s, border-color .2s;
+}
+.btn--solid   { background: var(--ink); color: var(--canvas); }
+.btn--outline { background: transparent; color: var(--ink); }
+.btn:focus-visible { outline: 2px solid var(--m-blue-dark); outline-offset: 3px; }
+
+/* ═══ HOVER TOMBOL — OriginButton (21st.dev) ═══
+   Gerakannya sendiri milik components/ui/origin-button.tsx (kelas Tailwind +
+   motion). Yang tinggal di sini cuma dua warna yang tidak bisa diketahui
+   komponen itu: warna lingkaran yang tumbuh jadi isian, dan warna label di
+   atasnya. Keduanya harus BERLAWANAN dengan latar tombolnya, jadi nilainya
+   bertukar antara solid dan outline.
+
+   "Hubungi Saya" tidak lewat sini — FlowButton punya rupa & warnanya sendiri.
+
+   Tidak ada lagi :hover yang menukar background di sini — pertukaran itu efek
+   lama, dan dua efek yang menimpa bidang yang sama saling merusak. */
+.btn--solid   { --btn-fill: var(--canvas); --btn-fill-ink: var(--ink); }
+.btn--outline { --btn-fill: var(--ink);    --btn-fill-ink: var(--canvas); }
+
+.tlink { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.flink { font-size: 14px; font-weight: 300; color: var(--body); }
+.flink:hover { color: var(--ink); }
+
+/* ═══ HERO LANYARD ═══
+   Kartu identitas tergantung, seluruhnya di dalam <Canvas> R3F yang dipasang
+   components/lanyard-mount.tsx. Tanpa efek scroll di wadahnya: parallax dari versi
+   foto lama membuat kartu bergerak karena dua sebab sekaligus, dan skalanya
+   juga merusak pemetaan kursor saat kartu ditarik. Gerakan kartu hanya datang
+   dari fisika dan dari tangan pengguna. */
+/* Aslinya .lanyard-wrapper setinggi 100vh karena dipakai sebagai hero satu layar
+   penuh; di sini tingginya milik .lanyard-slot supaya kolom hero tidak berubah.
+   Slot wajib memegang tinggi sendiri: Canvas R3F menunggu wadahnya terukur
+   sebelum memasang isinya, jadi kotak setinggi nol tak akan pernah selesai
+   memuat. Karena itu kotaknya dibuat transparan, bukan disembunyikan — lalu
+   .is-ready memudarkannya masuk setelah kartunya benar-benar berdiri. */
+/* pointer-events none: slot ini cuma penahan tinggi kolom, isinya sudah keluar
+   dari kotaknya. Sebagai kotak kosong yang menutupi kartu ia tetap target
+   pointer, dan karena #lanyard-3d ada di z-index -1 (di bawah induknya
+   sendiri), setiap genggaman mendarat di slot — kartunya tidak bisa ditarik
+   sama sekali. Canvas-nya menyalakan lagi pointer-event untuk dirinya. */
+.lanyard-slot { position: relative; height: clamp(480px, 58vw, 640px); pointer-events: none; }
+.lanyard-slot > * { position: absolute; inset: 0; height: 100%; }
+/* Kotak yang memotong kartu saat ditarik itu elemen <canvas>-nya sendiri —
+   WebGL tidak bisa melukis sepiksel pun di luar elemennya, dan slot ini cuma
+   selebar kolom kanan. Jadi canvas-nya dilebarkan melewati slot ke empat arah.
+   Simetris: kalau tidak, titik tengah canvas bergeser dan kartunya ikut pindah
+   dari tempat menggantungnya. height:auto wajib — .lanyard-slot > * memasang
+   height:100%, dan height yang eksplisit membuat inset bawah diabaikan.
+   z-index -1 menaruhnya di bawah kolom teks. Canvas selebar ini menutupi
+   tombol hero, dan sebagai elemen terakhir di .shell ia menang tanpa ini:
+   "Lihat Proyek" jadi tidak bisa diklik. Teks hero tanpa latar, jadi kartu
+   yang ditarik ke sana tetap terlihat menembus hurufnya.
+   Batas terluarnya kini .band--hero (overflow:hidden), bukan slot ini. */
+/* Melebar mendatarnya diukur dari viewport, bukan dari lebar slot: slotnya ada
+   di kolom kanan, jadi -100% lebar slot sudah lewat tepi kanan layar sementara
+   ke kiri baru sampai sekitar sepertiga halaman — kartu yang ditarik ke arah
+   nama terpotong di tengah judul. Tepi kiri slot ada di 50% layar + setengah
+   jarak slot ke tengah shell (~77px pada shell 1152), jadi 60vw selalu
+   melewatinya sambil tetap simetris. vw di sini tidak ikut dikalikan zoom —
+   terukur: 45vw memberi tepat 856px pada layar 1902px.
+   Vertikalnya tidak boleh ikut berubah: fov itu sudut vertikal, jadi tinggi
+   canvas yang menentukan ukuran kartu di layar (lihat catatan z=29 di
+   components/lanyard-mount.tsx). */
+#lanyard-3d {
+  inset: -70% -60vw; height: auto; z-index: -1;
+  /* Zoom body dibatalkan khusus di sini. R3F memetakan pointer dengan
+     ukuran canvas dalam px CSS, tapi koordinat pointer sampai dalam px
+     terpampang — di bawah zoom .8 keduanya beda 1,25x dan raycast meleset
+     sejauh itu dari tempat kartu digambar. Dulu kotaknya seukuran slot jadi
+     melesetnya cuma ~45px dan kartu masih tergenggam; setelah dilebarkan
+     jadi ~140px dan kartunya lolos sama sekali. Dengan zoom balik, px CSS
+     dan px terpampang berimpit lagi di dalam kotak ini. */
+  zoom: calc(1 / var(--zoom));
+  pointer-events: auto;
+  opacity: 0; transition: opacity .45s ease-out;
+}
+#lanyard-3d.is-ready { opacity: 1; }
+.lanyard-wrapper {
+  position: relative; z-index: 0;
+  width: 100%; height: 100%;
+  display: flex; justify-content: center; align-items: center;
+  touch-action: none;                 /* tarik kartu tanpa ikut men-scroll halaman */
+}
+
+
+/* ═══ SPEC CELLS ═══ */
+.spec { background: var(--soft); padding: 32px 24px; }
+.spec__v { display: block; font-size: clamp(28px, 3.4vw, 40px); font-weight: 700; line-height: 1; color: var(--ink); letter-spacing: -.5px; }
+.spec__l { margin-top: 10px; color: var(--muted); }
+
+/* ═══ COMPETENCY GRID ═══ */
+.comp-grid {
+  display: grid; grid-template-columns: 1fr; gap: 0;
+  border-top: 1px solid var(--hairline);
+}
+@media (min-width: 800px) { .comp-grid { grid-template-columns: 1fr 1fr; column-gap: 32px; } }
+.comp-grid li {
+  padding: 12px 0; border-bottom: 1px solid var(--hairline);
+  font-size: 16px; font-weight: 300; color: var(--body);
+}
+
+/* ═══ EDUCATION / QUOTE CARDS ═══ */
+.edu, .quote { background: var(--card); padding: 24px; border: 1px solid transparent; }
+.quote { background: transparent; border-color: var(--hairline); }
+
+/* ═══ CHIPS ═══ */
+/* Chip Software & Tools kini <a> ke situs resmi produknya: text-decoration
+   dimatikan supaya bentuknya tetap chip, bukan tautan bergaris. */
+.chip {
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 9px 14px; border: 1px solid var(--hairline);
+  background: var(--soft); color: var(--body); text-decoration: none;
+  font-size: 13px; font-weight: 400; letter-spacing: .3px;
+  transition: border-color .2s, color .2s, background-color .2s;
+}
+.chip:hover { border-color: var(--ink); color: var(--ink); background: var(--card); }
+.chip:focus-visible { outline: 2px solid var(--m-blue-dark); outline-offset: 3px; }
+
+/* Logo di dalam chip. 20px: setinggi baris teks chip, jadi tinggi chip berlogo
+   sama dengan chip teks di kolom sebelahnya. Tidak ada filter pembalik:
+   semuanya favicon vendor yang sudah berwarna, dan membalikkannya di mode
+   gelap akan menegatifkan warnanya. */
+.chip img, .chip svg {
+  width: 20px; height: 20px; flex: none; object-fit: contain;
+  opacity: .85;
+}
+.chip:hover img, .chip:hover svg { opacity: 1; }
+
+/* ═══ METER — flat fill, no gradient ═══ */
+.meter { display: grid; gap: 8px; padding: 16px 0; }
+.meter dt { font-size: 13px; font-weight: 400; letter-spacing: .5px; color: var(--body-strong); }
+.meter dd { height: 2px; background: var(--hairline); }
+.meter dd i { display: block; height: 100%; width: 0; background: var(--ink); transition: width .9s cubic-bezier(.22,.61,.36,1); }
+.reveal.is-visible .meter dd i { width: var(--v); }
+
+/* ═══ CATEGORY TABS — text only, 2px white underline when active ═══ */
+.tabs { display: flex; flex-wrap: wrap; gap: 28px; border-bottom: 1px solid var(--hairline); }
+.tab {
+  padding: 12px 0; margin-bottom: -1px; cursor: pointer; background: none;
+  font-size: 14px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--body); border-bottom: 2px solid transparent;
+  transition: color .2s, border-color .2s;
+}
+.tab:hover { color: var(--ink); }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+.tab__n { font-size: 11px; color: var(--muted); margin-left: 8px; vertical-align: super; }
+
+/* ═══ PHOTO BAND — lapisan kalimat di atas ScrollChoreography ═══
+   Gerakan fotonya seluruhnya milik components/ui/scroll-choreography.tsx
+   (motion/react). Yang tinggal di sini cuma kalimat yang menumpang di atasnya.
+
+   Pembungkusnya menutupi seluruh seksi lalu memaku dirinya sendiri di layar
+   yang sama: komponennya tidak menyediakan slot anak, dan menyuntik satu ke
+   dalamnya berarti versi cabangan yang harus dirawat terpisah dari sumbernya.
+
+   Tingginya calc(100 * var(--vh)), bukan 100vh: body di-zoom .8 dan unit
+   viewport tidak ikut membesar (lihat blok ZOOM HALAMAN di atas), jadi 100vh
+   di sini cuma setinggi 80% layar dan kalimatnya duduk kelewat tinggi.
+   Komponennya sendiri memakai h-screen apa adanya — itu bagian dari salinan
+   yang sengaja tidak diubah, dan panggungnya tetap terpaku benar karena
+   sticky-nya top: 0. */
+/* Pembatal zoom. Komponennya ditulis untuk halaman tanpa zoom: h-screen,
+   w-[36vw], dan hero yang mengembang ke 100vw x 100vh. Di bawah body zoom .8
+   semua itu tergambar 80%-nya, jadi puncak efeknya — "satu layar penuh" —
+   berhenti sebagai kotak 80% dengan pita latar mengelilinginya.
+
+   1.25 di sini membuat zoom efektif di dalamnya .8 * 1.25 = 1, dan unit
+   viewport kembali berarti apa adanya. Ini jalan yang tidak menyentuh
+   komponennya: mengganti tiap vh/vw di dalamnya dengan var(--vh)/var(--vw)
+   berarti mencabangkan salinan yang harus dirawat terpisah dari sumbernya.
+
+   Kalimatnya sengaja DI LUAR pembungkus ini — kalau ikut, ukurannya jadi 1.25x
+   heading display-lg lain di halaman. */
+.choreo-band__fx { zoom: 1.25; }
+
+.choreo__overlay {
+  position: absolute; inset: 0; pointer-events: none;
+}
+/* mix-blend-mode duduk DI SINI, bukan di <p>-nya, dan itu bukan pilihan gaya.
+   Pembungkus ini position: sticky, dan sticky membentuk konteks penumpukan —
+   apa pun yang berblending DI DALAMNYA cuma melihat isi pembungkus ini sebagai
+   alas, yaitu tidak ada. Teksnya lalu tergambar putih polos di atas foto
+   seterang apa pun. Dipasang di pembungkusnya, yang dibalik alasnya yang
+   sebenarnya: pita fotonya.
+
+   Kotaknya sendiri transparan, dan difference terhadap piksel transparan tidak
+   mengubah apa-apa — jadi yang terbalik hanya huruf-hurufnya. */
+.choreo__overlay > * {
+  position: sticky; top: 0; height: calc(100 * var(--vh));
+  display: grid; place-items: center;
+  mix-blend-mode: difference;
+}
+
+/* Tanpa alas, dan warnanya tidak dipilih melainkan dihitung. Putih di sini
+   adalah masukan untuk difference di pembungkusnya, bukan warna akhir: putih
+   dikurangi alas = kebalikan alas. Di atas kanvas gelap ia tetap putih, di atas
+   kanvas terang jadi hitam, dan di atas foto ia membalik tiap piksel yang
+   dilewatinya. Satu aturan untuk dua tema sekaligus.
+
+   Kotak gelap sempat dipakai untuk keperluan yang sama dan salah: ia menutupi
+   fotonya sendiri. */
+.choreo__caption {
+  max-width: calc(70 * var(--vw)); padding-inline: 24px;
+  color: #fff;
+  text-align: center;
+}
+
+/* ═══ PROJECT CARDS ═══
+   Kotak biasa, satu kartu per proyek, seluruh kategori tampil sekaligus.
+   Menggantikan AccordionGallery: panel yang melebar saat disorot, tilt
+   rotateY, drift media, grayscale, caption yang baru muncul saat aktif, dan
+   halaman empat-empat dengan animasi geser. Tidak ada lagi properti layout
+   yang dianimasikan di sini — karena itu `contain` dan pemecahan halaman ikut
+   hilang: sepuluh kartu sama murahnya dengan empat.
+
+   Sudutnya lengkung ala Apple lewat `corner-shape` — superellipse, bukan
+   busur lingkaran, jadi peralihan ke sisi lurus tidak terlihat patah.
+
+   Angkanya bukan kata kunci `squircle`. CSS memakai eksponen berbasis dua:
+   superellipse(k) menggambar |x|^(2^k) + |y|^(2^k) = 1, jadi `round` = k1,
+   `squircle` = k2 alias eksponen 4. Muka kartu lanyard sudah memakai
+   eksponen 5 (tools/card-texture.mjs, SQUIRCLE_N — "mendekati lengkung
+   berkelanjutan ikon iOS"), dan log2(5) = 2,32. Dipakai angka itu supaya
+   kedua sudut di halaman ini bentuknya sama persis.
+
+   Peramban yang belum mengenal corner-shape membuang baris itu dan menyisakan
+   border-radius biasa: sudutnya jadi busur lingkaran, tidak ada yang rusak. */
+.pgrid {
+  display: grid; gap: 20px;
+  /* min(100%, 300px): tanpa min() kolom 300px tetap dipaksa selebar itu di
+     layar 320px dan halamannya bisa digeser mendatar. */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+}
+
+.pcard {
+  position: relative; display: block; overflow: hidden; cursor: pointer;
+  padding: 0; border: 0; text-align: left; font: inherit; color: inherit;
+  background: var(--soft);
+  aspect-ratio: 4 / 3;
+  border-radius: 28px;
+  corner-shape: superellipse(2.32);
+  transition: box-shadow .2s, transform .22s ease-out;
+  -webkit-tap-highlight-color: transparent;
+}
+/* Kartu yang disorot naik 6px: penandanya gerakan, bukan panel yang menutupi
+   fotonya. transform, jadi tetangganya tidak bergeser dan tidak ada reflow —
+   jarak kisi 20px, kartunya tidak pernah menyentuh yang di atasnya.
+   box-shadow, bukan outline: yang pertama mengikuti bentuk kotak border —
+   squircle ikut terbawa; outline tetap busur lingkaran biasa. */
+.pcard:hover, .pcard:focus-visible { transform: translateY(-6px); }
+.pcard:hover { box-shadow: 0 0 0 2px var(--ink); }
+.pcard:focus-visible { outline: 2px solid var(--m-blue-dark); outline-offset: 3px; }
+
+.pcard__media { position: absolute; inset: 0; }
+.pcard__media img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  user-select: none; -webkit-user-drag: none;
+}
+
+/* Gradien bawah: captionnya harus terbaca di atas foto apa pun. Lapisan redup
+   yang dulu menutupi panel non-aktif tidak ada lagi — semua kartu setara. */
+.pcard__scrim {
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, transparent 40%, rgb(0 0 0 / .8) 100%);
+}
+
+/* Lencana digeser ke 16px, bukan 12px: sudut squircle 28px memakan pojoknya. */
+.pcard__new {
+  position: absolute; top: 16px; left: 16px; z-index: 2;
+  background: var(--canvas); color: var(--ink); padding: 3px 7px;
+  font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+}
+/* play badge — menandai proyek yang galerinya berisi video */
+.pcard__play {
+  position: absolute; right: 16px; top: 16px; z-index: 2;
+  width: 36px; height: 36px; border-radius: 9999px;
+  display: grid; place-items: center;
+  background: rgb(0 0 0 / .55); color: #fff; font-size: 12px;   /* chip gelap di atas foto: teks tetap putih di kedua tema */
+  backdrop-filter: blur(2px);
+}
+
+.pcard__cap {
+  position: absolute; left: 14px; right: 14px; bottom: 14px; z-index: 2;
+  display: flex; gap: 9px; align-items: flex-start; pointer-events: none;
+}
+/* Aksen caption = m-stripe berdiri, satu-satunya elemen dekoratif sistem ini. */
+.pcard__bar {
+  flex: none; width: 3px; height: 38px;
+  background: linear-gradient(180deg,
+    var(--m-blue)      0 33.333%,
+    var(--m-blue-dark) 33.333% 66.666%,
+    var(--m-red)       66.666% 100%);
+}
+.pcard__txt { display: block; min-width: 0; }
+
+/* Teks selalu putih: alasnya foto tergelapkan, bukan permukaan tema. */
+.pcard__cat, .pcard__title, .pcard__org, .pcard__cta {
+  display: block; color: #fff; text-shadow: 0 2px 14px rgb(0 0 0 / .55);
+}
+.pcard__cat, .pcard__org, .pcard__cta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Caption ini duduk di atas foto di kartu selebar ~300px, dan sengaja dibuat
+   kecil supaya fotonya yang dibaca lebih dulu, bukan teksnya. 9px sudah di
+   bawah ukuran yang nyaman untuk kapital berspasi — kalau nanti terasa terlalu
+   kecil, ketiga angka di blok ini (9/13/10) yang dinaikkan bersama. */
+.pcard__cat { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; opacity: .78; }
+/* Judulnya boleh dua baris — kartu jauh lebih sempit daripada panel akordeon
+   yang terbuka, dan "Asisten Praktikum Alat Ukur dan Pengukuran" tidak muat
+   satu baris di mana pun. Baris ketiga dipotong, bukan mendorong caption
+   keluar dari kartunya. */
+.pcard__title {
+  font-size: 13px; font-weight: 700; line-height: 1.3; margin-top: 4px;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+.pcard__org { font-size: 10px; font-weight: 300; margin-top: 4px; opacity: .82; }
+.pcard__cta { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 8px; }
+.pcard__cta::after { content: " \2192"; }
+
+/* ═══ SPOTLIGHT translation ═══
+   spotlight-card.tsx keeps one document-level pointermove writing --px/--py.
+   The radial glow is off-brand here (no atmospheric decoration), so the
+   cursor drives a hairline that brightens toward it instead. */
+.spotlight { --edge: color-mix(in srgb, var(--ink) calc(var(--px) * 40%), var(--hairline)); }
+.spotlight:hover { border-color: var(--edge); background: var(--elevated); }
+
+/* ═══ CONTACT FORM ═══ */
+.field { display: block; }
+.field > span { display: block; margin-bottom: 8px; font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+.field > span b { color: var(--m-red); margin-left: 3px; }
+.field input, .field textarea {
+  width: 100%; min-height: 48px; padding: 12px 16px; border-radius: 0;
+  background: var(--card); color: var(--ink); border: 1px solid var(--hairline);
+  font: 300 16px/1.5 inherit; font-family: inherit;
+}
+.field input::placeholder, .field textarea::placeholder { color: var(--muted); }
+.field input:focus, .field textarea:focus { outline: none; border-color: var(--ink); }
+.field textarea { resize: vertical; }
+.field__err { display: none; margin-top: 8px; font: 700 11px/1.3 inherit; letter-spacing: 1px; text-transform: uppercase; font-style: normal; color: var(--m-red); }
+.field.is-invalid input, .field.is-invalid textarea { border-color: var(--m-red); }
+.field.is-invalid .field__err { display: block; }
+
+.form-status {
+  display: none; margin-top: 16px; padding: 12px 16px;
+  border-left: 4px solid var(--m-blue-dark); background: var(--card);
+  font-size: 13px; font-weight: 400; letter-spacing: .5px; color: var(--body-strong);
+}
+.form-status.is-shown { display: flex; align-items: center; gap: 10px; }
+
+/* Centang sukses (Transitions.dev "success check"): pudar + putar + blur +
+   pantul-Y berbarengan, garisnya digambar menyusul 80ms. Tanpa data-state:
+   ikonnya dibuat ulang tiap kali email disalin, jadi animasinya mengulang
+   sendiri. Keyframe cuma punya "from" — tujuannya keadaan normal elemen.
+   Amplitudo pantul & blur dikecilkan dari contoh aslinya: itu untuk centang
+   48px, ini ikon 22px di dalam kotak status. */
+.t-check {
+  flex: none; width: 22px; height: 22px; overflow: visible;
+  color: var(--m-green);
+  animation: t-check-fade   500ms cubic-bezier(.22, 1, .36, 1) backwards,
+             t-check-rotate 500ms cubic-bezier(.22, 1, .36, 1) backwards,
+             t-check-blur   500ms cubic-bezier(.22, 1, .36, 1) backwards,
+             t-check-bob    500ms cubic-bezier(.34, 1.35, .64, 1) backwards;
+}
+/* 24 = panjang path centangnya dibulatkan ke atas; ujung bulat menutupi sisa lebihnya. */
+.t-check path { stroke-dasharray: 24; animation: t-check-draw 500ms cubic-bezier(.22, 1, .36, 1) 80ms backwards; }
+@keyframes t-check-fade   { from { opacity: 0; } }
+@keyframes t-check-rotate { from { transform: rotate(80deg); } }
+@keyframes t-check-blur   { from { filter: blur(6px); } }
+@keyframes t-check-bob    { from { translate: 0 14px; } }
+@keyframes t-check-draw   { from { stroke-dashoffset: 24; } }
+
+/* ═══ DIRECT CHANNELS ═══ */
+.chan {
+  display: flex; flex-wrap: wrap; gap: 4px 20px; align-items: baseline;
+  padding: 18px 0; border-bottom: 1px solid var(--hairline); min-height: 48px;
+}
+/* align-self: center, bukan baseline seperti sisa barisnya: SVG tidak punya
+   garis dasar teks, dan pada baseline ia duduk terlalu tinggi. */
+.chan__i { flex: none; width: 20px; height: 20px; align-self: center; }
+.chan__i svg { display: block; width: 100%; height: 100%; }
+.chan__k { flex: 0 0 100px; color: var(--muted); }
+.chan__v { font-size: 16px; font-weight: 300; color: var(--ink); word-break: break-word; }
+.chan__x { margin-left: auto; color: var(--muted); transition: transform .25s, color .2s; }
+a.chan:hover .chan__x { transform: translateX(5px); color: var(--ink); }
+a.chan:hover .chan__v { color: var(--ink); }
+
+/* ═══ FOOTER ═══ */
+.footer { background: var(--canvas); padding-block: 64px; }
+
+/* ═══════════════════════════════════════════════════════════
+   MOTION — design-agnostic; unchanged across re-skins
+   ═══════════════════════════════════════════════════════════ */
+
+/* scroll reveal */
+.reveal {
+  opacity: 0; transform: translateY(28px);
+  transition: opacity .6s ease-out, transform .6s cubic-bezier(.22,.61,.36,1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.reveal.is-visible { opacity: 1; transform: none; }
+
+/* ═══ SPLIT TEXT — SplitText.jsx, tanpa GSAP ═══
+   Di sana GSAP SplitText memecah teksnya lalu ScrollTrigger menjalankan
+   gsap.fromTo dengan stagger. Pemecahannya tetap di JS (satu span per huruf,
+   membawa indeksnya sebagai --i), tapi animasinya transition CSS biasa: yang
+   memicu cukup satu kelas dari IntersectionObserver .reveal yang sudah ada —
+   sekali jalan, sama seperti once: true di sana. Tak ada satu pun node yang
+   dihitung ulang selama scroll, jadi heading terpanjang pun tak menambah
+   pekerjaan per frame.
+   power3.out GSAP = easeOutQuart; itu bezier di bawah. */
+.split {
+  --split-step: 40ms;      /* delay-nya 50ms di aslinya; heading di sini sampai
+                              22 huruf, dan 22 x 50ms sudah terasa menggantung */
+  --split-ease: cubic-bezier(.165, .84, .44, 1);
+}
+/* Huruf dikelompokkan per kata: kotak katanya yang membungkus, jadi baris
+   hanya bisa patah di spasi sungguhan — tak pernah di tengah kata. */
+.split .w { display: inline-block; white-space: nowrap; }
+.split .w > span {
+  display: inline-block;
+  opacity: 0; transform: translateY(40px);                      /* from */
+  transition: opacity 1.25s var(--split-ease) calc(var(--i) * var(--split-step)),
+              transform 1.25s var(--split-ease) calc(var(--i) * var(--split-step));
+}
+.split.is-visible .w > span { opacity: 1; transform: none; }    /* to */
+
+/* ═══════════════════════════════════════════════════════════
+   GALLERY MODAL — native <dialog>: ESC, focus trap, ::backdrop free
+   ═══════════════════════════════════════════════════════════ */
+#gallery {
+  padding: 0; border: 1px solid var(--hairline); border-radius: 0;
+  background: var(--card); color: var(--body);
+  max-width: min(1120px, calc(94 * var(--vw))); width: 100%; max-height: calc(92 * var(--vh)); overflow: hidden;
+}
+#gallery::backdrop { background: rgb(0 0 0 / .82); backdrop-filter: blur(6px); }
+#gallery[open]::backdrop { animation: backdrop-in .25s ease-out; }
+@keyframes backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+
+.g-shell { display: flex; flex-direction: column; max-height: calc(92 * var(--vh)); }
+.g-shell > .m-stripe { width: 100%; flex: none; }
+
+.g-head { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; padding: 24px; }
+.g-close {
+  flex: none; width: 48px; height: 48px; border-radius: 9999px;
+  background: var(--elevated); color: var(--ink); cursor: pointer;
+  font-size: 16px; line-height: 1; transition: background-color .2s;
+}
+.g-close:hover { background: var(--ink); color: var(--canvas); }
+
+.g-desc {
+  font-size: 15px; font-weight: 300; line-height: 1.6; color: var(--body);
+  padding: 0 24px 24px; border-bottom: 1px solid var(--hairline);
+}
+
+/* Baris tautan sertifikat. :empty, bukan hidden dari JS: proyek non-sertifikasi
+   tidak punya tautan sama sekali, dan barisnya harus hilang berikut garisnya. */
+.g-links {
+  display: flex; flex-wrap: wrap; gap: 8px 20px;
+  padding: 14px 24px; border-bottom: 1px solid var(--hairline);
+}
+.g-links:empty { display: none; }
+/* Logonya di luar <span>, garis bawahnya di dalam: kalau text-decoration
+   dipasang di <a>, garisnya ikut melintasi logo. */
+.g-links a {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 13px; letter-spacing: .3px; color: var(--body);
+  text-decoration: none; transition: color .2s;
+}
+.g-links a span { text-decoration: underline; text-underline-offset: 3px; }
+.g-links svg { width: 15px; height: 15px; flex: none; }
+.g-links a:hover { color: var(--ink); }
+.g-links a:focus-visible { outline: 2px solid var(--m-blue-dark); outline-offset: 3px; }
+
+/* The stage is the only flexible row: it takes 55vh as its basis and shrinks
+   to whatever is left after the header/desc/caption/thumbs. The photos are
+   absolutely positioned so they can never add height back — a fixed
+   max-height on the image is what used to push the dialog past the viewport
+   and clip the title off-screen. */
+.g-stage { position: relative; flex: 1 1 calc(55 * var(--vh)); min-height: 160px; overflow: hidden; background: var(--canvas); }
+.g-img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: contain; opacity: 0; transition: opacity .3s ease-out;
+}
+/* slide + crossfade: the incoming frame drifts in from the direction of travel.
+   Re-adding .is-front restarts the animation, so no reflow juggling needed. */
+.g-img.is-front { opacity: 1; animation: g-slide .45s cubic-bezier(.22,.61,.36,1); }
+@keyframes g-slide { from { transform: translateX(var(--dir, 0%)); } to { transform: none; } }
+.g-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: var(--canvas); z-index: 1; }
+.g-thumbs video { flex: none; width: 84px; height: 56px; object-fit: cover; cursor: pointer; opacity: .4; border: 1px solid transparent; transition: opacity .2s, border-color .2s; }
+.g-thumbs video:hover { opacity: .75; }
+.g-thumbs video.is-active { opacity: 1; border-color: var(--ink); }
+
+.g-nav {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 2;
+  width: 48px; height: 48px; border-radius: 9999px; cursor: pointer;
+  background: var(--elevated); color: var(--ink);
+  font-size: 22px; line-height: 1; transition: background-color .2s;
+}
+.g-nav:hover { background: var(--ink); color: var(--canvas); }
+.g-nav--prev { left: 16px; }
+.g-nav--next { right: 16px; }
+
+.g-count {
+  position: absolute; right: 16px; bottom: 16px; z-index: 2;
+  font-size: 12px; font-weight: 700; letter-spacing: 1.5px; color: #fff;
+  background: rgb(0 0 0 / .6); padding: 6px 10px;   /* idem: latar selalu gelap */
+}
+
+.g-caption { font-size: 13px; font-weight: 300; color: var(--muted); padding: 16px 24px; }
+.g-thumbs {
+  display: flex; gap: 8px; overflow-x: auto; padding: 0 24px 24px; flex: none;
+  scrollbar-width: thin; scrollbar-color: var(--hairline) transparent;
+}
+.g-thumbs img {
+  flex: none; width: 84px; height: 56px; object-fit: cover; cursor: pointer;
+  opacity: .4; border: 1px solid transparent; transition: opacity .2s, border-color .2s;
+}
+.g-thumbs img:hover { opacity: .75; }
+.g-thumbs img.is-active { opacity: 1; border-color: var(--ink); }
+
+@media (max-width: 800px) {
+  #gallery { max-width: calc(100 * var(--vw)); width: calc(100 * var(--vw)); height: calc(100 * var(--dvh)); max-height: calc(100 * var(--dvh)); border: 0; margin: 0; }
+  .g-shell { max-height: calc(100 * var(--dvh)); height: 100%; }
+  .g-stage { flex: 1 1 calc(40 * var(--vh)); }
+  .g-head, .g-desc, .g-links, .g-caption, .g-thumbs { padding-inline: 16px; }
+  .g-nav { width: 44px; height: 44px; }
+  .g-nav--prev { left: 8px; } .g-nav--next { right: 8px; }
+}
+
+/* ═══ GRADIENT SHIMMER — gradient-shimmer.tsx, tanpa JS ═══
+   Pita highlight menyapu teks: layer gradient 250% lebar digeser lewat
+   background-position lalu diklip ke glyph. Stop = preset "sunrise". */
+.shimmer,
+.mq.shimmer .mq__copy {
+  --gs-base: currentColor;
+  background-image: linear-gradient(105deg,
+    var(--gs-base) 30%, var(--gs-stops), var(--gs-base) 70%);
+  background-repeat: no-repeat;
+  background-size: 250% 100%;
+  background-position: 0 center;              /* pita parkir di luar kiri */
+  -webkit-background-clip: text; background-clip: text;
+  /* text-fill (bukan color: transparent) supaya currentColor di --gs-base
+     tetap resolve ke warna teks aslinya */
+  -webkit-text-fill-color: transparent;
+  animation: gs-sweep 2.45s cubic-bezier(.45,0,.55,1) infinite;
+}
+/* 1.45s sapuan + 1s jeda = 2.45s; 59% = titik akhir sapuan */
+@keyframes gs-sweep {
+  0%   { background-position: 100% center; }
+  59%  { background-position: 0 center; }
+  100% { background-position: 0 center; }
+}
+/* tanpa background-clip:text, teks jadi tak terlihat — kembalikan fill-nya */
+@supports not ((background-clip: text) or (-webkit-background-clip: text)) {
+  .shimmer, .mq.shimmer .mq__copy { -webkit-text-fill-color: currentColor; animation: none; }
+}
+
+/* ═══ SCROLL VELOCITY — ScrollVelocity.jsx, tanpa React ═══
+   Di sana tiap baris punya useScroll + useVelocity + useSpring +
+   useAnimationFrame sendiri. Di sini kecepatan scroll dihitung sekali di
+   tick() dan tiap baris cuma menerima satu --mq-x: satu transform, tak ada
+   node per huruf yang dihitung ulang saat scroll. */
+.mq { overflow: hidden; }
+.mq__scroller {
+  display: flex; width: max-content;
+  transform: translate3d(var(--mq-x, 0px), 0, 0);
+  will-change: transform;
+}
+.mq__copy { flex: none; white-space: nowrap; padding-inline-end: 2.5em; }
+
+/* Kalimat CTA sengaja sentence case, bukan uppercase seperti display lain. */
+.band--cta .mq { text-transform: none; }
+
+/* Pita gradiennya dipasang di tiap salinan, bukan di wadahnya: scroller
+   punya transform sendiri, dan background-clip:text milik wadah tidak
+   menembus lapisan itu — teksnya justru hilang. Wadahnya dinetralkan. */
+.mq.shimmer { background-image: none; -webkit-text-fill-color: currentColor; animation: none; }
+
+/* ═══ LIQUID GLASS — liquid-glass-button.tsx, tanpa React ═══
+   Rim kaca = tumpukan inset shadow; refraksi = filter SVG #glass-warp
+   (deklarasi terpisah: Chrome mengabaikan url() di backdrop-filter, jadi
+   baris blur di atasnya yang tetap dipakai). */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(3px) saturate(1.6);
+  -webkit-backdrop-filter: blur(3px) saturate(1.6);
+  backdrop-filter: blur(3px) saturate(1.6) url("#glass-warp");
+  box-shadow: var(--glass-rim);
+  transition: background-color .3s, transform .3s;
+}
+.glass:hover { background: var(--glass-bg-hover); color: var(--ink); transform: scale(1.05); }
+.g-nav.glass:hover { transform: translateY(-50%) scale(1.05); }   /* nav sudah punya translateY */
+
+/* .glass di atas .btn: isian putih tombol solid harus dipertahankan, kalau
+   tidak teksnya (hitam) jatuh di atas latar 5% putih dan tidak terbaca.
+   Border 1px putih penuh dilunakkan supaya rim kacanya yang jadi tepi. */
+.btn.glass { border-color: var(--glass-border); }
+.btn--solid.glass { background: var(--ink); }
+
+/* ═══ TOMBOL TEMA ═══ tidak ada di sini lagi: rupanya (pil, bulatan yang
+   meluncur) seluruhnya kelas Tailwind di components/ui/theme-toggle.tsx. */
+
+/* Tombol bahasa: dua kode berdampingan, yang aktif menyala — tanpa bendera,
+   bendera itu negara, bukan bahasa. */
+.lang-btn {
+  flex: none; display: flex; align-items: center; gap: 6px;
+  height: 44px; padding: 0 12px; border-radius: 999px;
+  border: 1px solid var(--hairline); cursor: pointer;
+  background: transparent;
+  font-size: 12px; font-weight: 700; letter-spacing: 1.5px;
+  transition: border-color .2s, background-color .2s;
+}
+.lang-btn:hover { border-color: var(--ink); background: var(--soft); }
+.lang-btn:focus-visible { outline: 2px solid var(--m-blue-dark); outline-offset: 3px; }
+.lang-btn span { color: var(--muted); transition: color .2s; }
+.lang-btn span.is-on { color: var(--ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer { animation: none; }
+  .glass { transition: none; }
+  .glass:hover { transform: none; }
+  .g-nav.glass:hover { transform: translateY(-50%); }
+  html { scroll-behavior: auto; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .split .w > span { transition: none; transform: none; opacity: 1; }
+  .t-check, .t-check path { animation: none; }
+  .g-img.is-front { animation: none; }
+  .g-img, .chip, .btn { transition: none; }
+  /* Cincinnya tetap, angkatnya tidak: penanda sorot masih ada tanpa gerakan. */
+  .pcard { transition: none; }
+  .pcard:hover, .pcard:focus-visible { transform: none; }
+  /* Pita foto dilepas seluruhnya, bukan dijinakkan. Isinya 300vh gulir yang
+     seluruh maknanya gerakan — tanpa itu yang tersisa cuma satu foto diam yang
+     menahan tiga layar gulir. Aman dibuang: seksinya aria-hidden, dan keempat
+     fotonya tetap tampil bersama proyeknya di kisi di bawah.
+     Komponennya sendiri tidak mengenal prefers-reduced-motion, dan menambahkan
+     itu ke dalamnya berarti mencabangkan salinan dari sumbernya. */
+  .choreo-band { display: none; }
+}

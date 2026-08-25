@@ -1,0 +1,38 @@
+{
+  "name": "portofolio",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start -p 3001",
+    "lint": "eslint",
+    "check": "node tests/check-assets.mjs && node tests/check-contrast.mjs && node tests/check-encoding.mjs && node tests/check-i18n.mjs && node tests/check-marquee.mjs && node tests/check-spec-count.mjs && node tests/check-split.mjs",
+    "check:browser": "node tests/check-lanyard-next.mjs && node tests/check-gallery.mjs && node tests/check-choreo.mjs"
+  },
+  "dependencies": {
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.7.0",
+    "@react-three/rapier": "^2.2.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.32.0",
+    "meshline": "^3.3.1",
+    "motion": "^13.1.0",
+    "next": "16.2.12",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "tailwind-merge": "^3.6.0",
+    "three": "^0.185.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/three": "^0.185.4",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.12",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

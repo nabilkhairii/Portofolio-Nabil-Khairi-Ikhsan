@@ -1,0 +1,19 @@
+# Yang tidak ikut naik ke Vercel. Batas unggah sumber di paket Hobby 100 MB,
+# dan public/ sendiri sudah 84 MB — jadi apa pun yang tidak dibutuhkan runtime
+# lebih baik tidak ikut.
+#
+# Semua yang di bawah ini tidak pernah diimpor oleh app/, jadi build tetap utuh
+# tanpa mereka.
+
+tools/
+tests/
+docs/
+graphify-out/
+.claude/
+AGENTS.md
+CLAUDE.md
+
+# Berkas font hanya dibaca generator tekstur saat build lokal — bentuk hurufnya
+# sudah dipanggang ke public/lanyard.png. Tidak ada yang memuatnya saat runtime,
+# jadi tidak perlu ikut terunggah (dan tidak ikut tersebar).
+app/font/
