@@ -640,6 +640,9 @@ const PROJECTS = [
     desc: 'Merakit dan memvalidasi sistem kelistrikan UAV yang mengintegrasikan 10+ modul elektronik termasuk distribusi daya. Melakukan reverse engineering wiring diagram dan Power Distribution Board (PDB) untuk mendukung distribusi daya ke 7+ subsistem UAV. Meredesain PCB 2 layer menggunakan EasyEDA dengan high-current routing, analisis termal, dan optimasi tata letak komponen agar siap fabrikasi. Melakukan pengujian distribusi daya, troubleshooting, dan verifikasi desain PCB untuk memastikan integrasi kelistrikan dan mekanik yang andal.',
     tags: ['EasyEDA', 'PCB 2 Layer', 'Power Distribution', 'Thermal Analysis'],
     folder: 'AMX',
+    /* Sampul kartunya foto pengukuran, bukan foto dronenya — lihat coverOf().
+       Berkasnya tetap di urutan aslinya di dalam images di bawah. */
+    cover: 'Measuring the Dimensions of a PCB and the Distance between Components.jpeg',
     images: [
       'Reverse Engineering (RE) Electric Drone Sprayer.jpeg',
       'Core Parts of a Drone System.jpeg',
@@ -1118,7 +1121,14 @@ let activeFilter = Object.keys(CATEGORIES)[0];
    --ag-d (tilt + parallax), PAGE_SIZE/pageSlice/slideTo (halaman + geser), dan
    pendengar pointerover/focusin di grid — kartu tidak punya keadaan aktif yang
    perlu dipindahkan, jadi satu klik langsung membuka galerinya. */
-const coverOf = (p) => p.images.find(f => !isVideo(f)) || p.images[0];
+/* `cover` mendahului, bukan sekadar urutan images: sampul kartu dan foto
+   pembuka galeri kebetulan sama-sama foto pertama, tapi bukan hal yang sama.
+   Menukar sampul dengan memindahkan berkasnya ke awal images ikut mengubah
+   foto mana yang muncul lebih dulu saat galerinya dibuka — urutan itu jalan
+   ceritanya sendiri (ikhtisar, bagian, proses, hasil), dan tak ada yang
+   memintanya berubah. Kosong di hampir semua proyek: tanpa `cover`, aturannya
+   persis seperti sebelumnya. */
+const coverOf = (p) => p.cover || p.images.find(f => !isVideo(f)) || p.images[0];
 
 /* Tanda "yang disorot ini" seluruhnya CSS: kartunya naik sedikit di :hover /
    :focus-visible (.pcard di portfolio.css). Tak ada pendengar pointer baru,
@@ -1322,6 +1332,39 @@ dlg.addEventListener('click', (e) => {
   if (nav) return show(index + Number(nav.dataset.step));
   const thumb = e.target.closest('#g-thumbs [data-i]');
   if (thumb) show(Number(thumb.dataset.i));
+});
+
+/* Geser untuk berpindah foto. Di layar sentuh ini gerakan yang dicari lebih
+   dulu daripada tombol, dan tombol ‹ › memang disembunyikan di sana (lihat
+   blok pointer: coarse di app/portfolio.css).
+
+   pointerdown/up, bukan touchstart/touchend: satu penangan mengurus jari dan
+   tetikus sekaligus, dan seretan tetikus di desktop ikut jalan tanpa biaya —
+   tombolnya di sana tetap ada, jadi ini cuma jalan tambahan.
+
+   Video dikecualikan: bilah kontrolnya sendiri yang butuh seretan mendatar
+   untuk menggeser waktu, dan menukar foto di tengah orang menggeser video
+   adalah hal terakhir yang diinginkan.
+
+   Ambangnya 40px DAN mendatar harus melebihi tegak: ketukan biasa punya
+   simpangan beberapa piksel, dan tanpa syarat kedua, sapuan tegak yang sedikit
+   miring ikut menukar foto. Arahnya konvensi carousel — menggeser ke kiri
+   memajukan, seperti membalik halaman. */
+const stage = dlg.querySelector('.g-stage');
+let geserX = 0, geserY = 0, geserId = null;
+
+stage.addEventListener('pointerdown', (e) => {
+  if (e.target.closest('#g-video, .g-nav')) return;
+  geserId = e.pointerId; geserX = e.clientX; geserY = e.clientY;
+});
+stage.addEventListener('pointercancel', () => { geserId = null; });
+stage.addEventListener('pointerup', (e) => {
+  if (e.pointerId !== geserId) return;
+  geserId = null;
+  if (!current || current.images.length < 2) return;
+  const dx = e.clientX - geserX, dy = e.clientY - geserY;
+  if (Math.abs(dx) < 40 || Math.abs(dx) <= Math.abs(dy)) return;
+  show(index + (dx < 0 ? 1 : -1));
 });
 
 /* ESC is native; intercept it so the close animation still plays */

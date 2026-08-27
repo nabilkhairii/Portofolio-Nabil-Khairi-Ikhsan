@@ -33,6 +33,26 @@ const CHOREO_IMAGES = {
     '/thumbs/Computer%20Vision%20%26%20AI/Computer%20Vision%20Based%20Vehicle%20Detection%20Results%20Us-Cover.jpg.webp',
 };
 
+/* Set kedua, khusus HP — dan alasannya bentuk fotonya, bukan selera.
+   Keempat foto di atas MENDATAR (rasio 1,78-1,97). Di layar 390px ubin
+   pitanya jadi kolom tegak, dan foto mendatar yang dipaksa masuk ke sana
+   dipotong object-cover sampai tinggal pita tengahnya — isinya hilang.
+   Keempat ini TEGAK (0,56 / 0,75 / 0,89 / 0,56), searah dengan ubinnya.
+
+   Ditukar oleh <picture media> di scroll-choreography.tsx, bukan oleh JS:
+   peramban memilih sebelum satu byte pun diminta, jadi HP tidak ikut
+   mengunduh set mendatar yang tak akan pernah ditampilkannya. */
+const CHOREO_IMAGES_PHONE = {
+  topLeft:
+    '/thumbs/Antam/Carrying%20out%20Preventive%20Maintenance%20in%20the%20Factory%20Area.png.webp',
+  topRight:
+    '/thumbs/AMX/Reverse%20Engineering%20(RE)%20Electric%20Drone%20Sprayer.jpeg.webp',
+  bottomLeft:
+    '/thumbs/Intalasi%20Mesin%20Listrik%20(SEM%202)/3%20Phase%20Power%20Motor%20Circuit%20to%20Manually%20Turn%20the%20Steering%20Right%20and%20Left%20Using%20a%203%20Phase%20Motor.jpeg.webp',
+  bottomRight:
+    '/thumbs/Robotika%20Lanjut/Component%20Checking%20before%20Implementation%20and%20Control%20Using%20ROS%202.jpeg.webp',
+};
+
 /* Isi chip Software & Tools. Urutannya urutan yang diminta, bukan abjad.
    Tiap chip tautan ke situs resmi produknya.
 
@@ -153,8 +173,16 @@ export default function Home() {
                 sejak awal supaya portfolio-runtime.js merekamnya saat memindai
                 [data-en-aria-label]. Label tiap item tetap teks biasa (bukan
                 aria-label), jadi itu juga yang dibaca screen reader. */}
+            {/* Kelas visibilitasnya pindah ke portfolio.css (.nav-dock), lepas
+                dari `hidden md:block`: di HP nav ini tidak disembunyikan
+                melainkan DIPINDAH — jadi taskbar mengambang di tepi bawah, di
+                jangkauan jempol. Satu elemen yang sama untuk kedua tempat;
+                menyalinnya jadi dua berarti dua <nav> berlabel sama di satu
+                halaman. Tiga keadaannya (sembunyi / di header / taskbar) tidak
+                bisa ditulis rapi dengan utility, dan `hidden` milik Tailwind
+                ada di layer utilities yang selalu menang atas portfolio.css. */}
             <nav
-              className="hidden md:block"
+              className="nav-dock"
               aria-label="Navigasi utama"
               data-en-aria-label="Main navigation"
             >
@@ -252,23 +280,35 @@ export default function Home() {
               <span className="m-stripe mt-7" aria-hidden="true" />
               <p
                 className="lead mt-7 max-w-[52ch]"
-                data-en="Embedded systems, industrial automation, and electronic system integration. Built through academic and industrial projects, from schematic to hardware that runs."
+                data-en="Embedded systems, industrial automation, and electronic system integration. Built through industrial internship and academic projects, from concept design to results that match the original working principle."
               >
                 Sistem embedded, otomasi industri, dan integrasi sistem
-                elektronik. Dikerjakan lewat proyek akademik dan industri, dari
-                skematik sampai perangkatnya jalan.
+                elektronik. Dikerjakan melalui proyek magang industri maupun
+                akademik, dari perancangan konsep sampai dengan hasil yang
+                sesuai dengan prinsip kerja awal.
               </p>
-              <div className="mt-9 flex flex-wrap gap-3">
+              {/* `flex flex-wrap gap-3` pindah ke .hero-cta di portfolio.css,
+                  nilainya sama persis (gap-3 = 12px). Harus pindah: di HP baris
+                  ini jadi grid dua kolom sama lebar, dan `flex` milik Tailwind
+                  ada di layer utilities yang selalu menang atas display apa pun
+                  yang ditulis di sana. */}
+              <div className="hero-cta mt-9">
                 <OriginButton
                   href="#experience"
                   className="btn btn--solid glass"
                   text="Lihat Proyek"
                   en="View Projects"
                 />
+                {/* Ukuran HP-nya dioper dari sini, bukan dari portfolio.css:
+                    px-8 dan text-[14px] milik komponen ini utility Tailwind,
+                    dan layer utilities selalu menang atas berkas itu. Di
+                    kolom 166px ukuran bawaannya mematahkan label jadi dua
+                    baris. Pasangannya .hero-cta .btn di portfolio.css. */}
                 <FlowButton
                   href="/Curriculum%20Vitae_M.%20Nabil%20Khairi%20Ikhsan.pdf"
                   target="_blank"
                   rel="noopener noreferrer"
+                  className="max-[640px]:px-3.5 max-[640px]:text-[12px] max-[640px]:tracking-[1px]"
                   text="Unduh CV"
                   en="Download CV"
                 />
@@ -298,7 +338,7 @@ export default function Home() {
             </div>
             <div className="spec">
               <span className="spec__v">
-                20
+                08
               </span>
               <span className="label spec__l" data-en="Documented Projects">
                 Proyek Terdokumentasi
@@ -326,6 +366,17 @@ export default function Home() {
         {/* ══ ABOUT ══ */}
         <section id="about" className="band">
           <div className="shell">
+            {/* Pembungkus dua kolom KHUSUS HP: kepala seksi di kiri, kartu
+                lanyard di kanannya. Slot ditulis lebih dulu di markup tapi
+                ditaruh di kolom kanan lewat grid-area di portfolio.css.
+                Di layar lebar ia `display: contents` —
+                pembungkusnya lenyap dari tata letak dan .sec-head kembali jadi
+                anak langsung .shell, jadi desktop tidak berubah sepiksel pun.
+                Slot di bawah kosong di markup: kartunya satu-satunya di
+                halaman ini dan dipindahkan ke sini lewat portal saat lebar
+                layar HP (components/lanyard-mount.tsx). */}
+            <div className="about-head">
+              <div id="lanyard-slot-about" className="lanyard-slot" />
  <div className="sec-head">
               <p className="label text-muted">01 — About</p>
               <h2
@@ -338,8 +389,13 @@ export default function Home() {
               </h2>
               <span className="m-stripe mt-6" aria-hidden="true" />
             </div>
+            </div>
 
-            <div className="mt-12 grid gap-10 lg:grid-cols-[1.15fr_.85fr] lg:gap-16 items-start">
+            {/* max-[640px]: — jarak vertikalnya milik utility Tailwind (layer
+                utilities, selalu menang atas portfolio.css), jadi versi HP-nya
+                harus ditulis di sini. 48px/40px itu ritme untuk kolom selebar
+                600px; di 342px ia jadi lubang. */}
+            <div className="mt-12 grid gap-10 max-[640px]:mt-4 max-[640px]:gap-7 lg:grid-cols-[1.15fr_.85fr] lg:gap-16 items-start">
  <div>
                 <p
                   className="lead"
@@ -380,7 +436,21 @@ export default function Home() {
  <div>
                 <h3 className="label text-muted">Education</h3>
 
-                <article className="edu spotlight mt-5">
+                {/* Pembungkus dua kolom KHUSUS HP, sama polanya dengan
+                    .about-head: `display: contents` di layar lebar, jadi kedua
+                    kartu tetap anak langsung kolom ini dan desktop tidak
+                    berubah. mt-5/mt-4 kartunya dinolkan di HP — di dalam grid
+                    jaraknya urusan gap, dan margin atas pada kartu kanan akan
+                    membuat keduanya tidak sejajar. */}
+                {/* .reveal, bukan .split seperti judul seksinya: keduanya
+                    dijalankan observer dan kelas .is-visible yang sama, tapi
+                    .split memecah TIAP HURUF dan memang cuma untuk heading
+                    (lihat catatannya di portfolio-runtime.js). Di kartu ini
+                    yang dipecah jadi tanggal, nama kampus, jurusan, dan IPK
+                    sekaligus — ~130 huruf beriak satu per satu di ketikan
+                    sekecil .caption/.prose. Yang dicari cuma kartunya naik. */}
+                <div className="edu-list">
+                <article className="edu spotlight reveal mt-5 max-[640px]:mt-0">
                   <p className="caption text-muted" data-en="Sep 2023 – Present">
                     Sep 2023 – Sekarang
                   </p>
@@ -395,7 +465,14 @@ export default function Home() {
                   </p>
                 </article>
 
-                <article className="edu spotlight mt-4">
+                {/* Menyusul 140ms di belakang kartu pertama — angka yang sama
+                    dipakai slot lanyard di hero. Di HP kedua kartu berdampingan
+                    (kisi dua kolom), jadi jedanya terbaca sebagai sapuan
+                    kiri-ke-kanan, bukan tumpukan yang tertinggal. */}
+                <article
+                  className="edu spotlight reveal mt-4 max-[640px]:mt-0"
+                  data-reveal-delay="140"
+                >
                   <p
                     className="caption text-muted"
                     data-en="May 2020 – May 2023"
@@ -406,11 +483,12 @@ export default function Home() {
                   <p className="prose mt-2">Access Network Engineering</p>
                   <p
                     className="label mt-4 text-ink"
-                    data-en="Final Score 90.5 / 100"
+                    data-en="GPA 90.5 / 100"
                   >
-                    Nilai Akhir 90.5 / 100
+                    IPK 90.5 / 100
                   </p>
                 </article>
+                </div>
 
                 <h3 className="label text-muted mt-10" data-en="Languages">
                   Bahasa
@@ -437,107 +515,137 @@ export default function Home() {
               <span className="m-stripe mt-6" aria-hidden="true" />
             </div>
 
-            <div className="mt-12 grid gap-10 lg:grid-cols-2 lg:gap-16">
- <div>
-                <h3 className="label text-muted">Hard Skills</h3>
-                <div className="mt-5 flex flex-wrap gap-2">
-                  <span className="chip">PCB Design</span>
-                  <span className="chip">Electronic Hardware Design</span>
-                  <span className="chip">Electrical System Analysis</span>
-                  <span className="chip">
-                    Hardware Testing &amp; Troubleshooting
-                  </span>
-                  <span className="chip">
-                    Artificial Intelligence (AI) Development
-                  </span>
-                  <span className="chip">Computer Vision</span>
-                  <span className="chip">Industrial Automation (PLC)</span>
-                  <span className="chip">
-                    Surface Mount Device (SMD) Soldering
-                  </span>
-                  <span className="chip">PID Control System Tuning</span>
-                  <span className="chip">Embedded Programming</span>
-                  <span className="chip">Sensor Interfacing</span>
-                  <span className="chip">Reverse Engineering</span>
+            <div className="mt-12 grid gap-10 max-[640px]:mt-6 max-[640px]:gap-7 lg:grid-cols-2 lg:gap-16">
+              {/* Dua kolom di laptop, satu deret di HP — dan urutannya BEDA di
+                  antara keduanya: laptop membaca per kolom (fokus lalu hard skill
+                  di kiri; software lalu bahasa di kanan), HP membaca menurun
+                  fokus - software - bahasa - hard skill. Karena itu tiap blok
+                  dibungkus satu <div>: yang dipindahkan order harus satu elemen,
+                  bukan pasangan <h3> + daftarnya yang berdiri terpisah.
+
+                  .skills-col jadi `display: contents` di HP (portfolio.css) —
+                  pembungkus kolomnya lenyap dari tata letak dan kelima blok jadi
+                  anak langsung kisi ini, jaraknya diurus gap-7 dan urutannya oleh
+                  order di bawah. Pola yang sama dipakai .about-head dan .edu-list,
+                  cuma di sana `contents`-nya justru di layar lebar.
+
+                  order ditulis lengkap 1..5, bukan cuma pada dua blok yang benar-
+                  benar bertukar: order 0 selalu mendahului order positif, jadi
+                  versi hematnya menuntut sisanya tetap 0 — invarian yang diam-diam
+                  patah begitu blok keenam ditambahkan. */}
+              <div className="skills-col">
+                <div className="max-[640px]:order-1">
+                  <h3 className="label text-muted" data-en="Focus Areas">
+                    Fokus Keahlian
+                  </h3>
+                  {/* divide-y/border-y dimatikan di HP: di sana daftar ini jadi
+                      dua kolom (.focus-list), dan garis "antar anak" milik
+                      divide-y digambar per anak — di dua kolom ia muncul di
+                      tengah baris, bukan di antara baris. Garisnya diganti
+                      border-bottom milik .meter sendiri di portfolio.css. */}
+                  <dl className="focus-list mt-5 divide-y divide-hairline-c border-y border-hairline-c max-[640px]:mt-4 max-[640px]:divide-y-0 max-[640px]:border-y-0">
+                    <div className="meter">
+                      <dt>PCB Design &amp; Layout</dt>
+                      <dd>
+                        <i style={{ '--v': '92%' } as React.CSSProperties} />
+                      </dd>
+                    </div>
+                    <div className="meter">
+                      <dt>Embedded &amp; Mini PC</dt>
+                      <dd>
+                        <i style={{ '--v': '88%' } as React.CSSProperties} />
+                      </dd>
+                    </div>
+                    <div className="meter">
+                      <dt>PLC / Industrial Automation</dt>
+                      <dd>
+                        <i style={{ '--v': '85%' } as React.CSSProperties} />
+                      </dd>
+                    </div>
+                    <div className="meter">
+                      <dt>Computer Vision &amp; AI</dt>
+                      <dd>
+                        <i style={{ '--v': '80%' } as React.CSSProperties} />
+                      </dd>
+                    </div>
+                    <div className="meter">
+                      <dt>Electrical Measurement</dt>
+                      <dd>
+                        <i style={{ '--v': '90%' } as React.CSSProperties} />
+                      </dd>
+                    </div>
+                  </dl>
                 </div>
 
-                <h3
-                  className="label text-muted mt-10"
-                  data-en="Programming Languages"
-                >
-                  Bahasa Pemrograman
-                </h3>
-                <div className="mt-5 flex flex-wrap gap-2">
-                  <span className="chip">
-                    {LANG_ICON.python}
-                    Python
-                  </span>
-                  <span className="chip">
-                    {LANG_ICON.cpp}
-                    C++
-                  </span>
-                  <span className="chip">
-                    {LANG_ICON.ladder}
-                    Ladder Diagram
-                  </span>
+                <div className="mt-10 max-[640px]:order-4 max-[640px]:mt-0">
+                  <h3 className="label text-muted">Hard Skills</h3>
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    <span className="chip">PCB Design</span>
+                    <span className="chip">Electronic Hardware Design</span>
+                    <span className="chip">Electrical System Analysis</span>
+                    <span className="chip">
+                      Hardware Testing &amp; Troubleshooting
+                    </span>
+                    <span className="chip">
+                      Artificial Intelligence (AI) Development
+                    </span>
+                    <span className="chip">Computer Vision</span>
+                    <span className="chip">Industrial Automation (PLC)</span>
+                    <span className="chip">
+                      Surface Mount Device (SMD) Soldering
+                    </span>
+                    <span className="chip">PID Control System Tuning</span>
+                    <span className="chip">Embedded Programming</span>
+                    <span className="chip">Sensor Interfacing</span>
+                    <span className="chip">Reverse Engineering</span>
+                  </div>
                 </div>
-
-                <h3 className="label text-muted mt-10" data-en="Focus Areas">
-                  Fokus Keahlian
-                </h3>
-                <dl className="mt-5 divide-y divide-hairline-c border-y border-hairline-c">
-                  <div className="meter">
-                    <dt>PCB Design &amp; Layout</dt>
-                    <dd>
-                      <i style={{ '--v': '92%' } as React.CSSProperties} />
-                    </dd>
-                  </div>
-                  <div className="meter">
-                    <dt>Embedded &amp; Mini PC</dt>
-                    <dd>
-                      <i style={{ '--v': '88%' } as React.CSSProperties} />
-                    </dd>
-                  </div>
-                  <div className="meter">
-                    <dt>PLC / Industrial Automation</dt>
-                    <dd>
-                      <i style={{ '--v': '85%' } as React.CSSProperties} />
-                    </dd>
-                  </div>
-                  <div className="meter">
-                    <dt>Computer Vision &amp; AI</dt>
-                    <dd>
-                      <i style={{ '--v': '80%' } as React.CSSProperties} />
-                    </dd>
-                  </div>
-                  <div className="meter">
-                    <dt>Electrical Measurement</dt>
-                    <dd>
-                      <i style={{ '--v': '90%' } as React.CSSProperties} />
-                    </dd>
-                  </div>
-                </dl>
               </div>
 
- <div>
-                <h3 className="label text-muted">Software &amp; Tools</h3>
-                <div className="mt-5 flex flex-wrap gap-2">
-                  {TOOLS.map(({ name, href, logo }) => (
-                    <a
-                      key={name}
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="chip"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={`/icons/${logo}.png`} alt="" loading="lazy" />
-                      {name}
-                    </a>
-                  ))}
+              <div className="skills-col">
+                <div className="max-[640px]:order-2">
+                  <h3 className="label text-muted">Software &amp; Tools</h3>
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    {TOOLS.map(({ name, href, logo }) => (
+                      <a
+                        key={name}
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="chip"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={`/icons/${logo}.png`} alt="" loading="lazy" />
+                        {name}
+                      </a>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="quote mt-10">
+                <div className="mt-10 max-[640px]:order-3 max-[640px]:mt-0">
+                  <h3
+                    className="label text-muted"
+                    data-en="Programming Languages"
+                  >
+                    Bahasa Pemrograman
+                  </h3>
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    <span className="chip">
+                      {LANG_ICON.python}
+                      Python
+                    </span>
+                    <span className="chip">
+                      {LANG_ICON.cpp}
+                      C++
+                    </span>
+                    <span className="chip">
+                      {LANG_ICON.ladder}
+                      Ladder Diagram
+                    </span>
+                  </div>
+                </div>
+
+                <div className="quote mt-10 max-[640px]:order-5 max-[640px]:mt-0">
                   <span className="m-stripe" aria-hidden="true" />
                   <p
                     className="title-md mt-5 split"
@@ -572,7 +680,10 @@ export default function Home() {
               Komponennya menulis 100vw/100vh apa adanya, dan di bawah body
               zoom .8 "satu layar penuh" itu jadi 80% layar. */}
           <div className="choreo-band__fx">
-            <ScrollChoreography images={CHOREO_IMAGES} />
+            <ScrollChoreography
+              images={CHOREO_IMAGES}
+              imagesPhone={CHOREO_IMAGES_PHONE}
+            />
           </div>
           <div className="choreo__overlay">
             {/* Pembungkus tengah terpisah dari <p>-nya: .split memecah kalimat
@@ -685,7 +796,7 @@ export default function Home() {
               <span className="m-stripe mt-6" aria-hidden="true" />
             </div>
 
-            <div className="mt-12 grid gap-10 lg:grid-cols-2 lg:gap-16 items-start">
+            <div className="mt-12 grid gap-10 max-[640px]:mt-6 max-[640px]:gap-7 lg:grid-cols-2 lg:gap-16 items-start">
               <form
                 id="contact-form"
                 noValidate
@@ -990,9 +1101,6 @@ export default function Home() {
           >
             © 2026 M. Nabil Khairi Ikhsan. Seluruh dokumentasi proyek milik
             pribadi dan institusi terkait.
-          </p>
-          <p className="caption text-muted">
-            HTML5 · Tailwind CSS · Vanilla JavaScript
           </p>
         </div>
       </footer>

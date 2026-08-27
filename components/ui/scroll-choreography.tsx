@@ -27,22 +27,52 @@
       layar. Sisanya — useSpring dan seluruh useTransform di bawah — tidak
       berubah sedikit pun. */
 import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+
+/* Berpasangan dengan blok HP di app/portfolio.css dan PHONE di
+   components/lanyard-mount.tsx — ubah ketiganya atau tidak sama sekali. */
+const PHONE = "(max-width: 640px)";
+
+type ChoreoImages = {
+  topLeft: string;
+  topRight: string;
+  bottomLeft: string;
+  bottomRight: string;
+};
+
+/* <picture>, bukan src yang ditukar di JS. Dengan penukaran JS peramban sudah
+   mulai mengunduh set mendatar sebelum useEffect sempat jalan, jadi HP
+   mengunduh delapan foto untuk menampilkan empat. `media` dipilih peramban
+   sebelum satu byte pun diminta.
+
+   <picture> sendiri elemen inline dan tingginya auto; tanpa `block h-full`
+   di sini, h-full milik <img> tidak punya apa-apa untuk diukur dan fotonya
+   mengempis jadi tinggi intrinsiknya. */
+function Foto({ src, srcPhone, alt }: { src: string; srcPhone?: string; alt: string }) {
+  return (
+    <picture className="block h-full w-full">
+      {srcPhone && <source media={PHONE} srcSet={srcPhone} />}
+      {/* Tanpa eslint-disable, dan itu bukan kelalaian: @next/next/no-img-element
+          memang tidak menyala untuk <img> di dalam <picture> — di sana <img>
+          bukan pengganti next/image, melainkan bagian wajib elemennya. */}
+      <img src={src} alt={alt} className="h-full w-full object-cover" />
+    </picture>
+  );
+}
 
 interface ScrollChoreographyProps {
   className?: string;
-  images: {
-    topLeft: string;
-    topRight: string;
-    bottomLeft: string;
-    bottomRight: string;
-  };
+  images: ChoreoImages;
+  /* Set khusus HP. Opsional: tanpa ini komponennya berperilaku persis seperti
+     aslinya. Lihat catatan CHOREO_IMAGES_PHONE di app/page.tsx. */
+  imagesPhone?: ChoreoImages;
 }
 
 export function ScrollChoreography({
   className,
   images,
+  imagesPhone,
 }: ScrollChoreographyProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -73,11 +103,38 @@ export function ScrollChoreography({
     restDelta: 0.001,
   });
 
+  /* Ukuran ubin harus dari JS, bukan kelas responsif: ubin hero-nya memakai
+     width/height dari useTransform — gaya inline, dan itu selalu menang atas
+     kelas apa pun — jadi ukuran fase-1-nya wajib datang dari sumber yang sama
+     dengan ketiga ubin lain. Kalau tidak, di HP tiga ubin membesar dan yang
+     keempat tetap kecil.
+
+     false saat render pertama (dan di SSR) supaya markup server dan klien
+     sama; useEffect yang membetulkannya. Pitanya duduk jauh di bawah lipatan
+     — wadahnya sendiri 300vh — jadi ukuran desktop tak sempat terlihat. */
+  const [phone, setPhone] = useState(false);
+  useEffect(() => {
+    const mq = matchMedia(PHONE);
+    const baca = () => setPhone(mq.matches);
+    baca();
+    mq.addEventListener("change", baca);
+    return () => mq.removeEventListener("change", baca);
+  }, []);
+
+  /* Di HP ubinnya lebih tinggi DAN lebih lebar: fotonya tegak, dan 36x24 di
+     layar 390px menyisakan pita yang terlalu pendek untuk isinya. Jaraknya
+     ikut digeser keluar — tanpa itu 44vw pada pusat +-20vw saling bertindih
+     4vw di tengah. Hasilnya: mendatar -46..-2 dan +2..+46, tegak -34..-2 dan
+     +2..+34; celah 4 dan tepinya tidak tersentuh. */
+  const { w: boxW, h: boxH, x: offX, y: offY } = phone
+    ? { w: "44vw", h: "32vh", x: "24vw", y: "18vh" }
+    : { w: "36vw", h: "24vh", x: "20vw", y: "14vh" };
+
   // Default positions relative to center
-  const xLeft = "-20vw";
-  const xRight = "20vw";
-  const yTop = "-14vh";
-  const yBottom = "14vh";
+  const xLeft = `-${offX}`;
+  const xRight = offX;
+  const yTop = `-${offY}`;
+  const yBottom = offY;
 
   // Phase 1: 0 - 0.3 (Diagonal movement)
   // Phase 2: 0.35 - 0.65 (Stack alignment to center)
@@ -100,14 +157,17 @@ export function ScrollChoreography({
   const trY = useTransform(smoothProgress, [0, 0.3, 0.35, 0.65, 1], [yTop, yTop, yTop, "0vh", "0vh"]);
 
   // Top Right (Hero) scaling/expansion properties
-  const heroWidth = useTransform(smoothProgress, [0.65, 0.7, 0.9, 1], ["36vw", "36vw", "100vw", "100vw"]);
-  const heroHeight = useTransform(smoothProgress, [0.65, 0.7, 0.9, 1], ["24vh", "24vh", "100vh", "100vh"]);
+  const heroWidth = useTransform(smoothProgress, [0.65, 0.7, 0.9, 1], [boxW, boxW, "100vw", "100vw"]);
+  const heroHeight = useTransform(smoothProgress, [0.65, 0.7, 0.9, 1], [boxH, boxH, "100vh", "100vh"]);
 
   // Opacity fading for images underneath the hero as it expands
   const underImagesOpacity = useTransform(smoothProgress, [0.75, 0.85], [1, 0]);
 
+  /* w/h lepas dari kelas ini dan pindah ke gaya inline tiap ubin: hero-nya
+     memang sudah begitu (dari useTransform), dan dua sumber ukuran untuk satu
+     baris ubin adalah cara termudah membuat keempatnya tidak lagi seragam. */
   const baseImageClasses =
-    "absolute left-1/2 top-1/2 w-[36vw] h-[24vh] overflow-hidden -translate-x-1/2 -translate-y-1/2 bg-muted shadow-2xl will-change-transform";
+    "absolute left-1/2 top-1/2 overflow-hidden -translate-x-1/2 -translate-y-1/2 bg-muted shadow-2xl will-change-transform";
 
   return (
     <div ref={containerRef} className={cn("relative h-[300vh] w-full", className)}>
@@ -116,29 +176,26 @@ export function ScrollChoreography({
 
           {/* Top Left Image */}
           <motion.div
-            style={{ x: tlX, y: tlY, opacity: underImagesOpacity }}
+            style={{ x: tlX, y: tlY, opacity: underImagesOpacity, width: boxW, height: boxH }}
             className={cn(baseImageClasses, "z-10")}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={images.topLeft} alt="Top Left" className="h-full w-full object-cover" />
+            <Foto src={images.topLeft} srcPhone={imagesPhone?.topLeft} alt="Top Left" />
           </motion.div>
 
           {/* Bottom Right Image */}
           <motion.div
-            style={{ x: brX, y: brY, opacity: underImagesOpacity }}
+            style={{ x: brX, y: brY, opacity: underImagesOpacity, width: boxW, height: boxH }}
             className={cn(baseImageClasses, "z-20")}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={images.bottomRight} alt="Bottom Right" className="h-full w-full object-cover" />
+            <Foto src={images.bottomRight} srcPhone={imagesPhone?.bottomRight} alt="Bottom Right" />
           </motion.div>
 
           {/* Bottom Left Image */}
           <motion.div
-            style={{ x: blX, y: blY, opacity: underImagesOpacity }}
+            style={{ x: blX, y: blY, opacity: underImagesOpacity, width: boxW, height: boxH }}
             className={cn(baseImageClasses, "z-30")}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={images.bottomLeft} alt="Bottom Left" className="h-full w-full object-cover" />
+            <Foto src={images.bottomLeft} srcPhone={imagesPhone?.bottomLeft} alt="Bottom Left" />
           </motion.div>
 
           {/* Top Right Image (Hero - expands at the end) */}
@@ -151,8 +208,7 @@ export function ScrollChoreography({
             }}
             className={cn(baseImageClasses, "z-40 origin-center bg-black/5")}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={images.topRight} alt="Top Right (Hero)" className="h-full w-full object-cover" />
+            <Foto src={images.topRight} srcPhone={imagesPhone?.topRight} alt="Top Right (Hero)" />
           </motion.div>
         </div>
       </div>

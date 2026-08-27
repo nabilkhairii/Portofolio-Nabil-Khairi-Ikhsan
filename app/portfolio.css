@@ -105,6 +105,23 @@ body { zoom: var(--zoom); }
     #0066b1 38%, #1c69d4 44%, #4b3fb0 50%, #7a2f86 55%, #e22718 62%;
 }
 
+/* ═══ HP — zoom halaman dimatikan ═══
+   Di layar lebar zoom .8 menambah ruang. Di layar selebar 390px yang
+   ditambahnya bukan ruang melainkan jarak baca: .prose 16px tergambar 12,8px,
+   dan tak ada ruang tersisa untuk ditukar dengannya.
+
+   Cukup empat nilai ini karena memang begitu sistemnya ditulis — tiap tempat
+   yang bergantung pada zoom membacanya lewat var(--zoom) atau
+   var(--vh)/--vw/--dvh, tidak ada satu pun angka px yang perlu ikut diubah.
+   Keempatnya berpasangan: --vh dst. = 1vh / --zoom (lihat catatan di :root).
+
+   640px, bukan 800px seperti blok galeri di bawah: 800px viewport itu tablet,
+   dan di sana zoom .8 masih memberi tata letak yang sama dengan desktop.
+   Angka ini berpasangan dengan PHONE di components/lanyard-mount.tsx. */
+@media (max-width: 640px) {
+  :root { --zoom: 1; --vh: 1vh; --vw: 1vw; --dvh: 1dvh; }
+}
+
 * { border-color: var(--hairline); }
 /* <html> di luar zoom body: 64px nav-nya tampil 51px, jadi paddingnya ikut
    dikalikan --zoom — kalau tidak, tiap anchor berhenti 13px kelewat jauh. */
@@ -310,6 +327,45 @@ main > section + section { border-top: 1px solid var(--hairline); }
   touch-action: none;                 /* tarik kartu tanpa ikut men-scroll halaman */
 }
 
+/* ═══ LANYARD DI LAYAR SENTUH ═══
+   touch-action: none di atas menyerahkan SELURUH gerakan jari ke kartu. Dengan
+   tetikus itu tak berakibat apa-apa — roda gulir bukan pointer, dan mencubit
+   tidak ada. Di layar sentuh ketiganya gerakan yang sama, dan kotak canvas ini
+   sengaja dilebarkan jauh melewati slotnya: di HP ia menutupi ~750px layar
+   pertama, jadi sapuan jari di mana pun di sana tidak menggulir apa pun dan
+   halaman ini praktis tidak bisa dibuka dari hero.
+
+   Disaring lewat pointer: coarse, bukan lebar layar: yang menentukan bukan
+   sempitnya viewport melainkan alat tunjuknya. Tablet berlayar sentuh selebar
+   1024 tetap butuh ini, dan jendela desktop yang dipersempit sampai 500px
+   tidak.
+
+   pinch-zoom ikut dipertahankan, dan itu bukan pelengkap: cubitan untuk
+   membaca adalah hal pertama yang dilakukan orang di layar sentuh yang
+   kesempitan, dan hero adalah bagian pertama yang ditemui. pan-y mengembalikan
+   gulir tegak ke peramban; tarikan mendatar tetap sampai ke kartu, jadi
+   kartunya masih bisa diayun. */
+@media (pointer: coarse) {
+  .lanyard-wrapper { touch-action: pan-y pinch-zoom; }
+}
+
+/* ...kecuali di HP, dan itu bukan pengecualian sembarangan: pan-y di atas
+   melindungi HERO, dan di ≤640px kartunya sudah tidak ada di hero. Ia pindah
+   ke seksi About (.band--hero .lanyard-slot { display: none }), jadi layar
+   pertama tidak lagi tertutup canvas apa pun dan halaman ini tetap bisa
+   dibuka dengan sapuan biasa. Yang tersisa di 641px ke atas — tablet berlayar
+   sentuh — kartunya memang masih menggantung di hero, dan di sana pan-y tetap
+   berlaku.
+
+   Ongkosnya nyata dan disengaja: sapuan tegak yang MENDARAT DI CANVAS tidak
+   lagi menggulir halaman. Yang mendarat di teks tetap menggulir — #lanyard-3d
+   duduk di z-index -1, jadi tiap paragraf di atasnya yang jadi sasaran
+   sentuhan. Tanpa ini tarikan ke bawah cuma menggulir halaman dan kartunya
+   bergeser 20px sementara halaman lari 245px. */
+@media (pointer: coarse) and (max-width: 640px) {
+  .lanyard-wrapper { touch-action: none; }
+}
+
 
 /* ═══ SPEC CELLS ═══ */
 .spec { background: var(--soft); padding: 32px 24px; }
@@ -399,7 +455,12 @@ main > section + section { border-top: 1px solid var(--hairline); }
 
    Kalimatnya sengaja DI LUAR pembungkus ini — kalau ikut, ukurannya jadi 1.25x
    heading display-lg lain di halaman. */
-.choreo-band__fx { zoom: 1.25; }
+/* Ditulis sebagai pembagian, bukan 1.25 mati: angkanya HARUS kebalikan zoom
+   body, dan di HP zoom itu 1 (blok "HP" di kepala berkas). Dengan 1.25 mati,
+   pita ini akan tergambar 1,25x di sana — satu-satunya bagian halaman yang
+   membesar justru saat layarnya paling sempit. Di desktop nilainya tetap
+   1/.8 = 1.25, persis seperti sebelumnya. */
+.choreo-band__fx { zoom: calc(1 / var(--zoom)); }
 
 .choreo__overlay {
   position: absolute; inset: 0; pointer-events: none;
@@ -489,7 +550,12 @@ main > section + section { border-top: 1px solid var(--hairline); }
    yang dulu menutupi panel non-aktif tidak ada lagi — semua kartu setara. */
 .pcard__scrim {
   position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(180deg, transparent 40%, rgb(0 0 0 / .8) 100%);
+  /* 48%, turun dari 40%: caption yang mengecil berhenti lebih rendah, jadi
+     titik mulai gelapnya boleh ikut turun — itu delapan persen tinggi kartu
+     yang kembali jadi foto. Tidak lebih rendah dari ini: gelapnya butuh ruang
+     untuk tumbuh mulus, dan pemeriksa kontras di tests/ cuma menguji pasangan
+     warna palet, bukan teks putih di atas gradien ini. */
+  background: linear-gradient(180deg, transparent 48%, rgb(0 0 0 / .8) 100%);
 }
 
 /* Lencana digeser ke 16px, bukan 12px: sudut squircle 28px memakan pojoknya. */
@@ -513,7 +579,7 @@ main > section + section { border-top: 1px solid var(--hairline); }
 }
 /* Aksen caption = m-stripe berdiri, satu-satunya elemen dekoratif sistem ini. */
 .pcard__bar {
-  flex: none; width: 3px; height: 38px;
+  flex: none; width: 3px; height: 33px;
   background: linear-gradient(180deg,
     var(--m-blue)      0 33.333%,
     var(--m-blue-dark) 33.333% 66.666%,
@@ -527,20 +593,21 @@ main > section + section { border-top: 1px solid var(--hairline); }
 }
 .pcard__cat, .pcard__org, .pcard__cta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* Caption ini duduk di atas foto di kartu selebar ~300px, dan sengaja dibuat
-   kecil supaya fotonya yang dibaca lebih dulu, bukan teksnya. 9px sudah di
-   bawah ukuran yang nyaman untuk kapital berspasi — kalau nanti terasa terlalu
-   kecil, ketiga angka di blok ini (9/13/10) yang dinaikkan bersama. */
-.pcard__cat { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; opacity: .78; }
+   kecil supaya fotonya yang dibaca lebih dulu, bukan teksnya. Empat angkanya
+   satu keluarga (8/11/9/8) dan dinaikkan bersama kalau nanti terasa terlalu
+   kecil; letter-spacing kapital berspasi ikut dirapatkan ke 1.2px supaya
+   "REVERSE ENGINEERING" tidak jadi lebih lebar justru setelah dikecilkan. */
+.pcard__cat { font-size: 8px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; opacity: .78; }
 /* Judulnya boleh dua baris — kartu jauh lebih sempit daripada panel akordeon
    yang terbuka, dan "Asisten Praktikum Alat Ukur dan Pengukuran" tidak muat
    satu baris di mana pun. Baris ketiga dipotong, bukan mendorong caption
    keluar dari kartunya. */
 .pcard__title {
-  font-size: 13px; font-weight: 700; line-height: 1.3; margin-top: 4px;
+  font-size: 11px; font-weight: 700; line-height: 1.3; margin-top: 3px;
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
 }
-.pcard__org { font-size: 10px; font-weight: 300; margin-top: 4px; opacity: .82; }
-.pcard__cta { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 8px; }
+.pcard__org { font-size: 9px; font-weight: 300; margin-top: 3px; opacity: .82; }
+.pcard__cta { font-size: 8px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; margin-top: 6px; }
 .pcard__cta::after { content: " \2192"; }
 
 /* ═══ SPOTLIGHT translation ═══
@@ -612,6 +679,292 @@ a.chan:hover .chan__v { color: var(--ink); }
 
 /* ═══ FOOTER ═══ */
 .footer { background: var(--canvas); padding-block: 64px; }
+
+/* ═══════════════════════════════════════════════════════════
+   TAMPILAN HP — ≤ 640px
+   Bukan versi desktop yang dipersempit: urutan layarnya sendiri.
+
+     layar 1  kepala + nama + kalimat + dua tombol. Tanpa kartu.
+     layar 2  kartu lanyard di kolom kiri, "01 — About" + judulnya di kanan,
+              paragrafnya turun selebar penuh di bawah keduanya.
+     layar 3  pendidikan dst., persis urutan markup yang sudah ada.
+
+   Kartunya dipindahkan ke sini oleh portal di
+   components/lanyard-mount.tsx — CSS tidak bisa memindahkan elemen antar
+   <section>. Yang di sini cuma kotak tempat ia mendarat.
+
+   Titik patah 640px berpasangan dengan blok zoom di kepala berkas dan dengan
+   PHONE di lanyard-mount.tsx; ubah ketiganya atau tidak sama sekali.
+   ═══════════════════════════════════════════════════════════ */
+
+/* Tiga keadaan, jadi tidak bisa jadi utility di markup: sembunyi di tablet,
+   di baris header pada desktop, taskbar mengambang di HP. */
+.nav-dock { display: none; }
+@media (min-width: 960px) { .nav-dock { display: block; } }
+
+/* Kosong sampai portal mengisinya; di layar lebar ia tidak ada sama sekali. */
+#lanyard-slot-about { display: none; }
+/* display: contents — pembungkusnya lenyap dari tata letak dan anaknya kembali
+   jadi anak langsung induknya. Tanpa ini desktop ikut berubah. Keduanya cuma
+   ada untuk memberi kisi HP di bawah sesuatu untuk dipegang. */
+.about-head, .edu-list { display: contents; }
+
+.hero-cta { display: flex; flex-wrap: wrap; gap: 12px; }
+
+@media (max-width: 640px) {
+  /* ── Layar 1 ── satu layar penuh, isinya ditengahkan tegak.
+     Dikurangi 64px karena topnav sticky ikut mengambil barisnya di atas hero;
+     tanpa itu dasar hero jatuh 64px di bawah lipatan. Padding bawah menyisakan
+     ruang untuk taskbar yang mengambang di atasnya. */
+  .band--hero {
+    display: grid; align-content: center;
+    min-height: calc(100 * var(--dvh) - 64px);
+    padding-block: 24px calc(84px + env(safe-area-inset-bottom));
+  }
+  /* Kartunya bukan disembunyikan di sini — ia memang sudah pindah ke About.
+     Yang ditutup cuma kotak penahan tingginya, yang kalau dibiarkan menyisakan
+     480px kosong di tengah hero. */
+  .band--hero .lanyard-slot { display: none; }
+
+  /* Dua tombol berdampingan, sama lebar. grid, bukan flex-wrap: dengan wrap
+     "Unduh CV" turun sendiri ke baris kedua dan lebarnya jadi tidak sama. */
+  .hero-cta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .hero-cta > * { width: 100%; }
+  /* Kolomnya 166px dan padding 32px memakan 64px di antaranya — labelnya patah
+     jadi "VIEW / PROJECTS". Dikecilkan sampai keduanya muat satu baris.
+     Pasangannya ada di page.tsx: FlowButton memakai utility Tailwind (px-8,
+     text-[14px]) yang selalu menang atas berkas ini, jadi ukuran HP-nya
+     dioper sebagai varian max-[640px] di sana. */
+  .hero-cta .btn { padding-inline: 14px; font-size: 12px; letter-spacing: 1px; }
+
+  /* Kalimat pembuka dikecilkan, dan cuma yang di hero — .lead juga dipakai
+     paragraf About, dan di sana panjangnya bukan masalah. Di sini iya:
+     lantai clamp-nya 17px, dan pada 390px kalimat versi Indonesia jadi enam
+     baris di dalam layar yang tingginya sudah dipatok satu layar penuh.
+     Tiap baris yang dihemat langsung jadi ruang di atas tombolnya. */
+  .band--hero .lead { font-size: 14px; line-height: 1.55; }
+
+  /* ── Layar 2 ── kartu kiri, kepala seksi kanan.
+     isolation: isolate wajib. #lanyard-3d duduk di z-index -1, dan di hero
+     yang menampungnya adalah konteks penumpukan milik `.band--hero > .shell`
+     (z-index: 1). Di sini tidak ada yang seperti itu: tanpa konteks sendiri,
+     -1 jatuh ke konteks akar dan kartunya tergambar DI BELAKANG latar <body> —
+     hilang sama sekali, tanpa error. */
+  /* Urutan kolomnya ditulis eksplisit, bukan lewat urutan markup: di DOM slot
+     kartu ditulis lebih dulu (supaya portal punya sasaran sebelum .sec-head
+     dibaca), sementara di layar ia ada di KANAN. grid-area memisahkan kedua
+     urutan itu tanpa menyentuh markup. */
+  .about-head {
+    display: grid; grid-template-columns: 1fr 34%;
+    gap: 24px; align-items: start; isolation: isolate;
+  }
+  .about-head .sec-head { grid-area: 1 / 1; }
+  /* Judul ini enam kata panjang di kolom ~215px. Pada 32px bawaan display-lg,
+     "SCHEMATIC" sendiri hampir selebar kolomnya dan judulnya patah jadi enam
+     baris. 28px mengembalikannya ke empat tanpa mengubah display-lg di seksi
+     lain — yang lain semuanya selebar penuh dan tidak punya masalah ini. */
+  .about-head .display-lg { font-size: 28px; }
+  /* Tali kartu menggantung ±224px di atas kotaknya dan tergambar menembus pita
+     spec di atasnya, melewati garis pemisah seksi. Dipotong di batas seksi:
+     kartunya lalu terbaca menggantung DARI garis itu, bukan menabraknya. */
+  #about { overflow: hidden; }
+  /* Tinggi kotak = ukuran kartu: canvas dilebarkan ±70% dari kotak ini dan fov
+     itu sudut tegak, jadi kartu di layar sebanding dengan tinggi kotaknya.
+     Ini kenop yang dipakai kalau kartunya terasa kurang/kelewat besar.
+
+     230, turun dari 320: kotak ini yang menentukan tinggi baris .about-head —
+     kepala seksinya cuma ~180px — jadi tiap piksel di atas itu jadi ruang
+     kosong yang mendorong paragraf About turun. Di bawah ~200 kartunya mulai
+     terlalu kecil untuk dikenali; 230 titik tukar yang dipilih. */
+  #lanyard-slot-about { display: block; height: 230px; grid-area: 1 / 2; }
+
+  /* ── Sejauh mana kartu bisa ditarik turun ──
+     Batasnya tepi bawah <canvas>, dan itu terukur bukan diduga: ditarik 479px
+     atau 900px hasilnya sama persis (isi canvas mentok 709px, tepi bawahnya
+     terpaku di tepi canvas) — WebGL berhenti melukis di situ, bukan talinya
+     yang kehabisan. Pada -70% tepi itu masih 208px di atas Core Competencies.
+
+     Yang bisa dibeli cuma TINGGI: tepi bawah = titik tengah + ½ tinggi, dan
+     titik tengah tidak boleh bergerak karena di situlah kartunya menggantung.
+     Memanjangkan bawahnya saja menurunkan titik tengah separuh tambahannya
+     dan kartunya ikut pindah; menggeser slotnya untuk menebus itu membawa
+     canvas-nya ikut bergeser — jangkauannya kembali ke setengah tinggi juga.
+     Jadi simetris, dan tepi atas ikut turun ke wilayah yang sudah dipotong
+     #about overflow:hidden: murni ongkos gambar, tak ada yang terlihat di
+     sana. Ongkos itu nyata — kotaknya 552px jadi 1150px, dua kali lipat luas
+     yang digambar tiap frame di HP.
+
+     -200%: tepi bawah mendarat di 2007 sementara Core Competencies mulai di
+     1916, jadi kartu masih tergambar utuh saat menyentuh garis itu — bukan
+     terpotong separuh di tepi canvas.
+
+     BERPASANGAN dengan z di components/lanyard-mount.tsx. fov itu sudut
+     tegak, jadi ukuran kartu di layar = tinggi canvas / z: 552 -> 1150 (2,08x)
+     dan z ikut 29 -> 60 supaya kartunya tetap sebesar sebelumnya. Ubah satu
+     tanpa yang lain dan kartunya berubah ukuran.
+
+     ── Mendatarnya DIPERSEMPIT saat diam: -30px, bukan -60vw ──
+     Ini yang membayar touch-action: none di atas. Kotak setinggi ini menutupi
+     seluruh tinggi layar, jadi tiap piksel lebarnya langsung jadi jalur yang
+     tak bisa dipakai menyapu. Terukur di 390x844: -60vw membekukan 74% layar
+     About — sapuan di x=40 pun menggerakkan halaman 0px — sementara -30px
+     menyisakan 38%, dan 58% lebar layar di sebelah kiri tetap bisa disapu. */
+  #lanyard-3d { inset: -200% -30px; }
+
+  /* ── ...dan DILEBARKAN saat kartunya ditarik ──
+     Sempit itu ongkosnya nyata: kartu selebar 84px di kotak 176px sudah
+     tersentuh tepi canvas begitu ditarik ~30px ke samping, dan WebGL tidak bisa
+     melukis sepiksel pun di luar elemennya. Tapi ongkos yang dibayar di atas —
+     wilayah gulir — cuma berlaku saat tak ada yang sedang ditarik: selama jari
+     memegang kartunya, tak ada seorang pun yang juga sedang menggulir.
+
+     Jadi lebarnya mengikuti keadaan, bukan dipatok satu angka: sempit saat
+     diam, selebar layar saat dipegang. Kelasnya dipasang components/lanyard.tsx
+     lewat onActive dan baru dilepas setelah ayunannya mereda — bukan saat jari
+     diangkat, karena kartu yang baru dilepas masih terlempar jauh dan kotak
+     yang keburu menyempit memotongnya persis di situ.
+
+     70vw, bukan 60: slot ini duduk di kolom KANAN, tepi kirinya di x=254 pada
+     layar 390. Pelebarannya wajib simetris (lihat alinea tinggi di atas), jadi
+     angkanya ditentukan sisi kiri — 65vw baru pas menyentuh x=0, dan 70vw
+     menyisakan sedikit ruang lebih di kedua sisi.
+
+     Melebar sambil ditarik tidak menggeser apa pun yang terlihat: fov itu sudut
+     TEGAK, jadi lebar dunia yang termuat sebanding dengan lebar canvas —
+     piksel layar yang sama tetap memetakan ke titik dunia yang sama, dan
+     kartunya diam di tempat. Yang berubah cuma seberapa jauh ia bisa dibawa
+     sebelum tepi canvas memotongnya. */
+  #lanyard-3d.is-active { inset: -200% -70vw; }
+
+  /* ── Kerapatan daftar ──
+     Semua di bawah ini satu keluhan yang sama: skala ketikan & jarak di sini
+     dirancang untuk kolom ~600px, dan di 342px hasilnya satu baris per layar.
+     Yang diubah cuma ukuran & jumlah kolom — tak satu pun kata dibuang. */
+
+  /* Dua kolom: dua belas kompetensi jadi enam baris, bukan dua belas. */
+  .comp-grid { grid-template-columns: 1fr 1fr; column-gap: 14px; }
+  /* 12px, bukan 13: pada 13px "Power Distribution Analysis" meleset beberapa
+     piksel dari lebar kolomnya dan patah dua baris, dan barisnya sendiri jadi
+     tinggi — di kisi, tinggi baris itu dibagi dengan sel di sebelahnya. */
+  .comp-grid li { font-size: 12px; padding: 9px 0; }
+
+  /* Kedua kartu pendidikan berdampingan. title-lg 24px di kolom 166px akan
+     memakan empat baris untuk satu nama kampus — diturunkan bersama isinya. */
+  .edu-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+  /* Kolom flex supaya baris IPK kedua kartu sejajar. Berdampingan, nama
+     kampus dan jurusannya beda panjang — "Universitas Negeri Yogyakarta"
+     patah tiga baris, "SMK Telkom Makassar" dua — jadi IPK-nya mendarat di
+     ketinggian yang berbeda meski kotaknya sama tinggi (item kisi meregang).
+     Yang meregang jurusannya, BUKAN margin-top: auto pada IPK-nya: mt-4 di
+     page.tsx itu utility Tailwind dan selalu menang atas berkas ini, dan pada
+     kartu yang lebih tinggi auto akan jadi 0 — jarak 16px di atas IPK hilang
+     persis di kartu yang tidak butuh digeser. */
+  .edu { padding: 14px; display: flex; flex-direction: column; }
+  .edu .title-lg { font-size: 15px; line-height: 1.25; }
+  .edu .prose { font-size: 12px; line-height: 1.45; flex: 1; }
+  .edu .caption { font-size: 11px; }
+  .edu .label { font-size: 11px; letter-spacing: 1px; }
+
+  /* Fokus Keahlian dua kolom. Garis pemisahnya dipindah ke tiap .meter karena
+     divide-y milik wadahnya sudah dimatikan di page.tsx — lihat catatan di
+     sana kenapa garis "antar anak" tidak bisa dipakai di kisi dua kolom. */
+  /* Kebalikan .about-head/.edu-list: di sana `contents` dipakai supaya layar
+     LEBAR tidak berubah, di sini supaya HP bisa mengurut ulang. Kedua kolom
+     Skills lenyap dari tata letak dan kelima bloknya jadi anak langsung kisi
+     satu-kolom di atasnya — barulah order di page.tsx punya sesuatu untuk
+     diurutkan, karena order cuma berlaku antar-saudara. Jaraknya ikut pindah
+     ke gap kisi itu (28px); mt-10 antarblok dinolkan di page.tsx supaya tidak
+     ditumpuk di atas gap. */
+  .skills-col { display: contents; }
+
+  .focus-list { display: grid; grid-template-columns: 1fr 1fr; column-gap: 14px; }
+  .meter { padding: 10px 0; gap: 6px; border-bottom: 1px solid var(--hairline); }
+  .meter dt { font-size: 12px; }
+
+  /* Chip dirapatkan supaya dua-tiga muat sebaris, bukan satu. */
+  .chip { padding: 7px 10px; font-size: 12px; gap: 7px; }
+  .chip img, .chip svg { width: 16px; height: 16px; }
+
+  /* ── Filter kategori: satu baris yang digeser ──
+     Lima tab berjumlah ~620px; di 342px flex-wrap memecahnya jadi tiga baris
+     tumpukan yang terbaca seperti daftar, bukan deret pilihan. nowrap +
+     overflow-x mengembalikannya jadi satu deret yang diusap ke kanan.
+     Margin negatif membawanya sampai ke tepi layar — itu yang memberi tahu
+     bahwa deretnya masih berlanjut; kalau berhenti di padding .shell, potongan
+     terakhirnya terbaca seperti tab yang terpotong.
+     overflow-y: hidden karena satu sumbu `auto` membuat sumbu lain ikut jadi
+     `auto`: tanpa ini margin -1px milik .tab menghasilkan bilah gulir tegak
+     setinggi satu piksel.
+
+     Tanpa scroll-snap, dan itu hasil pengukuran bukan selera: dengan
+     snap-align: start peramban menyejajarkan tab pertama ke tepi port
+     gulirnya dan mengabaikan padding-inline — begitu halaman dibuka
+     scrollLeft langsung jadi 24, "ALL" terpotong separuh di tepi kiri layar.
+     Deret lima tab juga tidak butuh snap: tidak ada halaman untuk dilompati. */
+  .tabs {
+    flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden;
+    gap: 20px; scrollbar-width: none;
+    margin-inline: -24px; padding-inline: 24px;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: none; font-size: 12px; letter-spacing: 1px; }
+
+  /* ── Kisi proyek dua kolom ──
+     auto-fill minmax(min(100%,300px)) selalu jatuh ke satu kolom di 342px, dan
+     21 kartu selebar layar berbaris tujuh layar ke bawah. Dipaku dua kolom.
+     Isinya ikut mengecil: caption ini duduk di kartu yang kini ~166px, separuh
+     dari lebar yang jadi dasar angka aslinya. Yang tersisa untuk diturunkan
+     tinggal judul dan instansinya — kategori dan ajakannya sudah 8px sejak di
+     dasarnya, jadi di sini keduanya cuma merapatkan letter-spacing. */
+  .pgrid { grid-template-columns: 1fr 1fr; gap: 12px; }
+  /* Persegi, bukan 4/3, dan ini konsekuensi dari dua kolom — bukan tambahan.
+     Caption ini tingginya tetap (~72px terukur: kategori, judul dua baris,
+     instansi, ajakan) berapa pun lebar kartunya. Pada kartu dua-kolom 165x124
+     ia memakan 58% — fotonya tinggal sepertiga dan kartu foto berhenti jadi
+     kartu foto. 165x165 plus ketikan yang dikecilkan di bawah ini menurunkannya
+     ke 44%. */
+  .pcard { border-radius: 20px; aspect-ratio: 1; }
+  /* Gradiennya ikut dinaikkan: pada kartu sependek ini teks dimulai jauh di
+     atas titik 40% tempat gelapnya baru mulai tumbuh, dan judul putih mendarat
+     di bagian foto yang masih terang. */
+  .pcard__scrim { background: linear-gradient(180deg, transparent 26%, rgb(0 0 0 / .5) 54%, rgb(0 0 0 / .88) 100%); }
+  .pcard__cap { left: 10px; right: 10px; bottom: 9px; gap: 6px; }
+  .pcard__bar { width: 2px; height: 26px; }
+  .pcard__cat { letter-spacing: 1px; }
+  .pcard__title { font-size: 10px; }
+  .pcard__org { font-size: 8px; margin-top: 2px; }
+  .pcard__cta { letter-spacing: 1px; margin-top: 5px; }
+  .pcard__new { top: 10px; left: 10px; }
+  .pcard__play { top: 10px; right: 10px; width: 30px; height: 30px; }
+
+  /* ── Taskbar ── pil mengambang di tepi bawah, di jangkauan jempol.
+     Menggantikan hamburger: tujuannya empat-empatnya sama persis. */
+  .nav-dock {
+    display: block; position: fixed; z-index: 60;
+    left: 50%; transform: translateX(-50%);
+    bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+  /* Blur nav dimatikan di HP, dan ini bukan soal selera. backdrop-filter
+     membuat elemennya jadi containing block untuk keturunan position: fixed —
+     dan taskbar di atas ADALAH keturunan .topnav. Begitu halaman digulir dan
+     .is-stuck menyala, "bottom: 14px" berhenti berarti tepi bawah layar dan
+     berubah jadi tepi bawah bar 64px itu: taskbarnya melompat ke pojok kanan
+     atas, menimpa nama. Tanpa blur, ia kembali terpaku ke viewport.
+     Latarnya ikut dipekatkan, dan itu bukan tambahan opsional: --nav-stuck
+     cuma 92% pekat karena buramnya yang mengurus sisanya. Tanpa blur, 8% itu
+     jadi lubang — judul hero dan paragraf About terbaca menembus bar sambil
+     digulir. --canvas pekat penuh dan sudah ikut berganti di mode terang.
+
+     Ditulis tanpa pasangan -webkit-: memberi keduanya justru mematahkannya.
+     Lightning CSS memampatkan pasangan itu jadi satu deklarasi dan yang
+     disisakan yang terakhir ditulis — hasilnya cuma -webkit-backdrop-filter,
+     properti standarnya hilang, dan blur(8px) di atas tetap menang. Dibiarkan
+     satu, prefiksnya dibangkitkan sendiri seperti pada aturan aslinya. */
+  .topnav.is-stuck { backdrop-filter: none; background: var(--canvas); }
+  #menu-btn { display: none; }
+  /* Baris terakhir footer tidak boleh berakhir di bawah taskbar. */
+  .footer { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+}
 
 /* ═══════════════════════════════════════════════════════════
    MOTION — design-agnostic; unchanged across re-skins
@@ -726,6 +1079,25 @@ a.chan:hover .chan__v { color: var(--ink); }
 .g-nav--prev { left: 16px; }
 .g-nav--next { right: 16px; }
 
+/* ═══ GALERI DI LAYAR SENTUH ═══
+   Di sana fotonya digeser, bukan ditombol — dan begitu geser jalan, dua pil
+   ‹ › di atas foto tinggal menutupi bagian yang mau dilihat. Disaring lewat
+   pointer: coarse, bukan lebar layar, karena yang menentukan alat tunjuknya:
+   di layar sentuh sempit maupun lebar gerakannya sama.
+
+   Yang tersisa sebagai penanda kalau fotonya lebih dari satu: #g-count di
+   pojok ("3 / 10") dan barisan thumbnail di bawah, yang tetap bisa diketuk —
+   jadi tidak ada jalan yang hilang, cuma yang paling menghalangi.
+
+   pan-y pinch-zoom: gerakan mendatar diserahkan ke penangan geser di
+   portfolio-runtime.js, tegak dan cubitan tetap milik peramban. Tanpa baris
+   ini peramban boleh mengklaim sapuan mendatarnya sendiri dan pointerup-nya
+   tak pernah sampai. */
+@media (pointer: coarse) {
+  .g-nav { display: none; }
+  .g-stage { touch-action: pan-y pinch-zoom; }
+}
+
 .g-count {
   position: absolute; right: 16px; bottom: 16px; z-index: 2;
   font-size: 12px; font-weight: 700; letter-spacing: 1.5px; color: #fff;
@@ -747,10 +1119,31 @@ a.chan:hover .chan__v { color: var(--ink); }
 @media (max-width: 800px) {
   #gallery { max-width: calc(100 * var(--vw)); width: calc(100 * var(--vw)); height: calc(100 * var(--dvh)); max-height: calc(100 * var(--dvh)); border: 0; margin: 0; }
   .g-shell { max-height: calc(100 * var(--dvh)); height: 100%; }
-  .g-stage { flex: 1 1 calc(40 * var(--vh)); }
+  .g-stage { flex: 1 1 calc(55 * var(--vh)); }
   .g-head, .g-desc, .g-links, .g-caption, .g-thumbs { padding-inline: 16px; }
   .g-nav { width: 44px; height: 44px; }
   .g-nav--prev { left: 8px; } .g-nav--next { right: 8px; }
+
+  /* Di layar sekecil ini dokumentasinya yang harus mendominasi, bukan
+     keterangannya. Semua baris teks di sekitar panggung dikecilkan, dan
+     deskripsinya dipagari 16vh — bergulir sendiri kalau lebih panjang.
+     Pagar itu yang penting: .g-stage satu-satunya baris yang tumbuh, jadi
+     tanpa batas atas di .g-desc proyek berdeskripsi panjang akan menggencet
+     fotonya sampai min-height 160px sementara yang pendek dapat 55vh. */
+  .g-head { padding-block: 14px; gap: 12px; }
+  .g-head .label { font-size: 11px; letter-spacing: 1.2px; }
+  .g-head .title-lg { font-size: 17px; }
+  .g-head .caption { font-size: 11px; }
+  .g-close { width: 38px; height: 38px; font-size: 14px; }
+  .g-desc {
+    font-size: 12px; line-height: 1.55; padding-bottom: 12px;
+    max-height: calc(16 * var(--vh)); overflow-y: auto; overscroll-behavior: contain;
+  }
+  .g-links { padding-block: 10px; }
+  .g-links a { font-size: 11px; }
+  .g-caption { font-size: 11px; padding-block: 10px; }
+  .g-thumbs { gap: 6px; padding-bottom: 14px; }
+  .g-thumbs img, .g-thumbs video { width: 62px; height: 42px; }
 }
 
 /* ═══ GRADIENT SHIMMER — gradient-shimmer.tsx, tanpa JS ═══

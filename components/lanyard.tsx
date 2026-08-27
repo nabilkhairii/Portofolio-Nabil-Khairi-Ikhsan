@@ -1,6 +1,6 @@
 'use client';
 import {useEffect, useRef, useState} from 'react';
-import {Canvas, extend, useFrame} from '@react-three/fiber';
+import {Canvas, extend, useFrame, useThree} from '@react-three/fiber';
 import {useGLTF, useTexture, Environment, Lightformer} from '@react-three/drei';
 import {
     BallCollider,
@@ -38,6 +38,72 @@ export type LanyardTheme = keyof typeof CARD_TEXTURE;
 
 extend({MeshLineGeometry, MeshLineMaterial});
 
+/* ═══ PITA YANG MENGEMBANG DI TIKUNGAN ═══
+   meshline menebalkan pitanya dengan menambahkan vektor normal ke posisi clip,
+   dan pembagian perspektif setelahnya mengalikan komponen x dengan LEBAR canvas
+   sementara komponen y dengan TINGGInya. Di canvas persegi keduanya sama besar
+   dan tak ada yang terlihat. Di luar itu vektor tadi tidak lagi tegak lurus
+   terhadap pitanya: bagian yang menyerong tergambar lebih tebal (atau lebih
+   tipis) daripada yang tegak, tepat sebesar tinggi/lebar canvas.
+
+   Terukur di halaman ini: canvas hero 2743x1229 (faktor 0,45 — tikungan
+   dipipihkan jadi baji tumpul) dan canvas HP 176x1150 (faktor 6,5 — tikungan
+   yang sama memanjang jadi paku yang menimpa muka kartu). Selisih 14x antara
+   dua tampilan yang seharusnya sama. Batang pita yang tegak lurus tidak
+   terpengaruh sama sekali, jadi yang terlihat cuma bagian dekat pengait —
+   satu-satunya tempat pita ini menikung — dan bentuknya berubah tiap kali
+   kartunya berayun.
+
+   Mengalikan y dengan aspect membuat panjang vektor itu kembali sama ke segala
+   arah: normal.y x (lebar/tinggi) x tinggi = normal.y x lebar, sama dengan
+   sisi x-nya. Tidak bisa diperbaiki lewat prop `resolution` — satu skalar tak
+   bisa membetulkan penyimpangan dua sumbu; sudah dicoba, aspect apa pun
+   menyisakan rasio tinggi/lebar yang sama. Karena itu shader-nya yang ditambal.
+
+   Ditambal lewat prop, bukan salinan berkas meshline: yang diganti dua baris
+   dan sisa shader-nya tetap milik pustakanya. Kalau salah satu baris itu hilang
+   di versi meshline berikutnya, tambalan ini diam-diam tidak berbuat apa-apa —
+   itu yang dijaga tests/check-meshline-patch.mjs.
+
+   ═══ UJUNG PITA YANG BERGANTI-GANTI BENTUK ═══
+   Ujung pita seharusnya terpotong rata. meshline mengenalinya dengan menyamakan
+   titik ini dengan tetangganya — di ujung, `previous` memang disalin dari titik
+   itu sendiri:
+
+       if (nextP == currentP) dir = normalize(currentP - prevP);   // ujung: rata
+       else ...                                                    // tengah: miter
+
+   Tapi kedua sisi perbandingan itu dihitung lewat jalan yang berbeda. currentP
+   datang dari posisi yang sudah DIKALIKAN aspect, prevP/nextP dari yang belum:
+
+       vec4 finalPosition = m * vec4(position, 1.0) * aspect;
+       vec2 currentP = fix(finalPosition, aspect);   // (x*a)/(w*a)
+       vec2 prevP    = fix(prevPos, aspect);         //  x / w
+
+   Secara matematika keduanya sama; dalam float32 tidak selalu — (x*a)/(w*a)
+   dibulatkan lain dari x/w. Selisih satu ULP sudah cukup membuat `==` gagal,
+   dan ujungnya jatuh ke cabang miter: dir1 = normalize(selisih sekecil itu)
+   yang arahnya praktis acak, jadi tutup ujungnya tergambar menyerong — segitiga,
+   baji, entah apa — dan berganti tiap frame karena pembulatannya ikut berubah
+   saat kartunya bergerak.
+
+   Ini tidak pernah terlihat sebelum `resolution` memakai ukuran canvas
+   sungguhan: aspect-nya dulu 1000/1000 dan 1000/2000, alias 1 dan 0,5 — dua
+   pengali yang di biner tidak membulatkan apa pun, jadi perbandingannya
+   kebetulan selalu tepat. Aspect sungguhan (2,23 dan 0,153) tidak sebaik itu.
+
+   Perbaikannya menghitung currentP dari posisi yang BELUM dikalikan aspect,
+   jadi ketiganya lahir dari bentuk ungkapan yang sama dan titik yang identik
+   menghasilkan bit yang identik. Nilainya sendiri tidak berubah — (x*a)/(w*a)
+   memang x/w — yang berubah cuma pembulatannya. */
+const BAND_SIDE = 'finalPosition.xy += normal.xy * side;';
+const BAND_CURRENT = 'vec2 currentP = fix(finalPosition, aspect);';
+const patchBandShader = (shader: {vertexShader: string}) => {
+    shader.vertexShader = shader.vertexShader
+        .replace(BAND_SIDE, 'finalPosition.xy += vec2(normal.x, normal.y * aspect) * side;')
+        .replace(BAND_CURRENT, 'vec2 currentP = fix(m * vec4(position, 1.0), aspect);');
+};
+
 interface LanyardProps {
     position?: [number, number, number];
     gravity?: [number, number, number];
@@ -53,6 +119,11 @@ interface LanyardProps {
        sudah jadi. Wadahnya transparan sampai saat itu (lihat .lanyard-box di
        globals.css); memudarkannya lebih awal memperlihatkan kotak kosong. */
     onReady?: () => void;
+    /* Dipanggil tiap kali kartunya mulai/berhenti bergerak karena tangan
+       pengguna: true saat digenggam, dan tetap true sampai ayunan sesudah
+       dilepas mereda. Dipakai app/portfolio.css untuk melebarkan kotak canvas
+       selama itu — lihat #lanyard-3d.is-active di blok HP. */
+    onActive?: (active: boolean) => void;
 }
 
 export default function Lanyard({
@@ -63,7 +134,8 @@ export default function Lanyard({
                                     containerClassName,
                                     theme = 'dark',
                                     canvasRef,
-                                    onReady
+                                    onReady,
+                                    onActive
                                 }: LanyardProps) {
     const [isMobile, setIsMobile] = useState<boolean>(() => typeof window !== 'undefined' && window.innerWidth < 768);
 
@@ -78,14 +150,19 @@ export default function Lanyard({
             className={clsx(containerClassName || "relative z-0 w-full h-screen flex justify-center items-center transform scale-100 origin-center")}>
             <Canvas
                 ref={canvasRef}
-                camera={{position, fov}}
+                /* rotation eksplisit, walau nilainya identitas: tanpa kunci itu
+                   R3F memanggil camera.lookAt(0,0,0) sendiri, dan kamera yang
+                   digeser tegak (lihat position di lanyard-mount.tsx) jadi
+                   MENOLEH ke pusat scene alih-alih menggeser bingkainya —
+                   kartunya balik ke tengah canvas dan geserannya sia-sia. */
+                camera={{position, fov, rotation: [0, 0, 0]}}
                 dpr={[1, isMobile ? 1.5 : 2]}
                 gl={{alpha: transparent, preserveDrawingBuffer: true}}
                 onCreated={({gl}) => gl.setClearColor(new THREE.Color(0x000000), transparent ? 0 : 1)}
             >
                 <ambientLight intensity={Math.PI}/>
                 <Physics gravity={gravity} timeStep={isMobile ? 1 / 30 : 1 / 60}>
-                    <Band isMobile={isMobile} theme={theme} onReady={onReady}/>
+                    <Band isMobile={isMobile} theme={theme} onReady={onReady} onActive={onActive}/>
                 </Physics>
                 <Environment blur={0.75}>
                     <Lightformer
@@ -128,9 +205,10 @@ interface BandProps {
     isMobile?: boolean;
     theme?: LanyardTheme;
     onReady?: () => void;
+    onActive?: (active: boolean) => void;
 }
 
-function Band({maxSpeed = 50, minSpeed = 0, isMobile = false, theme = 'dark', onReady}: BandProps) {
+function Band({maxSpeed = 50, minSpeed = 0, isMobile = false, theme = 'dark', onReady, onActive}: BandProps) {
     // Using "any" for refs since the exact types depend on Rapier's internals
     const band = useRef<any>(null);
     const fixed = useRef<any>(null);
@@ -153,6 +231,9 @@ function Band({maxSpeed = 50, minSpeed = 0, isMobile = false, theme = 'dark', on
     };
 
     const {nodes, materials} = useGLTF(cardGLB) as any;
+
+    /* Ukuran canvas sungguhan, untuk uniform `resolution` pita di bawah. */
+    const size = useThree(s => s.size);
 
     const texture = useTexture(BAND_TEXTURE) as THREE.Texture;
 
@@ -191,6 +272,9 @@ function Band({maxSpeed = 50, minSpeed = 0, isMobile = false, theme = 'dark', on
     );
     const [dragged, drag] = useState<false | THREE.Vector3>(false);
     const [hovered, hover] = useState(false);
+    /* ref, bukan state: dibaca & ditulis tiap frame, dan yang perlu dirender
+       ulang justru bukan komponen ini melainkan kotak di luar <Canvas>. */
+    const activeRef = useRef(false);
 
     useRopeJoint(fixed, j1, [[0, 0, 0], [0, 0, 0], 1]);
     useRopeJoint(j1, j2, [[0, 0, 0], [0, 0, 0], 1]);
@@ -246,6 +330,25 @@ function Band({maxSpeed = 50, minSpeed = 0, isMobile = false, theme = 'dark', on
             ang.copy(card.current.angvel());
             rot.copy(card.current.rotation());
             card.current.setAngvel({x: ang.x, y: ang.y - rot.y * 0.25, z: ang.z});
+
+            /* ═══ KARTUNYA SEDANG BERGERAK ═══
+               Dilaporkan dari sini, bukan dari onPointerDown/onPointerUp,
+               karena yang ditunggu bukan lepasnya genggaman melainkan diamnya
+               kartu: sesudah dilepas ia masih terlempar beberapa ratus piksel
+               sebelum menggantung tenang, dan kotak canvas yang keburu
+               menyempit akan memotongnya persis di ekor ayunan itu.
+
+               0,5 itu kuadrat laju (~0,7 satuan dunia/detik) — di bawahnya
+               geraknya tidak terlihat lagi di layar. Ini kenopnya: terlalu
+               kecil, kotaknya tetap lebar berlama-lama (dan di HP itu berarti
+               halaman tak bisa digulir di sana); terlalu besar, kartunya
+               terpotong sebelum berhenti. */
+            const v = card.current.linvel();
+            const active = dragged !== false || v.x * v.x + v.y * v.y + v.z * v.z > 0.5;
+            if (active !== activeRef.current) {
+                activeRef.current = active;
+                onActive?.(active);
+            }
         }
     });
 
@@ -323,6 +426,8 @@ function Band({maxSpeed = 50, minSpeed = 0, isMobile = false, theme = 'dark', on
                 <meshLineGeometry/>
                 <meshLineMaterial
                     color="white"
+                    /* Lihat patchBandShader di kepala berkas. */
+                    onBeforeCompile={patchBandShader}
                     /* Aslinya depthTest={false} — pita jadi selalu tergambar di
                        depan, termasuk di atas gelang logam yang seharusnya
                        menahannya. Tanpa satu pun piksel tali yang hilang di
@@ -330,7 +435,24 @@ function Band({maxSpeed = 50, minSpeed = 0, isMobile = false, theme = 'dark', on
                        "terkait". Dinyalakan supaya clip dan kartu benar-benar
                        menutupi tali saat ada di depannya. */
                     depthTest={true}
-                    resolution={isMobile ? [1000, 2000] : [1000, 1000]}
+                    /* Ukuran canvas sungguhan, bukan [1000,1000] mati. Yang
+                       dibaca shader meshline dari uniform ini cuma
+                       resolution.x/resolution.y — aspeknya — dan lewat itu
+                       tebal tali di layar = lineWidth x tinggi canvas / jarak
+                       kamera. Dengan aspek dipalsukan jadi 1, "tinggi" di rumus
+                       itu berganti jadi LEBAR canvas, dan lebar #lanyard-3d
+                       dipatok 60vw ke kiri-kanan: talinya menebal mengikuti
+                       lebar jendela sementara kartunya tidak (fov itu sudut
+                       tegak, jadi kartu ikut TINGGI canvas). Terukur: tali 39px
+                       pada jendela 1440 dan 49px pada 1902, kartunya 187px di
+                       keduanya.
+                       Di HP selisih itu jadi jurang. Kotaknya sempit dan
+                       jangkung — 176x1150 — dan [1000,2000] memberi tali 3px di
+                       sebelah kartu 84px: pita bertulisan yang tergambar
+                       sebagai benang. Dengan aspek sungguhan tebal tali ikut
+                       kartunya di mana pun, 26% dari lebar kartu, di HP maupun
+                       di desktop selebar apa pun. */
+                    resolution={[size.width, size.height]}
                     useMap
                     map={texture}
                     /* Aslinya [-4, 1]. Satu salinan peta harus sebangun dengan
@@ -346,7 +468,15 @@ function Band({maxSpeed = 50, minSpeed = 0, isMobile = false, theme = 'dark', on
                        situ. Pernah dicoba 1 salinan (tulisan sekali, di tengah
                        tali); ditolak, kembali ke 2. */
                     repeat={[-2, 1]}
-                    lineWidth={1}
+                    /* 2,24 naik dari 1, dan seluruh kenaikannya ganti rugi
+                       resolution di atas: aspek yang jujur membuat rumus tadi
+                       memakai tinggi canvas (1228) alih-alih lebarnya (2743),
+                       dan 2743/1228 = 2,24 mengembalikan tebal tali desktop
+                       persis seperti sebelumnya — 49px pada jendela 1902 yang
+                       dipakai menyetelnya. Baru sekarang ini kenop tebal tali
+                       yang sebenarnya; sebelumnya yang menentukan tebalnya
+                       lebar canvas, dan angka ini cuma pengalinya. */
+                    lineWidth={2.24}
                 />
             </mesh>
         </>
