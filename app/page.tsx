@@ -366,9 +366,9 @@ export default function Home() {
         {/* ══ ABOUT ══ */}
         <section id="about" className="band">
           <div className="shell">
-            {/* Pembungkus dua kolom KHUSUS HP: kepala seksi di kiri, kartu
-                lanyard di kanannya. Slot ditulis lebih dulu di markup tapi
-                ditaruh di kolom kanan lewat grid-area di portfolio.css.
+            {/* Pembungkus dua kolom KHUSUS HP: kartu lanyard di kiri, kepala
+                seksi di kanannya. Slot ditulis lebih dulu di markup dan
+                ditaruh di kolom kiri lewat grid-area di portfolio.css.
                 Di layar lebar ia `display: contents` —
                 pembungkusnya lenyap dari tata letak dan .sec-head kembali jadi
                 anak langsung .shell, jadi desktop tidak berubah sepiksel pun.

@@ -752,13 +752,13 @@ a.chan:hover .chan__v { color: var(--ink); }
      hilang sama sekali, tanpa error. */
   /* Urutan kolomnya ditulis eksplisit, bukan lewat urutan markup: di DOM slot
      kartu ditulis lebih dulu (supaya portal punya sasaran sebelum .sec-head
-     dibaca), sementara di layar ia ada di KANAN. grid-area memisahkan kedua
-     urutan itu tanpa menyentuh markup. */
+     dibaca), dan di layar ia juga ada di KIRI. grid-area tetap ditulis
+     eksplisit supaya urutan kolomnya tidak bergantung urutan markup. */
   .about-head {
-    display: grid; grid-template-columns: 1fr 34%;
+    display: grid; grid-template-columns: 34% 1fr;
     gap: 24px; align-items: start; isolation: isolate;
   }
-  .about-head .sec-head { grid-area: 1 / 1; }
+  .about-head .sec-head { grid-area: 1 / 2; }
   /* Judul ini enam kata panjang di kolom ~215px. Pada 32px bawaan display-lg,
      "SCHEMATIC" sendiri hampir selebar kolomnya dan judulnya patah jadi enam
      baris. 28px mengembalikannya ke empat tanpa mengubah display-lg di seksi
@@ -776,7 +776,7 @@ a.chan:hover .chan__v { color: var(--ink); }
      kepala seksinya cuma ~180px — jadi tiap piksel di atas itu jadi ruang
      kosong yang mendorong paragraf About turun. Di bawah ~200 kartunya mulai
      terlalu kecil untuk dikenali; 230 titik tukar yang dipilih. */
-  #lanyard-slot-about { display: block; height: 230px; grid-area: 1 / 2; }
+  #lanyard-slot-about { display: block; height: 230px; grid-area: 1 / 1; }
 
   /* ── Sejauh mana kartu bisa ditarik turun ──
      Batasnya tepi bawah <canvas>, dan itu terukur bukan diduga: ditarik 479px
@@ -808,7 +808,7 @@ a.chan:hover .chan__v { color: var(--ink); }
      seluruh tinggi layar, jadi tiap piksel lebarnya langsung jadi jalur yang
      tak bisa dipakai menyapu. Terukur di 390x844: -60vw membekukan 74% layar
      About — sapuan di x=40 pun menggerakkan halaman 0px — sementara -30px
-     menyisakan 38%, dan 58% lebar layar di sebelah kiri tetap bisa disapu. */
+     menyisakan 38%, dan 58% lebar layar di sebelah kanan tetap bisa disapu. */
   #lanyard-3d { inset: -200% -30px; }
 
   /* ── ...dan DILEBARKAN saat kartunya ditarik ──
@@ -824,9 +824,9 @@ a.chan:hover .chan__v { color: var(--ink); }
      diangkat, karena kartu yang baru dilepas masih terlempar jauh dan kotak
      yang keburu menyempit memotongnya persis di situ.
 
-     70vw, bukan 60: slot ini duduk di kolom KANAN, tepi kirinya di x=254 pada
+     70vw, bukan 60: slot ini duduk di kolom KIRI, tepi kanannya di x=140 pada
      layar 390. Pelebarannya wajib simetris (lihat alinea tinggi di atas), jadi
-     angkanya ditentukan sisi kiri — 65vw baru pas menyentuh x=0, dan 70vw
+     angkanya ditentukan sisi kanan — 65vw baru pas menyentuh x=390, dan 70vw
      menyisakan sedikit ruang lebih di kedua sisi.
 
      Melebar sambil ditarik tidak menggeser apa pun yang terlihat: fov itu sudut
