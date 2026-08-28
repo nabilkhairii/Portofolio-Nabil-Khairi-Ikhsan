@@ -450,7 +450,7 @@ function Band({maxSpeed = 50, minSpeed = 0, isMobile = false, theme = 'dark', on
                        jangkung — 176x1150 — dan [1000,2000] memberi tali 3px di
                        sebelah kartu 84px: pita bertulisan yang tergambar
                        sebagai benang. Dengan aspek sungguhan tebal tali ikut
-                       kartunya di mana pun, 26% dari lebar kartu, di HP maupun
+                       kartunya di mana pun, 19% dari lebar kartu, di HP maupun
                        di desktop selebar apa pun. */
                     resolution={[size.width, size.height]}
                     useMap
@@ -466,17 +466,36 @@ function Band({maxSpeed = 50, minSpeed = 0, isMobile = false, theme = 'dark', on
                        Angka ini harus berubah bersamaan dengan REPEAT di
                        tools/lanyard-texture.mjs — rasio petanya diturunkan dari
                        situ. Pernah dicoba 1 salinan (tulisan sekali, di tengah
-                       tali); ditolak, kembali ke 2. */
+                       tali); ditolak, kembali ke 2.
+
+                       Jumlah salinan tidak ikut berubah saat lineWidth di bawah
+                       diturunkan ke 1,75; yang ikut adalah rasio PETAnya (kini
+                       1459x251 alias 5,8), karena pitanya menyempit sementara
+                       panjangnya tetap. */
                     repeat={[-2, 1]}
-                    /* 2,24 naik dari 1, dan seluruh kenaikannya ganti rugi
-                       resolution di atas: aspek yang jujur membuat rumus tadi
-                       memakai tinggi canvas (1228) alih-alih lebarnya (2743),
-                       dan 2743/1228 = 2,24 mengembalikan tebal tali desktop
-                       persis seperti sebelumnya — 49px pada jendela 1902 yang
-                       dipakai menyetelnya. Baru sekarang ini kenop tebal tali
-                       yang sebenarnya; sebelumnya yang menentukan tebalnya
-                       lebar canvas, dan angka ini cuma pengalinya. */
-                    lineWidth={2.24}
+                    /* Selebar pengaitnya, tidak lebih. Dengan resolution yang
+                       jujur di atas, rumus tebal tali di layar disederhanakan
+                       jadi satu baris yang tinggi canvas maupun jarak kameranya
+                       saling menghapus:
+
+                           lebar pita (satuan dunia) = lineWidth x tan(fov/2)
+
+                       Jadi angka ini SATU-SATUNYA yang menentukan lebar tali,
+                       dan lebarnya sama di HP maupun desktop tanpa cabang —
+                       kotak canvas boleh 2743x1229 atau 176x1150, kamera boleh
+                       z=29 atau z=60, hasilnya tidak bergeser sedikit pun.
+
+                       Targetnya cincin pengait di puncak kartu: nodes.clip
+                       lebarnya 0,1372 di card.glb, dikali skala group 2,25 jadi
+                       0,3087 satuan dunia. 0,3087 / tan(10°) = 1,75. Sebelumnya
+                       2,24 alias 0,395 — pitanya 28% lebih lebar dari cincin
+                       yang seharusnya menahannya, jadi terlihat menjulur keluar
+                       di kiri-kanan pengait.
+
+                       Berpasangan dengan repeat di bawah: mengubah angka ini
+                       mengubah rasio bidang pita di layar, dan tekstur harus
+                       ikut (tools/lanyard-texture.mjs) atau bintangnya melar. */
+                    lineWidth={1.75}
                 />
             </mesh>
         </>

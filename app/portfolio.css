@@ -709,7 +709,10 @@ a.chan:hover .chan__v { color: var(--ink); }
    ada untuk memberi kisi HP di bawah sesuatu untuk dipegang. */
 .about-head, .edu-list { display: contents; }
 
-.hero-cta { display: flex; flex-wrap: wrap; gap: 12px; }
+/* Sepasang tombol berdampingan. Dipakai hero ("Lihat Proyek" + "Unduh CV") dan
+   formulir kontak ("Kirim Pesan" + "Salin Email"); keduanya punya persoalan HP
+   yang sama persis, jadi satu aturan saja — lihat blok ≤640px di bawah. */
+.hero-cta, .form-cta { display: flex; flex-wrap: wrap; gap: 12px; }
 
 @media (max-width: 640px) {
   /* ── Layar 1 ── satu layar penuh, isinya ditengahkan tegak.
@@ -727,15 +730,20 @@ a.chan:hover .chan__v { color: var(--ink); }
   .band--hero .lanyard-slot { display: none; }
 
   /* Dua tombol berdampingan, sama lebar. grid, bukan flex-wrap: dengan wrap
-     "Unduh CV" turun sendiri ke baris kedua dan lebarnya jadi tidak sama. */
-  .hero-cta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .hero-cta > * { width: 100%; }
+     "Unduh CV" turun sendiri ke baris kedua dan lebarnya jadi tidak sama.
+     Hal yang sama menimpa "Kirim Pesan" + "Salin Email" di formulir kontak —
+     pada ukuran desktopnya keduanya butuh 358px sementara .shell cuma
+     menyisakan 342px — jadi .form-cta ikut aturan yang sama. */
+  .hero-cta, .form-cta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .hero-cta > *, .form-cta > * { width: 100%; }
   /* Kolomnya 166px dan padding 32px memakan 64px di antaranya — labelnya patah
      jadi "VIEW / PROJECTS". Dikecilkan sampai keduanya muat satu baris.
      Pasangannya ada di page.tsx: FlowButton memakai utility Tailwind (px-8,
      text-[14px]) yang selalu menang atas berkas ini, jadi ukuran HP-nya
-     dioper sebagai varian max-[640px] di sana. */
-  .hero-cta .btn { padding-inline: 14px; font-size: 12px; letter-spacing: 1px; }
+     dioper sebagai varian max-[640px] di sana. OriginButton di formulir kontak
+     tidak begitu — rupanya murni dari .btn — jadi baris ini cukup untuknya.
+     min-height 48px sengaja tidak ikut turun: itu sasaran sentuh, bukan hiasan. */
+  .hero-cta .btn, .form-cta .btn { padding-inline: 14px; font-size: 12px; letter-spacing: 1px; }
 
   /* Kalimat pembuka dikecilkan, dan cuma yang di hero — .lead juga dipakai
      paragraf About, dan di sana panjangnya bukan masalah. Di sini iya:
@@ -936,6 +944,31 @@ a.chan:hover .chan__v { color: var(--ink); }
   .pcard__cta { letter-spacing: 1px; margin-top: 5px; }
   .pcard__new { top: 10px; left: 10px; }
   .pcard__play { top: 10px; right: 10px; width: 30px; height: 30px; }
+
+  /* ── Kontak langsung ── satu baris per kanal, tidak pernah patah.
+     Di 390px ruang di dalam .shell tinggal 342px, dan ongkos tetap ukuran
+     desktopnya sudah memakan 160px sebelum nilainya mulai: ikon 20 + label 100
+     + dua gap 20. Sisa 182px, sementara email 27 huruf pada 16px butuh ~215px:
+     nilainya membungkus ke baris kedua, panah margin-left:auto ikut turun, dan
+     kolom labelnya berhenti lurus dari baris ke baris.
+
+     Yang dipangkas ongkos tetapnya lebih dulu — ikon 16, label 66 pada 10px,
+     gap 10 — jadi nilainya kebagian 216px, dan emailnya cuma ~177px pada 13px.
+     Muat dengan kelonggaran sepertiga; angka-angka lain (nomor WA, in/..., dan
+     nama GitHub) jauh lebih pendek lagi.
+
+     nowrap + ellipsis yang menjaga janji itu tetap berlaku kalau kelak ada
+     nilai yang lebih panjang dari email: terpotong rapi di ujungnya, tidak
+     pernah menumpuk. Tanpa ellipsis, nowrap saja akan meluber melewati tepi
+     layar dan menerbitkan gulir mendatar di seluruh halaman. */
+  .chan { flex-wrap: nowrap; gap: 10px; padding: 14px 0; }
+  .chan__i { width: 16px; height: 16px; }
+  .chan__k { flex: 0 0 66px; font-size: 10px; letter-spacing: .8px; }
+  .chan__v {
+    flex: 1; min-width: 0; font-size: 13px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .chan__x { flex: none; font-size: 13px; }
 
   /* ── Taskbar ── pil mengambang di tepi bawah, di jangkauan jempol.
      Menggantikan hamburger: tujuannya empat-empatnya sama persis. */

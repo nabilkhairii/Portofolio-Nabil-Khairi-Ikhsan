@@ -29,10 +29,16 @@ const SCALE = 2;
    components/lanyard.tsx. Rasio pita ikut dibagi REPEAT supaya satu salinan
    tetap sebangun dengan bidangnya di layar. */
 const REPEAT = 2;
-/* 2918x321 = rasio SELURUH tali di layar (terukur: ~367x40 px). Dibagi REPEAT
-   jadi rasio satu salinan. Pada REPEAT = 2 hasilnya 1459x321, persis rasio aset
-   React Bits aslinya — angka itu memang lahir dari 2 salinan. */
-const W = Math.round(2918 / REPEAT) * SCALE, H = 321 * SCALE;
+/* 2918x251 = rasio SELURUH tali di layar (terukur: ~367x31 px). Dibagi REPEAT
+   jadi rasio satu salinan.
+
+   321, bukan 251, selama pitanya masih selebar lineWidth 2,24 di
+   components/lanyard.tsx (1459x321 kebetulan persis rasio aset React Bits
+   aslinya). lineWidth turun ke 1,75 supaya talinya tidak lebih lebar dari
+   cincin pengaitnya — 0,7813x — dan panjang tali tidak ikut berubah, jadi
+   tingginya saja yang dikali segitu: 321 x 0,7813 = 251. Meleset dari ini
+   bintangnya melar mendatar sebesar selisihnya. */
+const W = Math.round(2918 / REPEAT) * SCALE, H = 251 * SCALE;
 
 const SRC = 'tools/source/desain-tali.png';
 const OUT = 'public/lanyard.png';
@@ -45,11 +51,16 @@ const FG = '#000000';
    atas dan bawah bintang. */
 const STAR = 0.56;
 /* Bintang per salinan peta. Dengan REPEAT = 2 berarti 2x lipat di sepanjang
-   tali. Pasangan 0,56 + 5 kebetulan mengembalikan irama desain aslinya: jarak
-   antarpusat ~1,29x panjang bintang, sama seperti di desain-tali.png. Menaikkan
-   COUNT tanpa menurunkan STAR akan membuat bintangnya bersenggolan (dijaga
-   assert di bawah). */
-const COUNT = 5;
+   tali. Yang dikejar irama desain aslinya: jarak antarpusat ~1,29x panjang
+   bintang, sama seperti di desain-tali.png. Menaikkan COUNT tanpa menurunkan
+   STAR akan membuat bintangnya bersenggolan (dijaga assert di bawah).
+
+   5 selama pitanya masih setinggi 321. Bintangnya diukur melintang pita (STAR
+   di atas), jadi pita yang menyempit ikut memendekkan bintangnya sementara
+   jatah panjang tiap bintang (W/COUNT) tidak berubah — pada COUNT 5 jaraknya
+   melar jadi 1,62x. 6 mengembalikannya ke 1,35x, sedekat mungkin ke desainnya;
+   7 kelewatan ke arah sebaliknya (1,16x). */
+const COUNT = 6;
 
 /* Ambang tinta saat memindai desain: piksel lebih gelap dari ini dianggap
    garis. Desainnya hitam di atas putih, jadi 128 aman jauh dari keduanya. */
@@ -102,7 +113,7 @@ const starW = Math.round((starH / rh) * rw);
 const period = W / COUNT;
 
 /* Penebalan garis, dalam piksel radius (dilate cakram). Garis desainnya tipis:
-   pada ukuran pita ini tebalnya cuma ~7px, dan di layar pita cuma ~40px lebar —
+   pada ukuran pita ini tebalnya cuma ~6px, dan di layar pita cuma ~31px lebar —
    goresnya jatuh di bawah satu piksel dan bintangnya luntur jadi abu-abu. 4px
    membuatnya kembali sekitar satu piksel penuh di layar. 0 = apa adanya. */
 const BOLD = 4;
