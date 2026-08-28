@@ -416,7 +416,7 @@ export default function Home() {
                   otomasi industri.
                 </p>
 
-                <h3 className="label text-muted mt-12 split">Core Competencies</h3>
+                <h3 className="label text-muted mt-12 split split-fly">Core Competencies</h3>
                 <ul className="comp-grid mt-5">
                   <li>PCB Design &amp; Layout</li>
                   <li>Control Systems Design</li>
@@ -434,7 +434,7 @@ export default function Home() {
               </div>
 
  <div>
-                <h3 className="label text-muted split">Education</h3>
+                <h3 className="label text-muted split split-fly">Education</h3>
 
                 {/* Pembungkus dua kolom KHUSUS HP, sama polanya dengan
                     .about-head: `display: contents` di layar lebar, jadi kedua
@@ -490,7 +490,7 @@ export default function Home() {
                 </article>
                 </div>
 
-                <h3 className="label text-muted mt-10" data-en="Languages">
+                <h3 className="label text-muted mt-10 split split-fly" data-en="Languages">
                   Bahasa
                 </h3>
                 <div className="mt-5 flex flex-wrap gap-2">
@@ -535,7 +535,7 @@ export default function Home() {
                   patah begitu blok keenam ditambahkan. */}
               <div className="skills-col">
                 <div className="max-[640px]:order-1">
-                  <h3 className="label text-muted split" data-en="Focus Areas">
+                  <h3 className="label text-muted split split-fly" data-en="Focus Areas">
                     Fokus Keahlian
                   </h3>
                   {/* divide-y/border-y dimatikan di HP: di sana daftar ini jadi
@@ -578,7 +578,7 @@ export default function Home() {
                 </div>
 
                 <div className="mt-10 max-[640px]:order-4 max-[640px]:mt-0">
-                  <h3 className="label text-muted split">Hard Skills</h3>
+                  <h3 className="label text-muted split split-fly">Hard Skills</h3>
                   <div className="mt-5 flex flex-wrap gap-2">
                     <span className="chip">PCB Design</span>
                     <span className="chip">Electronic Hardware Design</span>
@@ -604,7 +604,7 @@ export default function Home() {
 
               <div className="skills-col">
                 <div className="max-[640px]:order-2">
-                  <h3 className="label text-muted split">Software &amp; Tools</h3>
+                  <h3 className="label text-muted split split-fly">Software &amp; Tools</h3>
                   <div className="mt-5 flex flex-wrap gap-2">
                     {TOOLS.map(({ name, href, logo }) => (
                       <a
@@ -624,7 +624,7 @@ export default function Home() {
 
                 <div className="mt-10 max-[640px]:order-3 max-[640px]:mt-0">
                   <h3
-                    className="label text-muted"
+                    className="label text-muted split split-fly"
                     data-en="Programming Languages"
                   >
                     Bahasa Pemrograman
@@ -801,7 +801,7 @@ export default function Home() {
                 id="contact-form"
                 noValidate
               >
-                <h3 className="label text-muted split" data-en="Send a Message">
+                <h3 className="label text-muted split split-fly" data-en="Send a Message">
                   Kirim Pesan
                 </h3>
 
@@ -910,7 +910,7 @@ export default function Home() {
 
  <div>
                 <h3
-                  className="label text-muted split"
+                  className="label text-muted split split-fly"
                   data-en="Information &amp; Direct Contact"
                 >
                   Informasi &amp; Kontak Langsung

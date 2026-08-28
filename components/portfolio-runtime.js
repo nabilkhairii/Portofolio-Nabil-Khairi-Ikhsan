@@ -170,6 +170,7 @@ function splitOne(el, doc) {
   el.setAttribute('aria-label', label);       // SR reads the sentence, not the letters
 
   let i = 0;                                  // berjalan lintas baris: stagger-nya satu untai
+  const chars = [];                           // urutan hurufnya, untuk --d di bawah
   const build = (src, out) => {
     src.childNodes.forEach((n) => {
       if (n.nodeName === 'BR') return void out.append(doc.createElement('br'));
@@ -191,6 +192,7 @@ function splitOne(el, doc) {
           const s = doc.createElement('span');
           s.textContent = ch;
           s.style.setProperty('--i', i++);
+          chars.push(s);
           w.append(s);
         }
         out.append(w);
@@ -201,6 +203,17 @@ function splitOne(el, doc) {
   const frag = doc.createDocumentFragment();
   build(el, frag);
   el.replaceChildren(frag);
+
+  /* --d = jarak huruf ini dari tengah kalimat, bertanda: negatif di kiri,
+     positif di kanan. Pasangan --i, dan dipakai .split-fly di portfolio.css
+     untuk memencarkan huruf ke kiri-kanan sebelum menyatu (matematikanya dari
+     CharacterV1, components/ui/text-scroll-animation.tsx). Dari larik, bukan
+     querySelectorAll: jumlahnya baru diketahui setelah build selesai, dan
+     tests/check-split.mjs memakai DOM tiruan yang tak punya querySelectorAll.
+     Titik tengahnya Math.floor seperti di komponen aslinya — pada jumlah huruf
+     ganjil sisi kanannya satu huruf lebih pendek. */
+  const mid = Math.floor(chars.length / 2);
+  chars.forEach((s, k) => s.style.setProperty('--d', k - mid));
 
   /* Jeda antar huruf dibagi rata ke dalam jendela tetap, bukan angka mati.
      Alasannya sama dengan alasan 50ms aslinya diturunkan ke 40ms: stagger

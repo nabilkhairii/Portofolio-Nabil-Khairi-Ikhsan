@@ -1036,6 +1036,53 @@ a.chan:hover .chan__v { color: var(--ink); }
 }
 .split.is-visible .w > span { opacity: 1; transform: none; }    /* to */
 
+/* ═══ SPLIT-FLY — CharacterV1, components/ui/text-scroll-animation.tsx ═══
+   Efek kedua di atas mesin pemecah yang sama, dipakai sembilan judul kolom
+   (Core Competencies, Education, Languages, Focus Areas, Hard Skills, Software
+   & Tools, Programming Languages, Send a Message, Information & Direct
+   Contact). Judul seksi besar (.display-lg, .display-xl, hero) tetap memakai
+   .split polos — yang diminta cuma judul kolomnya.
+
+   Di komponen aslinya tiap huruf berangkat dari x = (indeks - tengah) x 50px
+   dan rotateX = (indeks - tengah) x 50deg, lalu keduanya menuju nol seiring
+   scrollYProgress 0 -> 0,5. Di sini --d yang membawa (indeks - tengah), dan
+   yang menjalankannya kelas .is-visible dari observer yang sudah ada.
+
+   TIDAK dipasang sebagai komponen React, dan itu bukan soal selera:
+   1. useScroll rusak oleh `zoom` di <body> — progresnya mentok, tanpa error.
+   2. Lima dari sembilan judul itu diterjemahkan dengan menimpa innerHTML
+      (applyLang), yang akan menyapu pulau React tiap kali bahasa ditukar.
+   3. Target useScroll di komponen aslinya setinggi 210vh; pada <h3> setinggi
+      ~18px seluruh rentang progresnya habis dalam beberapa piksel gulir —
+      hasilnya melompat, bukan beranimasi.
+
+   50px pada teks 60px di sana = 0,83em. Ditulis em, bukan px, supaya sebaran
+   hurufnya tetap sebanding dengan ketikan .label yang 14px (jadi ~11,6px per
+   huruf) dan ikut menyesuaikan kalau ukurannya berubah. Judul terpanjang di
+   sini 25 huruf, jadi huruf terluarnya (--d = 12) berangkat dari ~139px di
+   luar tempatnya.
+
+   Angka itu tidak diturunkan di HP, dan itu sudah diukur bukan diperkirakan:
+   pada layar 390px judul terpanjang tadi memang menjulur 62px melewati tepi
+   kanan, tapi scrollWidth halaman tetap 390 — transformnya tidak menerbitkan
+   gulir mendatar, dan huruf terluarnya masih hampir tembus pandang saat berada
+   di sana. Kalau kelak terasa terlalu lebar, 0,83em di bawah kenopnya.
+
+   Tanpa stagger, dan itu justru yang setia: di komponen aslinya semua huruf
+   digerakkan satu scrollYProgress yang sama, jadi mereka menyatu serempak.
+   Delay --i milik .split di atas karena itu dinolkan. */
+.split-fly .w {
+  /* perspective di .w, bukan di judulnya: rotateX butuh induk LANGSUNG yang
+     punya perspective, dan di antara keduanya ada kotak kata ini. Tanpa itu
+     rotasinya diproyeksikan datar dan hurufnya sekadar memipih. */
+  perspective: 500px;
+}
+.split-fly .w > span {
+  transform: translateX(calc(var(--d) * .83em)) rotateX(calc(var(--d) * 50deg));
+  transition: opacity 1.25s var(--split-ease), transform 1.25s var(--split-ease);
+}
+.split-fly.is-visible .w > span { opacity: 1; transform: none; }
+
 /* ═══════════════════════════════════════════════════════════
    GALLERY MODAL — native <dialog>: ESC, focus trap, ::backdrop free
    ═══════════════════════════════════════════════════════════ */
