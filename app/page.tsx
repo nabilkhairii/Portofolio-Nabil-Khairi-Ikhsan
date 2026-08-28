@@ -970,8 +970,8 @@ export default function Home() {
                       <span className="label chan__k" data-en="Location">
                         Lokasi
                       </span>
-                      <span className="chan__v" data-en="Jakarta, West Java">
-                        Jakarta, Jawa Barat
+                      <span className="chan__v" data-en="Depok, West Java">
+                        Depok, Jawa Barat
                       </span>
                     </span>
                   </li>
@@ -1087,9 +1087,9 @@ export default function Home() {
             </h3>
             <p
               className="prose mt-4"
-              data-en="Jakarta, West Java"
+              data-en="Depok, West Java"
             >
-              Jakarta, Jawa Barat
+              Depok, Jawa Barat
             </p>
           </div>
         </div>

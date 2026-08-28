@@ -521,6 +521,45 @@ main > section + section { border-top: 1px solid var(--hairline); }
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
 }
 
+/* ═══ KARTU MENGAYUN MASUK — MasonryGrid (skiper/codepen) ═══
+   Sumbernya components/ui/masonry-grid-with-scroll-animation.tsx; keyframes,
+   animation-range, dan tangga transform-origin-nya dari sana. Tiga angka per
+   kartu (--side/--amp/--origin) dipasang tagCardFx di portfolio-runtime.js.
+
+   Pembungkus tersendiri, bukan .pcard langsung, dan itu wajib: animasi
+   MENGALAHKAN deklarasi biasa, dan dengan `both` keadaan akhirnya terus
+   menempel sesudah animasinya habis. Dipasang di .pcard, `transform: scale(1)`
+   miliknya akan memblokir `translateY(-6px)` milik .pcard:hover selamanya —
+   angkat-saat-disorot mati tanpa satu pun pesan error.
+
+   animation-timeline: view() — CSS murni, dihitung peramban dari tata letaknya
+   sendiri. Itu sebabnya efek ini aman di sini sementara useScroll tidak:
+   `zoom` di <body> ikut terhitung, bukan diabaikan.
+
+   Peramban tanpa scroll-driven animation menjatuhkan animation-timeline, dan
+   yang tersisa `animation: ... both` tanpa durasi = 0 detik: kartunya langsung
+   berdiri di keadaan akhir. Rusaknya ke arah yang benar — tidak ada kartu yang
+   tertinggal tembus pandang.
+
+   Ayunannya melebar jauh ke luar kisi (titik putarnya sampai 75vw di samping
+   kartunya). Yang menahannya `main { overflow-x: clip }` di kepala berkas ini:
+   terpotong, tanpa menerbitkan gulir mendatar. */
+@keyframes pcard-slide-in {
+  from { opacity: 0; transform: scale(.85) rotate(calc(var(--side, 1) * (5deg * var(--amp, 1)))); }
+  to   { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+.pcard-fx { transform-origin: var(--origin, 0) 100%; }
+/* .pcard tombol, dan tombol menyusut ke isinya. Sebagai anak langsung .pgrid
+   ia diregangkan kisi; di dalam pembungkus ini tidak lagi. */
+.pcard-fx > .pcard { width: 100%; }
+@media (prefers-reduced-motion: no-preference) {
+  .pcard-fx {
+    animation: pcard-slide-in linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 15%;
+  }
+}
+
 .pcard {
   position: relative; display: block; overflow: hidden; cursor: pointer;
   padding: 0; border: 0; text-align: left; font: inherit; color: inherit;
@@ -558,13 +597,10 @@ main > section + section { border-top: 1px solid var(--hairline); }
   background: linear-gradient(180deg, transparent 48%, rgb(0 0 0 / .8) 100%);
 }
 
-/* Lencana digeser ke 16px, bukan 12px: sudut squircle 28px memakan pojoknya. */
-.pcard__new {
-  position: absolute; top: 16px; left: 16px; z-index: 2;
-  background: var(--canvas); color: var(--ink); padding: 3px 7px;
-  font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
-}
-/* play badge — menandai proyek yang galerinya berisi video */
+/* play badge — menandai proyek yang galerinya berisi video.
+   Satu-satunya lencana yang tersisa: yang "New" dilepas bersama baris instansi
+   dan ajakan "Galeri (n)" (lihat cardHTML di portfolio-runtime.js). Digeser ke
+   16px, bukan 12px: sudut squircle 28px memakan pojoknya. */
 .pcard__play {
   position: absolute; right: 16px; top: 16px; z-index: 2;
   width: 36px; height: 36px; border-radius: 9999px;
@@ -588,13 +624,13 @@ main > section + section { border-top: 1px solid var(--hairline); }
 .pcard__txt { display: block; min-width: 0; }
 
 /* Teks selalu putih: alasnya foto tergelapkan, bukan permukaan tema. */
-.pcard__cat, .pcard__title, .pcard__org, .pcard__cta {
+.pcard__cat, .pcard__title, .pcard__org {
   display: block; color: #fff; text-shadow: 0 2px 14px rgb(0 0 0 / .55);
 }
-.pcard__cat, .pcard__org, .pcard__cta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pcard__cat { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* Caption ini duduk di atas foto di kartu selebar ~300px, dan sengaja dibuat
-   kecil supaya fotonya yang dibaca lebih dulu, bukan teksnya. Empat angkanya
-   satu keluarga (8/11/9/8) dan dinaikkan bersama kalau nanti terasa terlalu
+   kecil supaya fotonya yang dibaca lebih dulu, bukan teksnya. Tiga angkanya
+   satu keluarga (8/11/9) dan dinaikkan bersama kalau nanti terasa terlalu
    kecil; letter-spacing kapital berspasi ikut dirapatkan ke 1.2px supaya
    "REVERSE ENGINEERING" tidak jadi lebih lebar justru setelah dikecilkan. */
 .pcard__cat { font-size: 8px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; opacity: .78; }
@@ -606,9 +642,18 @@ main > section + section { border-top: 1px solid var(--hairline); }
   font-size: 11px; font-weight: 700; line-height: 1.3; margin-top: 3px;
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
 }
-.pcard__org { font-size: 9px; font-weight: 300; margin-top: 3px; opacity: .82; }
-.pcard__cta { font-size: 8px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; margin-top: 6px; }
-.pcard__cta::after { content: " \2192"; }
+/* Dua baris, dan angka itu diukur bukan dikira. Instansi terpanjang di sini
+   77 huruf ("PT Aneka Tambang Tbk (ANTAM) UBPE Logam Mulia — Intern,
+   Electrical Maintenance") = 245px pada 9px, sementara kotak captionnya 191px
+   di kartu desktop 218px. Satu baris memotongnya di "…UBPE Lo…" — nama
+   instansinya lolos, tapi PERANNYA hilang, dan justru peran itu yang
+   menambah keterangan di luar judulnya. 245/191 = 1,28 baris, jadi dua baris
+   memuat seluruhnya dengan sisa. Ongkosnya 11px caption (25% -> 32% tinggi
+   kartu); di HP ongkos itu tidak terbayar — lihat blok ≤640px. */
+.pcard__org {
+  font-size: 9px; font-weight: 300; margin-top: 3px; opacity: .82;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
 
 /* ═══ SPOTLIGHT translation ═══
    spotlight-card.tsx keeps one document-level pointermove writing --px/--py.
@@ -922,27 +967,36 @@ a.chan:hover .chan__v { color: var(--ink); }
      21 kartu selebar layar berbaris tujuh layar ke bawah. Dipaku dua kolom.
      Isinya ikut mengecil: caption ini duduk di kartu yang kini ~166px, separuh
      dari lebar yang jadi dasar angka aslinya. Yang tersisa untuk diturunkan
-     tinggal judul dan instansinya — kategori dan ajakannya sudah 8px sejak di
-     dasarnya, jadi di sini keduanya cuma merapatkan letter-spacing. */
+     judul dan instansinya — kategorinya sudah 8px sejak di dasarnya, jadi di
+     sini ia cuma merapatkan letter-spacing. */
   .pgrid { grid-template-columns: 1fr 1fr; gap: 12px; }
   /* Persegi, bukan 4/3, dan ini konsekuensi dari dua kolom — bukan tambahan.
-     Caption ini tingginya tetap (~72px terukur: kategori, judul dua baris,
-     instansi, ajakan) berapa pun lebar kartunya. Pada kartu dua-kolom 165x124
-     ia memakan 58% — fotonya tinggal sepertiga dan kartu foto berhenti jadi
-     kartu foto. 165x165 plus ketikan yang dikecilkan di bawah ini menurunkannya
-     ke 44%. */
+     Caption ini tingginya tetap berapa pun lebar kartunya, jadi yang menentukan
+     berapa persen kartu yang dimakannya adalah TINGGI kartunya. Riwayat
+     angkanya: caption empat baris (kategori, judul dua baris, instansi,
+     ajakan) setinggi ~72px memakan 58% dari kartu 165x124 — fotonya tinggal
+     sepertiga. 165x165 plus ketikan yang dikecilkan di bawah menurunkannya ke
+     44%, dan melepas baris instansi + ajakannya (lihat cardHTML di
+     portfolio-runtime.js) menurunkannya lagi ke 41px alias 25% terukur. */
   .pcard { border-radius: 20px; aspect-ratio: 1; }
   /* Gradiennya ikut dinaikkan: pada kartu sependek ini teks dimulai jauh di
      atas titik 40% tempat gelapnya baru mulai tumbuh, dan judul putih mendarat
-     di bagian foto yang masih terang. */
+     di bagian foto yang masih terang.
+     26% itu untuk caption 44% tadi; sesudah caption tinggal 25% ia menggelapkan
+     lebih banyak foto daripada yang dibutuhkan teksnya. Dibiarkan karena
+     hasilnya masih terbaca sebagai vinyet foto biasa — kalau nanti terasa
+     terlalu pekat, ini kenopnya (dan pasangannya 48% di .pcard__scrim atas). */
   .pcard__scrim { background: linear-gradient(180deg, transparent 26%, rgb(0 0 0 / .5) 54%, rgb(0 0 0 / .88) 100%); }
   .pcard__cap { left: 10px; right: 10px; bottom: 9px; gap: 6px; }
   .pcard__bar { width: 2px; height: 26px; }
   .pcard__cat { letter-spacing: 1px; }
   .pcard__title { font-size: 10px; }
-  .pcard__org { font-size: 8px; margin-top: 2px; }
-  .pcard__cta { letter-spacing: 1px; margin-top: 5px; }
-  .pcard__new { top: 10px; left: 10px; }
+  /* Kembali satu baris di sini, dan alasannya baris kedua tidak membeli apa-apa:
+     kotaknya cuma 137px sementara instansi terpanjang 321px pada 8px — dua
+     baris pun masih terpotong, cuma menaikkan caption dari 33% jadi 40% tinggi
+     kartu. Pada kartu 165x165 itu ongkos yang dibayar untuk teks yang tetap
+     tidak lengkap. Nama instansinya lolos, selengkapnya di galeri. */
+  .pcard__org { font-size: 8px; margin-top: 2px; -webkit-line-clamp: 1; }
   .pcard__play { top: 10px; right: 10px; width: 30px; height: 30px; }
 
   /* ── Kontak langsung ── satu baris per kanal, tidak pernah patah.
