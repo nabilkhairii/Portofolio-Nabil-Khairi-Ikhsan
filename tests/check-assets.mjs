@@ -15,22 +15,19 @@ const page = readFileSync(path.join(root, 'app/page.tsx'), 'utf8');
 const runtime = readFileSync(path.join(root, 'components/portfolio-runtime.js'), 'utf8');
 
 /* ── 1. rujukan literal di page.tsx yang menunjuk ke dalam situs ──
-   Dua bentuk, dan yang kedua bukan kelengkapan yang mengada-ada: sejak pita
-   foto dipindah ke komponen, keempat fotonya dioper sebagai prop (objek
-   CHOREO_IMAGES), bukan lagi ditulis sebagai src="...". Dengan cuma regex
-   atribut, empat berkas itu berhenti diperiksa tanpa satu pun uji berubah
-   merah — persis jenis kebocoran yang berkas ini ada untuk mencegahnya. */
+   Dua bentuk, dan yang kedua bukan kelengkapan yang mengada-ada: aset yang
+   dioper sebagai prop (objek/array literal, bukan atribut src="...") lolos
+   dari regex atribut tanpa satu pun uji berubah merah — persis jenis
+   kebocoran yang berkas ini ada untuk mencegahnya. */
 const refs = [
   ...[...page.matchAll(/(?:src|href)="(\/[^"]+)"/g)].map(m => m[1]),
   ...[...page.matchAll(/['"](\/(?:assets|thumbs)\/[^'"]+)['"]/g)].map(m => m[1]),
 ];
-/* Ambangnya 1, bukan jumlah persisnya: isinya /cv.pdf (dua tombol) dan empat
-   foto pita choreo, dan angka itu berubah tiap kali satu seksi datang atau
-   pergi. Ini cuma kenari untuk regex di atas — kalau nanti berkurang jadi nol,
-   yang rusak regexnya. Yang menjaga tiap rujukannya ada adalah baris di bawah. */
+/* Ambangnya 1, bukan jumlah persisnya: angka itu berubah tiap kali satu seksi
+   datang atau pergi. Ini cuma kenari untuk regex di atas — kalau nanti
+   berkurang jadi nol, yang rusak regexnya. Yang menjaga tiap rujukannya ada
+   adalah baris di bawah. */
 assert.ok(refs.length > 1, 'tidak ada rujukan lokal yang terbaca — regexnya yang rusak');
-assert.ok(refs.some(u => u.startsWith('/thumbs/')),
-  'tidak ada satu pun rujukan /thumbs/ terbaca — foto pita choreo lepas dari pemeriksaan ini');
 
 const missing = refs.filter(u => !existsSync(pub(u)));
 assert.deepStrictEqual(missing, [], `dirujuk page.tsx tapi tidak ada di public/: ${missing.join(', ')}`);

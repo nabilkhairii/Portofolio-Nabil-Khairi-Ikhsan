@@ -1164,7 +1164,6 @@ const coverOf = (p) => p.cover || p.images.find(f => !isVideo(f)) || p.images[0]
    di data karena itu fakta tentang proyeknya, bukan sisa perancah — kalau
    lencananya kelak dipasang lagi, penandanya masih ada. */
 const cardHTML = (p) => `
-  <div class="pcard-fx">
   <button type="button" class="pcard" data-id="${p.id}"
           aria-label="${T().open}: ${esc(t(p, 'title'))}, ${p.images.length} ${T().photos}">
     <span class="pcard__media">
@@ -1182,62 +1181,7 @@ const cardHTML = (p) => `
         <span class="pcard__org">${esc(t(p, 'org'))}</span>
       </span>
     </span>
-  </button>
-  </div>`;
-
-/* ═══ ANGKA UNTUK ANIMASI MASUK KARTU ═══
-   Animasinya sendiri CSS murni (.pcard-fx di portfolio.css, digerakkan
-   animation-timeline: view() — bukan JS, jadi `zoom` di <body> tidak
-   mengganggunya seperti mengganggu useScroll). Yang tidak bisa ditulis CSS
-   cuma tiga angka per kartu, dan itu yang dipasang di sini:
-
-     --side  arah putarnya, berganti-ganti kiri/kanan tiap kartu
-     --amp   besar putarnya, menanjak 0-1-1-2-2-3-3-4 lalu berulang tiap 8
-     --origin titik putarnya, jauh di luar kartu — inilah yang membuat putaran
-             5 derajat terbaca sebagai ayunan lebar, bukan miring sedikit
-
-   --side dan --amp rumusnya persis punya komponen aslinya (MasonryGrid,
-   components/ui/masonry-grid-with-scroll-animation.tsx). --origin tidak:
-   di sana tangganya dipaku ke nth-of-type untuk kisi 2/4/6 kolom, sedangkan
-   .pgrid di sini `auto-fill minmax(300px, 1fr)` — jumlah kolomnya berubah
-   mengikuti lebar jendela dan tak ada satu pun nth-of-type yang benar untuk
-   semuanya. Jadi jumlah kolomnya DIBACA dari kisi yang sudah ditata
-   (gridTemplateColumns terhitung selalu berupa deret panjang px), lalu
-   tangganya dihitung dari jarak kolom itu ke tengah baris: 25vw untuk kolom
-   terdekat, naik 25vw tiap kolom menjauh, tandanya mengikuti sisi mana.
-
-   Rumusnya menghasilkan daftar komponen aslinya PERSIS di tiap cacah kolom
-   yang ada di sana — 6 kolom jadi 75/50/25/-25/-50/-75vw, 4 kolom jadi
-   50/25/-25/-50, 2 kolom jadi 25/-25 — dan sekaligus menutup cacah ganjil yang
-   tidak ada di sana. Math.floor pada jarak itu yang mengurus keduanya: pada
-   cacah genap tengah barisnya jatuh di antara dua kolom (jarak 0,5 -> 25vw,
-   1,5 -> 50vw), pada cacah ganjil tepat DI kolom tengah, dan kolom itu dapat
-   0 — berputar di kakinya sendiri tanpa mengayun. Versi pertama memakai
-   pecahan mentah dan memberi kolom tengah 12,5vw pada 3 kolom: barisnya
-   mengayun timpang, 37,5 / 12,5 / -37,5.
-
-   Dipanggil ulang saat lebar jendela berubah karena jumlah kolomnya ikut
-   berubah — kartu yang sudah tampil tidak terpengaruh (animasinya sudah
-   selesai), yang belum kebagian tangga yang benar. */
-function tagCardFx() {
-  const cards = [...grid.children];
-  if (!cards.length) return;
-  /* Nilai TERHITUNG, bukan yang ditulis: "257.5px 257.5px ..." — satu ruas per
-     kolom. Kalau kisinya belum sempat ditata (mis. tersembunyi), yang kembali
-     ungkapan repeat() dan cacahnya salah; || 2 menjaga agar tetap masuk akal
-     sampai resize berikutnya membetulkannya. */
-  const track = getComputedStyle(grid).gridTemplateColumns.split(' ');
-  const cols = track.every(t => t.endsWith('px')) ? track.length : 2;
-  const mid = (cols - 1) / 2;
-
-  cards.forEach((el, i) => {
-    const jarak = mid - (i % cols);                       // + di kiri tengah, - di kanan
-    el.style.setProperty('--side', i % 2 ? -1 : 1);
-    el.style.setProperty('--amp', Math.ceil((i % 8) / 2));
-    el.style.setProperty('--origin',
-      Math.sign(jarak) * (25 + 25 * Math.floor(Math.abs(jarak))) + 'vw');
-  });
-}
+  </button>`;
 
 /* Seluruh kategori sekaligus, tanpa halaman: yang dulu memaksa pemecahan
    empat-empat adalah flex-grow yang dianimasikan (properti layout, satu reflow
@@ -1247,10 +1191,7 @@ function renderGrid() {
   const list = activeFilter === 'all' ? PROJECTS : PROJECTS.filter(p => p.cat === activeFilter);
   grid.innerHTML = list.map(cardHTML).join('');
   emptyMsg.classList.toggle('hidden', list.length > 0);
-  tagCardFx();
 }
-
-window.addEventListener('resize', tagCardFx);
 
 const CAT_KEYS = Object.keys(CATEGORIES);
 

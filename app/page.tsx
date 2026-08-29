@@ -15,43 +15,7 @@ import { SiteBehavior } from '@/components/site-behavior';
 import { Dock } from '@/components/ui/dock-two';
 import { FlowButton } from '@/components/ui/flow-button';
 import { OriginButton } from '@/components/ui/origin-button';
-import { ScrollChoreography } from '@/components/ui/scroll-choreography';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
-
-/* Empat foto pita koreografi. Namanya ikut nama prop komponennya (topLeft dst),
-   dan itu posisi AWAL — komponennya sendiri yang memindahkannya, dan `topRight`
-   yang jadi foto terakhir yang mengembang memenuhi layar.
-
-   thumbs/, bukan assets/: versi 1100px dari make-thumbs.mjs. Aslinya ada yang
-   puluhan megapiksel, dan di sini empat sekaligus. */
-const CHOREO_IMAGES = {
-  topLeft: '/thumbs/Antam/System%20Placement%20Mapping.jpeg.webp',
-  topRight: '/thumbs/AMX/PCB%20Layout%20Result.jpeg.webp',
-  bottomLeft:
-    '/thumbs/Robotika%20Cerdas%20Arm%20Robot/Design%20Process%20for%203D%20Printing%20a%20Robot%20Manipulator%20Body.png.webp',
-  bottomRight:
-    '/thumbs/Computer%20Vision%20%26%20AI/Computer%20Vision%20Based%20Vehicle%20Detection%20Results%20Us-Cover.jpg.webp',
-};
-
-/* Set kedua, khusus HP — dan alasannya bentuk fotonya, bukan selera.
-   Keempat foto di atas MENDATAR (rasio 1,78-1,97). Di layar 390px ubin
-   pitanya jadi kolom tegak, dan foto mendatar yang dipaksa masuk ke sana
-   dipotong object-cover sampai tinggal pita tengahnya — isinya hilang.
-   Keempat ini TEGAK (0,56 / 0,75 / 0,89 / 0,56), searah dengan ubinnya.
-
-   Ditukar oleh <picture media> di scroll-choreography.tsx, bukan oleh JS:
-   peramban memilih sebelum satu byte pun diminta, jadi HP tidak ikut
-   mengunduh set mendatar yang tak akan pernah ditampilkannya. */
-const CHOREO_IMAGES_PHONE = {
-  topLeft:
-    '/thumbs/Antam/Carrying%20out%20Preventive%20Maintenance%20in%20the%20Factory%20Area.png.webp',
-  topRight:
-    '/thumbs/AMX/Reverse%20Engineering%20(RE)%20Electric%20Drone%20Sprayer.jpeg.webp',
-  bottomLeft:
-    '/thumbs/Intalasi%20Mesin%20Listrik%20(SEM%202)/3%20Phase%20Power%20Motor%20Circuit%20to%20Manually%20Turn%20the%20Steering%20Right%20and%20Left%20Using%20a%203%20Phase%20Motor.jpeg.webp',
-  bottomRight:
-    '/thumbs/Robotika%20Lanjut/Component%20Checking%20before%20Implementation%20and%20Control%20Using%20ROS%202.jpeg.webp',
-};
 
 /* Isi chip Software & Tools. Urutannya urutan yang diminta, bukan abjad.
    Tiap chip tautan ke situs resmi produknya.
@@ -661,47 +625,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ══ PHOTO BAND — koreografi gulir empat foto ══
-            components/ui/scroll-choreography.tsx, disalin apa adanya. Fase-nya
-            miliknya sendiri: dua foto bergeser diagonal, keempatnya menumpuk di
-            tengah, lalu yang teratas mengembang jadi satu layar penuh.
-
-            Dekoratif: keempat fotonya sudah tampil bersama proyeknya di bawah,
-            jadi seluruh seksinya aria-hidden — buat pembaca layar ini
-            pengulangan. Sumbernya thumbs 1100px, bukan foto penuh: yang asli
-            sampai puluhan megapiksel dan empat sekaligus di sini.
-
-            Kalimatnya menumpang sebagai lapisan terpisah, BUKAN dengan menyunting
-            komponennya: pembungkus setinggi seksi + sticky sendiri, jadi ia ikut
-            terpaku di layar yang sama. Komponennya tidak menyediakan slot anak,
-            dan menambahkannya berarti versi cabangan yang harus dirawat sendiri. */}
-        <section aria-hidden="true" className="choreo-band relative">
-          {/* Pembungkus pembatal zoom — lihat .choreo-band__fx di portfolio.css.
-              Komponennya menulis 100vw/100vh apa adanya, dan di bawah body
-              zoom .8 "satu layar penuh" itu jadi 80% layar. */}
-          <div className="choreo-band__fx">
-            <ScrollChoreography
-              images={CHOREO_IMAGES}
-              imagesPhone={CHOREO_IMAGES_PHONE}
-            />
-          </div>
-          <div className="choreo__overlay">
-            {/* Pembungkus tengah terpisah dari <p>-nya: .split memecah kalimat
-                jadi satu <span> per kata, dan kalau <p>-nya sendiri yang jadi
-                kisi, tiap kata menempati barisnya sendiri. */}
-            <div>
-              <p
-                className="choreo__caption display-lg split"
-                data-en="8 PROJECTS<br>ONE WAY OF WORKING"
-              >
-                8 PROYEK
-                <br />
-                SATU CARA KERJA
-              </p>
-            </div>
-          </div>
-        </section>
-
         {/* ══ EXPERIENCE & PROJECTS ══ */}
         <section id="experience" className="band">
           <div className="shell">
@@ -970,8 +893,8 @@ export default function Home() {
                       <span className="label chan__k" data-en="Location">
                         Lokasi
                       </span>
-                      <span className="chan__v" data-en="Depok, West Java">
-                        Depok, Jawa Barat
+                      <span className="chan__v" data-en="Rawamangun, Jakarta">
+                        Rawamangun, Jakarta
                       </span>
                     </span>
                   </li>
@@ -1087,9 +1010,9 @@ export default function Home() {
             </h3>
             <p
               className="prose mt-4"
-              data-en="Depok, West Java"
+              data-en="Rawamangun, Jakarta"
             >
-              Depok, Jawa Barat
+              Rawamangun, Jakarta
             </p>
           </div>
         </div>

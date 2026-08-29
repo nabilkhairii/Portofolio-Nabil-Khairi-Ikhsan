@@ -429,71 +429,6 @@ main > section + section { border-top: 1px solid var(--hairline); }
 .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
 .tab__n { font-size: 11px; color: var(--muted); margin-left: 8px; vertical-align: super; }
 
-/* ═══ PHOTO BAND — lapisan kalimat di atas ScrollChoreography ═══
-   Gerakan fotonya seluruhnya milik components/ui/scroll-choreography.tsx
-   (motion/react). Yang tinggal di sini cuma kalimat yang menumpang di atasnya.
-
-   Pembungkusnya menutupi seluruh seksi lalu memaku dirinya sendiri di layar
-   yang sama: komponennya tidak menyediakan slot anak, dan menyuntik satu ke
-   dalamnya berarti versi cabangan yang harus dirawat terpisah dari sumbernya.
-
-   Tingginya calc(100 * var(--vh)), bukan 100vh: body di-zoom .8 dan unit
-   viewport tidak ikut membesar (lihat blok ZOOM HALAMAN di atas), jadi 100vh
-   di sini cuma setinggi 80% layar dan kalimatnya duduk kelewat tinggi.
-   Komponennya sendiri memakai h-screen apa adanya — itu bagian dari salinan
-   yang sengaja tidak diubah, dan panggungnya tetap terpaku benar karena
-   sticky-nya top: 0. */
-/* Pembatal zoom. Komponennya ditulis untuk halaman tanpa zoom: h-screen,
-   w-[36vw], dan hero yang mengembang ke 100vw x 100vh. Di bawah body zoom .8
-   semua itu tergambar 80%-nya, jadi puncak efeknya — "satu layar penuh" —
-   berhenti sebagai kotak 80% dengan pita latar mengelilinginya.
-
-   1.25 di sini membuat zoom efektif di dalamnya .8 * 1.25 = 1, dan unit
-   viewport kembali berarti apa adanya. Ini jalan yang tidak menyentuh
-   komponennya: mengganti tiap vh/vw di dalamnya dengan var(--vh)/var(--vw)
-   berarti mencabangkan salinan yang harus dirawat terpisah dari sumbernya.
-
-   Kalimatnya sengaja DI LUAR pembungkus ini — kalau ikut, ukurannya jadi 1.25x
-   heading display-lg lain di halaman. */
-/* Ditulis sebagai pembagian, bukan 1.25 mati: angkanya HARUS kebalikan zoom
-   body, dan di HP zoom itu 1 (blok "HP" di kepala berkas). Dengan 1.25 mati,
-   pita ini akan tergambar 1,25x di sana — satu-satunya bagian halaman yang
-   membesar justru saat layarnya paling sempit. Di desktop nilainya tetap
-   1/.8 = 1.25, persis seperti sebelumnya. */
-.choreo-band__fx { zoom: calc(1 / var(--zoom)); }
-
-.choreo__overlay {
-  position: absolute; inset: 0; pointer-events: none;
-}
-/* mix-blend-mode duduk DI SINI, bukan di <p>-nya, dan itu bukan pilihan gaya.
-   Pembungkus ini position: sticky, dan sticky membentuk konteks penumpukan —
-   apa pun yang berblending DI DALAMNYA cuma melihat isi pembungkus ini sebagai
-   alas, yaitu tidak ada. Teksnya lalu tergambar putih polos di atas foto
-   seterang apa pun. Dipasang di pembungkusnya, yang dibalik alasnya yang
-   sebenarnya: pita fotonya.
-
-   Kotaknya sendiri transparan, dan difference terhadap piksel transparan tidak
-   mengubah apa-apa — jadi yang terbalik hanya huruf-hurufnya. */
-.choreo__overlay > * {
-  position: sticky; top: 0; height: calc(100 * var(--vh));
-  display: grid; place-items: center;
-  mix-blend-mode: difference;
-}
-
-/* Tanpa alas, dan warnanya tidak dipilih melainkan dihitung. Putih di sini
-   adalah masukan untuk difference di pembungkusnya, bukan warna akhir: putih
-   dikurangi alas = kebalikan alas. Di atas kanvas gelap ia tetap putih, di atas
-   kanvas terang jadi hitam, dan di atas foto ia membalik tiap piksel yang
-   dilewatinya. Satu aturan untuk dua tema sekaligus.
-
-   Kotak gelap sempat dipakai untuk keperluan yang sama dan salah: ia menutupi
-   fotonya sendiri. */
-.choreo__caption {
-  max-width: calc(70 * var(--vw)); padding-inline: 24px;
-  color: #fff;
-  text-align: center;
-}
-
 /* ═══ PROJECT CARDS ═══
    Kotak biasa, satu kartu per proyek, seluruh kategori tampil sekaligus.
    Menggantikan AccordionGallery: panel yang melebar saat disorot, tilt
@@ -519,45 +454,6 @@ main > section + section { border-top: 1px solid var(--hairline); }
   /* min(100%, 300px): tanpa min() kolom 300px tetap dipaksa selebar itu di
      layar 320px dan halamannya bisa digeser mendatar. */
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
-}
-
-/* ═══ KARTU MENGAYUN MASUK — MasonryGrid (skiper/codepen) ═══
-   Sumbernya components/ui/masonry-grid-with-scroll-animation.tsx; keyframes,
-   animation-range, dan tangga transform-origin-nya dari sana. Tiga angka per
-   kartu (--side/--amp/--origin) dipasang tagCardFx di portfolio-runtime.js.
-
-   Pembungkus tersendiri, bukan .pcard langsung, dan itu wajib: animasi
-   MENGALAHKAN deklarasi biasa, dan dengan `both` keadaan akhirnya terus
-   menempel sesudah animasinya habis. Dipasang di .pcard, `transform: scale(1)`
-   miliknya akan memblokir `translateY(-6px)` milik .pcard:hover selamanya —
-   angkat-saat-disorot mati tanpa satu pun pesan error.
-
-   animation-timeline: view() — CSS murni, dihitung peramban dari tata letaknya
-   sendiri. Itu sebabnya efek ini aman di sini sementara useScroll tidak:
-   `zoom` di <body> ikut terhitung, bukan diabaikan.
-
-   Peramban tanpa scroll-driven animation menjatuhkan animation-timeline, dan
-   yang tersisa `animation: ... both` tanpa durasi = 0 detik: kartunya langsung
-   berdiri di keadaan akhir. Rusaknya ke arah yang benar — tidak ada kartu yang
-   tertinggal tembus pandang.
-
-   Ayunannya melebar jauh ke luar kisi (titik putarnya sampai 75vw di samping
-   kartunya). Yang menahannya `main { overflow-x: clip }` di kepala berkas ini:
-   terpotong, tanpa menerbitkan gulir mendatar. */
-@keyframes pcard-slide-in {
-  from { opacity: 0; transform: scale(.85) rotate(calc(var(--side, 1) * (5deg * var(--amp, 1)))); }
-  to   { opacity: 1; transform: scale(1) rotate(0deg); }
-}
-.pcard-fx { transform-origin: var(--origin, 0) 100%; }
-/* .pcard tombol, dan tombol menyusut ke isinya. Sebagai anak langsung .pgrid
-   ia diregangkan kisi; di dalam pembungkus ini tidak lagi. */
-.pcard-fx > .pcard { width: 100%; }
-@media (prefers-reduced-motion: no-preference) {
-  .pcard-fx {
-    animation: pcard-slide-in linear both;
-    animation-timeline: view();
-    animation-range: entry 0% cover 15%;
-  }
 }
 
 .pcard {
@@ -1382,11 +1278,4 @@ a.chan:hover .chan__v { color: var(--ink); }
   /* Cincinnya tetap, angkatnya tidak: penanda sorot masih ada tanpa gerakan. */
   .pcard { transition: none; }
   .pcard:hover, .pcard:focus-visible { transform: none; }
-  /* Pita foto dilepas seluruhnya, bukan dijinakkan. Isinya 300vh gulir yang
-     seluruh maknanya gerakan — tanpa itu yang tersisa cuma satu foto diam yang
-     menahan tiga layar gulir. Aman dibuang: seksinya aria-hidden, dan keempat
-     fotonya tetap tampil bersama proyeknya di kisi di bawah.
-     Komponennya sendiri tidak mengenal prefers-reduced-motion, dan menambahkan
-     itu ke dalamnya berarti mencabangkan salinan dari sumbernya. */
-  .choreo-band { display: none; }
 }
