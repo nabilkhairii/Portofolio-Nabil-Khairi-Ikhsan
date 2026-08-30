@@ -1546,4 +1546,34 @@ document.getElementById('copy-email').addEventListener('click', async () => {
   else say(T().copyManual + EMAIL);
 });
 
+/* ═══ TEKAN-TAHAN FOTO DOKUMENTASI ═══
+   Di penunjuk, popup .jr-act diurus :hover sepenuhnya di CSS. Di sentuh tidak
+   ada padanannya: :active tidak menyala untuk sentuhan di halaman ini (diuji
+   dengan sentuhan ditahan 500ms — tidak ada satu pun elemen yang cocok
+   :active), jadi kelasnya dipasang sendiri di sini.
+
+   pointerdown, bukan touchstart: satu pasang event yang sama juga menangani
+   pena, pointerType menyaring tetikus (di sana :hover yang bekerja), dan
+   pointercancel-nya yang menutup popup begitu peramban memutuskan gerakan itu
+   gulir, bukan tahan.
+
+   contextmenu ditahan KHUSUS di ubin ini: tekan-tahan di atas <img> membuka
+   menu unduh gambar bawaan peramban, tepat menutupi popup yang baru muncul. */
+let pressedAct = null;
+const releaseAct = () => {
+  if (!pressedAct) return;
+  pressedAct.classList.remove('is-pressed');
+  pressedAct = null;
+};
+document.addEventListener('pointerdown', (e) => {
+  if (e.pointerType === 'mouse') return;
+  pressedAct = e.target.closest('.jr-act');
+  if (pressedAct) pressedAct.classList.add('is-pressed');
+}, { passive: true });
+document.addEventListener('pointerup', releaseAct, { passive: true });
+document.addEventListener('pointercancel', releaseAct, { passive: true });
+document.addEventListener('contextmenu', (e) => {
+  if (e.target.closest('.jr-act')) e.preventDefault();
+});
+
 window.__portfolio = { observeReveals, PROJECTS };

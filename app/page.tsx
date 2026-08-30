@@ -10,12 +10,54 @@
    Grid proyek (#project-grid) dan galeri (#gallery) sengaja dibiarkan kosong —
    isinya dibangun runtime dari daftar PROJECTS. */
 
+import {
+  Blocks, CircuitBoard, Cpu, Factory, FileText, Gauge,
+  Radio, ScanSearch, SlidersHorizontal, Thermometer, Wrench, Zap,
+} from 'lucide-react';
+
 import { LanyardMount } from '@/components/lanyard-mount';
+import { ExperienceJourney } from '@/components/experience-journey';
 import { SiteBehavior } from '@/components/site-behavior';
 import { Dock } from '@/components/ui/dock-two';
 import { FlowButton } from '@/components/ui/flow-button';
 import { OriginButton } from '@/components/ui/origin-button';
+import { ScrollChoreography } from '@/components/ui/scroll-choreography';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+
+/* Empat foto pita koreografi. Namanya ikut nama prop komponennya (topLeft dst),
+   dan itu posisi AWAL — komponennya sendiri yang memindahkannya, dan `topRight`
+   yang jadi foto terakhir yang mengembang memenuhi layar.
+
+   thumbs/, bukan assets/: versi 1100px dari make-thumbs.mjs. Aslinya ada yang
+   puluhan megapiksel, dan di sini empat sekaligus. */
+const CHOREO_IMAGES = {
+  topLeft: '/thumbs/Antam/System%20Placement%20Mapping.jpeg.webp',
+  topRight: '/thumbs/AMX/PCB%20Layout%20Result.jpeg.webp',
+  bottomLeft:
+    '/thumbs/Robotika%20Cerdas%20Arm%20Robot/Design%20Process%20for%203D%20Printing%20a%20Robot%20Manipulator%20Body.png.webp',
+  bottomRight:
+    '/thumbs/Computer%20Vision%20%26%20AI/Computer%20Vision%20Based%20Vehicle%20Detection%20Results%20Us-Cover.jpg.webp',
+};
+
+/* Set kedua, khusus HP — dan alasannya bentuk fotonya, bukan selera.
+   Keempat foto di atas MENDATAR (rasio 1,78-1,97). Di layar 390px ubin
+   pitanya jadi kolom tegak, dan foto mendatar yang dipaksa masuk ke sana
+   dipotong object-cover sampai tinggal pita tengahnya — isinya hilang.
+   Keempat ini TEGAK (0,56 / 0,75 / 0,89 / 0,56), searah dengan ubinnya.
+
+   Ditukar oleh <picture media> di scroll-choreography.tsx, bukan oleh JS:
+   peramban memilih sebelum satu byte pun diminta, jadi HP tidak ikut
+   mengunduh set mendatar yang tak akan pernah ditampilkannya. */
+const CHOREO_IMAGES_PHONE = {
+  topLeft:
+    '/thumbs/Antam/Carrying%20out%20Preventive%20Maintenance%20in%20the%20Factory%20Area.png.webp',
+  topRight:
+    '/thumbs/AMX/Reverse%20Engineering%20(RE)%20Electric%20Drone%20Sprayer.jpeg.webp',
+  bottomLeft:
+    '/thumbs/Intalasi%20Mesin%20Listrik%20(SEM%202)/3%20Phase%20Power%20Motor%20Circuit%20to%20Manually%20Turn%20the%20Steering%20Right%20and%20Left%20Using%20a%203%20Phase%20Motor.jpeg.webp',
+  bottomRight:
+    '/thumbs/Robotika%20Lanjut/Component%20Checking%20before%20Implementation%20and%20Control%20Using%20ROS%202.jpeg.webp',
+};
 
 /* Isi chip Software & Tools. Urutannya urutan yang diminta, bukan abjad.
    Tiap chip tautan ke situs resmi produknya.
@@ -51,6 +93,25 @@ const TOOLS: { name: string; href: string; logo: string }[] = [
   { name: 'Cisco Packet Tracer', href: 'https://www.netacad.com/cisco-packet-tracer', logo: 'cisco' },
   { name: 'Microsoft Office', href: 'https://www.microsoft.com/microsoft-365', logo: 'microsoft-office' },
 ];
+
+/* Isi Core Competencies. Ikonnya dari lucide-react — sudah terpasang untuk
+   Dock, jadi dua belas baris ini tidak menambah satu berkas pun di
+   public/icons/ dan tidak ada dependensi baru. Garis, bukan logo merek:
+   kompetensi tidak punya vendor. */
+const COMPETENCIES = [
+  ['PCB Design & Layout', CircuitBoard],
+  ['Control Systems Design', SlidersHorizontal],
+  ['Electronic Measurements', Gauge],
+  ['Reverse Engineering', ScanSearch],
+  ['Embedded Programming', Cpu],
+  ['Sensor Interfacing', Radio],
+  ['System Troubleshooting', Wrench],
+  ['Power Distribution Analysis', Zap],
+  ['PLC Programming', Factory],
+  ['Thermal Analysis', Thermometer],
+  ['System Integration', Blocks],
+  ['Technical Documentation', FileText],
+] as const;
 
 /* Logo baris Kontak Langsung. Inline, bukan berkas di public/icons/: tiap
    logo dipakai sekali dan warnanya tetap, jadi tidak ada yang perlu diunduh
@@ -310,7 +371,7 @@ export default function Home() {
             </div>
             <div className="spec">
               <span className="spec__v">
-                04
+                03
               </span>
               <span className="label spec__l" data-en="Industry Experience">
                 Pengalaman Industri
@@ -371,7 +432,7 @@ export default function Home() {
                   industri.
                 </p>
                 <p
-                  className="prose mt-6"
+                  className="prose mt-4"
                   data-en="Competent in PCB design, PLC programming, Mini PC system integration, and troubleshooting. Oriented toward developing efficient embedded solutions tailored to industrial control and automation needs."
                 >
                   Menguasai PCB design, pemrograman PLC, integrasi sistem Mini
@@ -382,18 +443,12 @@ export default function Home() {
 
                 <h3 className="label text-muted mt-12 split split-fly">Core Competencies</h3>
                 <ul className="comp-grid mt-5">
-                  <li>PCB Design &amp; Layout</li>
-                  <li>Control Systems Design</li>
-                  <li>Electronic Measurements</li>
-                  <li>Reverse Engineering</li>
-                  <li>Embedded Programming</li>
-                  <li>Sensor Interfacing</li>
-                  <li>System Troubleshooting</li>
-                  <li>Power Distribution Analysis</li>
-                  <li>PLC Programming</li>
-                  <li>Thermal Analysis</li>
-                  <li>System Integration</li>
-                  <li>Technical Documentation</li>
+                  {COMPETENCIES.map(([name, Icon]) => (
+                    <li key={name}>
+                      <Icon aria-hidden="true" />
+                      {name}
+                    </li>
+                  ))}
                 </ul>
               </div>
 
@@ -415,18 +470,30 @@ export default function Home() {
                     sekecil .caption/.prose. Yang dicari cuma kartunya naik. */}
                 <div className="edu-list">
                 <article className="edu spotlight reveal mt-5 max-[640px]:mt-0">
-                  <p className="caption text-muted" data-en="Sep 2023 – Present">
-                    Sep 2023 – Sekarang
-                  </p>
-                  <h4 className="title-lg mt-2">
-                    Universitas Negeri Yogyakarta
-                  </h4>
-                  <p className="prose mt-2">
-                    Bachelor of Applied Science in Electronics Engineering
-                  </p>
-                  <p className="label mt-4 text-ink" data-en="GPA 3.69 / 4.00">
-                    IPK 3.69 / 4.00
-                  </p>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    className="edu__logo edu__logo--uny"
+                    src="/icons/uny.png"
+                    alt=""
+                    loading="lazy"
+                  />
+                  <div className="edu__body">
+                    <p className="caption text-muted" data-en="Sep 2023 – Present">
+                      Sep 2023 – Sekarang
+                    </p>
+                    <h4 className="title-lg mt-2">
+                      Universitas Negeri Yogyakarta
+                    </h4>
+                    <p
+                      className="prose mt-0.5 max-[640px]:mt-2"
+                      data-en="Bachelor of Applied Science in Electronics Engineering"
+                    >
+                      Sarjana Terapan Teknik Elektronika
+                    </p>
+                    <p className="label mt-2 max-[640px]:mt-4 text-ink" data-en="GPA 3.69 / 4.00">
+                      IPK 3.69 / 4.00
+                    </p>
+                  </div>
                 </article>
 
                 {/* Menyusul 140ms di belakang kartu pertama — angka yang sama
@@ -437,29 +504,94 @@ export default function Home() {
                   className="edu spotlight reveal mt-4 max-[640px]:mt-0"
                   data-reveal-delay="140"
                 >
-                  <p
-                    className="caption text-muted"
-                    data-en="May 2020 – May 2023"
-                  >
-                    Mei 2020 – Mei 2023
-                  </p>
-                  <h4 className="title-lg mt-2">SMK Telkom Makassar</h4>
-                  <p className="prose mt-2">Access Network Engineering</p>
-                  <p
-                    className="label mt-4 text-ink"
-                    data-en="GPA 90.5 / 100"
-                  >
-                    IPK 90.5 / 100
-                  </p>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    className="edu__logo edu__logo--smk"
+                    src="/icons/smk-telkom.png"
+                    alt=""
+                    loading="lazy"
+                  />
+                  <div className="edu__body">
+                    <p
+                      className="caption text-muted"
+                      data-en="May 2020 – May 2023"
+                    >
+                      Mei 2020 – Mei 2023
+                    </p>
+                    <h4 className="title-lg mt-2">
+                      SMK Telkom Makassar
+                    </h4>
+                    <p
+                      className="prose mt-0.5 max-[640px]:mt-2"
+                      data-en="Access Network Engineering"
+                    >
+                      Teknik Jaringan Akses
+                    </p>
+                    <p
+                      className="label mt-2 max-[640px]:mt-4 text-ink"
+                      data-en="GPA 90.5 / 100"
+                    >
+                      IPK 90.5 / 100
+                    </p>
+                  </div>
                 </article>
                 </div>
 
                 <h3 className="label text-muted mt-10 split split-fly" data-en="Languages">
                   Bahasa
                 </h3>
+                {/* Bendera digambar inline, sama alasannya dengan CHAN_ICON:
+                    dipakai sekali, warnanya tetap, dan tidak menambah satu pun
+                    permintaan jaringan. Emoji bendera (🇮🇩/🇬🇧) sengaja
+                    dihindari — Windows tidak punya glyph-nya dan menampilkannya
+                    sebagai dua huruf "ID"/"GB". */}
                 <div className="mt-5 flex flex-wrap gap-2">
-                  <span className="chip">Indonesian (Native)</span>
-                  <span className="chip">English (Intermediate)</span>
+                  <span className="chip">
+                    {/* viewBox 2:1 mengikuti Union Jack, bukan 3:2 rasio
+                        resmi Sang Saka — dua bendera berdampingan yang beda
+                        kotak terbaca seperti salah pasang. */}
+                    <svg className="chip__flag" viewBox="0 0 60 30" aria-hidden="true">
+                      <path fill="#CE1126" d="M0 0h60v15H0z" />
+                      <path fill="#fff" d="M0 15h60v15H0z" />
+                      <path
+                        fill="none"
+                        stroke="var(--muted)"
+                        strokeOpacity=".4"
+                        strokeWidth="1.6"
+                        d="M.8.8h58.4v28.4H.8z"
+                      />
+                    </svg>
+                    Indonesian (Native)
+                  </span>
+                  <span className="chip">
+                    <svg className="chip__flag" viewBox="0 0 60 30" aria-hidden="true">
+                      {/* Empat diagonal merah Union Jack itu satu garis yang
+                          dipotong per kuadran — tanpa clip-path ia jadi satu
+                          silang lurus, bukan bendera Inggris. */}
+                      <clipPath id="flag-uk-quadrants">
+                        <path d="M30 15h30v15zv15h-30zh-30v-15zv-15h30z" />
+                      </clipPath>
+                      <path fill="#012169" d="M0 0h60v30H0z" />
+                      <path fill="none" stroke="#fff" strokeWidth="6" d="M0 0l60 30m0-30L0 30" />
+                      <path
+                        fill="none"
+                        stroke="#C8102E"
+                        strokeWidth="4"
+                        clipPath="url(#flag-uk-quadrants)"
+                        d="M0 0l60 30m0-30L0 30"
+                      />
+                      <path fill="none" stroke="#fff" strokeWidth="10" d="M30 0v30M0 15h60" />
+                      <path fill="none" stroke="#C8102E" strokeWidth="6" d="M30 0v30M0 15h60" />
+                      <path
+                        fill="none"
+                        stroke="var(--muted)"
+                        strokeOpacity=".4"
+                        strokeWidth="1.6"
+                        d="M.8.8h58.4v28.4H.8z"
+                      />
+                    </svg>
+                    English (Intermediate)
+                  </span>
                 </div>
               </div>
             </div>
@@ -530,12 +662,6 @@ export default function Home() {
                       <dt>Computer Vision &amp; AI</dt>
                       <dd>
                         <i style={{ '--v': '80%' } as React.CSSProperties} />
-                      </dd>
-                    </div>
-                    <div className="meter">
-                      <dt>Electrical Measurement</dt>
-                      <dd>
-                        <i style={{ '--v': '90%' } as React.CSSProperties} />
                       </dd>
                     </div>
                   </dl>
@@ -625,11 +751,57 @@ export default function Home() {
           </div>
         </section>
 
+        {/* ══ PHOTO BAND — koreografi gulir empat foto ══
+            components/ui/scroll-choreography.tsx, disalin apa adanya. Fase-nya
+            miliknya sendiri: dua foto bergeser diagonal, keempatnya menumpuk di
+            tengah, lalu yang teratas mengembang jadi satu layar penuh.
+
+            Dekoratif: keempat fotonya sudah tampil bersama proyeknya di bawah,
+            jadi seluruh seksinya aria-hidden — buat pembaca layar ini
+            pengulangan. Sumbernya thumbs 1100px, bukan foto penuh: yang asli
+            sampai puluhan megapiksel dan empat sekaligus di sini.
+
+            Kalimatnya menumpang sebagai lapisan terpisah, BUKAN dengan menyunting
+            komponennya: pembungkus setinggi seksi + sticky sendiri, jadi ia ikut
+            terpaku di layar yang sama. Komponennya tidak menyediakan slot anak,
+            dan menambahkannya berarti versi cabangan yang harus dirawat sendiri. */}
+        <section aria-hidden="true" className="choreo-band relative">
+          {/* Pembungkus pembatal zoom — lihat .choreo-band__fx di portfolio.css.
+              Komponennya menulis 100vw/100vh apa adanya, dan di bawah body
+              zoom .8 "satu layar penuh" itu jadi 80% layar. */}
+          <div className="choreo-band__fx">
+            <ScrollChoreography
+              images={CHOREO_IMAGES}
+              imagesPhone={CHOREO_IMAGES_PHONE}
+            />
+          </div>
+          <div className="choreo__overlay">
+            {/* Pembungkus tengah terpisah dari <p>-nya: .split memecah kalimat
+                jadi satu <span> per kata, dan kalau <p>-nya sendiri yang jadi
+                kisi, tiap kata menempati barisnya sendiri. */}
+            <div>
+              <p
+                className="choreo__caption display-lg split"
+                data-en="8 PROJECTS<br>ONE WAY OF WORKING"
+              >
+                8 PROYEK
+                <br />
+                SATU CARA KERJA
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* ══ INTERNSHIP JOURNEY ══
+            Rel waktu keempat peran, lalu satu bab per magang. Server
+            Component tanpa JS klien — lihat catatannya di berkasnya sendiri. */}
+        <ExperienceJourney />
+
         {/* ══ EXPERIENCE & PROJECTS ══ */}
         <section id="experience" className="band">
           <div className="shell">
  <div className="sec-head">
-              <p className="label text-muted">03 — Experience &amp; Projects</p>
+              <p className="label text-muted">04 — Work Documentation</p>
               <h2
  className="display-lg mt-4 split"
                 data-en="WORK DOCUMENTATION."
@@ -712,7 +884,7 @@ export default function Home() {
         <section id="contact" className="band">
           <div className="shell">
  <div className="sec-head">
-              <p className="label text-muted">04 — Contact</p>
+              <p className="label text-muted">05 — Contact</p>
  <h2 className="display-lg mt-4 split" data-en="LET’S TALK.">
                 MARI BICARA.
               </h2>

@@ -15,19 +15,22 @@ const page = readFileSync(path.join(root, 'app/page.tsx'), 'utf8');
 const runtime = readFileSync(path.join(root, 'components/portfolio-runtime.js'), 'utf8');
 
 /* ── 1. rujukan literal di page.tsx yang menunjuk ke dalam situs ──
-   Dua bentuk, dan yang kedua bukan kelengkapan yang mengada-ada: aset yang
-   dioper sebagai prop (objek/array literal, bukan atribut src="...") lolos
-   dari regex atribut tanpa satu pun uji berubah merah — persis jenis
-   kebocoran yang berkas ini ada untuk mencegahnya. */
+   Dua bentuk, dan yang kedua bukan kelengkapan yang mengada-ada: sejak pita
+   foto dipindah ke komponen, keempat fotonya dioper sebagai prop (objek
+   CHOREO_IMAGES), bukan lagi ditulis sebagai src="...". Dengan cuma regex
+   atribut, empat berkas itu berhenti diperiksa tanpa satu pun uji berubah
+   merah — persis jenis kebocoran yang berkas ini ada untuk mencegahnya. */
 const refs = [
   ...[...page.matchAll(/(?:src|href)="(\/[^"]+)"/g)].map(m => m[1]),
   ...[...page.matchAll(/['"](\/(?:assets|thumbs)\/[^'"]+)['"]/g)].map(m => m[1]),
 ];
-/* Ambangnya 1, bukan jumlah persisnya: angka itu berubah tiap kali satu seksi
-   datang atau pergi. Ini cuma kenari untuk regex di atas — kalau nanti
-   berkurang jadi nol, yang rusak regexnya. Yang menjaga tiap rujukannya ada
-   adalah baris di bawah. */
+/* Ambangnya 1, bukan jumlah persisnya: isinya /cv.pdf (dua tombol) dan empat
+   foto pita choreo, dan angka itu berubah tiap kali satu seksi datang atau
+   pergi. Ini cuma kenari untuk regex di atas — kalau nanti berkurang jadi nol,
+   yang rusak regexnya. Yang menjaga tiap rujukannya ada adalah baris di bawah. */
 assert.ok(refs.length > 1, 'tidak ada rujukan lokal yang terbaca — regexnya yang rusak');
+assert.ok(refs.some(u => u.startsWith('/thumbs/')),
+  'tidak ada satu pun rujukan /thumbs/ terbaca — foto pita choreo lepas dari pemeriksaan ini');
 
 const missing = refs.filter(u => !existsSync(pub(u)));
 assert.deepStrictEqual(missing, [], `dirujuk page.tsx tapi tidak ada di public/: ${missing.join(', ')}`);
@@ -101,5 +104,40 @@ for (const [hasil, sumber, tool] of [
   }
 }
 
+/* ── 5. foto bab Internship Journey ──
+   experience-journey.tsx tidak menulis satu pun jalur utuh: jalurnya disusun
+   thumb(folder, berkas), jadi kedua regex di (1) tidak melihatnya sama sekali
+   dan tiga puluh lebih foto akan lolos tanpa satu pun uji berubah merah.
+   Berkasnya dipecah per `folder:` — tiap kepingan itu satu bab, dan tiap nama
+   berkas berekstensi foto di dalamnya milik bab tersebut. */
+const journey = readFileSync(path.join(root, 'components/experience-journey.tsx'), 'utf8');
+const babHilang = [];
+
+/* Nama berkas relatif -> thumbnail. Yang diawali "/" sengaja DILUAR pola ini:
+   logo perusahaan ditulis sebagai jalur mutlak ke /icons/ dan bukan milik
+   folder bab mana pun — tanpa [^'/] di depan, logo bab berikutnya ikut
+   terbaca sebagai foto bab sebelumnya. */
+const potongan = journey.split(/folder: '([^']+)'/);
+let fotoBab = 0;
+for (let i = 1; i < potongan.length; i += 2) {
+  const folder = potongan[i];
+  for (const [, berkas] of potongan[i + 1].matchAll(/'([^'/][^']*\.(?:jpe?g|png))'/g)) {
+    fotoBab++;
+    const rel = `/thumbs/${encodeURIComponent(folder)}/${encodeURIComponent(berkas + '.webp')}`;
+    if (!existsSync(pub(rel))) babHilang.push(`${folder}/${berkas}`);
+  }
+}
+assert.ok(fotoBab > 20, `cuma ${fotoBab} foto bab terbaca — regexnya yang rusak`);
+
+/* Jalur mutlak di berkas yang sama: logo perusahaan di rel waktu dan di bilah
+   bab. Sudah ter-encode di sumbernya (spasi -> %20), jadi pub() yang
+   men-decode-nya kembali. */
+const logoBab = [...journey.matchAll(/'(\/icons\/[^']+)'/g)].map(m => m[1]);
+assert.ok(logoBab.length >= 4, `cuma ${logoBab.length} logo bab terbaca — regexnya yang rusak`);
+for (const u of logoBab) if (!existsSync(pub(u))) babHilang.push(u);
+
+assert.deepStrictEqual(babHilang, [],
+  `dirujuk experience-journey.tsx tapi berkasnya tidak ada: ${babHilang.join(', ')}`);
+
 console.log(`OK — ${refs.length} rujukan markup ada, ${counted} berkas PROJECTS lengkap dengan thumbnail segar, `
-  + 'tidak ada aset yatim, tekstur kartu segar');
+  + `tidak ada aset yatim, tekstur kartu segar, ${fotoBab} foto + ${new Set(logoBab).size} logo bab journey ada`);
