@@ -65,7 +65,7 @@ type DockItem = {
 const ITEMS: DockItem[] = [
   { icon: User, label: 'About', href: '#about' },
   { icon: Cpu, label: 'Skills', href: '#skills' },
-  { icon: LayoutGrid, label: 'Projects', href: '#experience' },
+  { icon: LayoutGrid, label: 'Projects', href: '#projects' },
   { icon: Mail, label: 'Contact', href: '#contact' },
 ];
 

@@ -49,6 +49,19 @@ const projects = [...block.matchAll(/folder:\s*(['"])(.*?)\1[\s\S]*?images:\s*\[
   .map(([, , folder, list]) => ({ folder, files: strings(list) }));
 assert.ok(projects.length >= 20, `cuma ${projects.length} proyek terbaca — regexnya meleset`);
 
+/* Potret sertifikat TIDAK ikut `images`: galeri sertifikat hanya menampilkan
+   dokumentasi kegiatannya, dan potretnya berdiri sendiri di kotak sertifikat
+   lewat `certificate:`. Tanpa baris ini ia terbaca sebagai aset yatim di
+   pemeriksaan (3) di bawah — dan yang berikutnya membersihkan public/ akan
+   menghapus berkas yang justru sedang dipakai. Dipecah per entri, bukan
+   dicari bersama `folder:` dalam satu regex: keduanya dipisah komentar yang
+   panjangnya berubah-ubah. */
+for (const entri of block.split(/\n {2}\{/)) {
+  const folder = entri.match(/folder: '([^']+)'/)?.[1];
+  const cert = entri.match(/certificate: '([^']+)'/)?.[1];
+  if (folder && cert) projects.push({ folder, files: [cert] });
+}
+
 const gone = [];
 const stale = [];
 const noThumb = [];
@@ -93,6 +106,12 @@ assert.deepStrictEqual(thumbOrphans.map(f => f.rel), [],
 for (const [hasil, sumber, tool] of [
   ['public/card-texture-dark.png', 'tools/source/profile.png', 'card-texture.mjs'],
   ['public/card-texture-light.png', 'tools/source/profile.png', 'card-texture.mjs'],
+  /* Potongan muka kartu, cadangan untuk peramban tanpa WebGL. Dirujuk
+     lanyard-mount.tsx lewat template string (`/card-face-${theme}.png`), jadi
+     tidak ada regex jalur di atas yang bisa melihatnya — kalau hilang, yang
+     tampil cuma kotak kosong tanpa satu pun pesan. */
+  ['public/card-face-dark.png', 'tools/source/profile.png', 'card-texture.mjs'],
+  ['public/card-face-light.png', 'tools/source/profile.png', 'card-texture.mjs'],
   ['public/lanyard.png', 'tools/lanyard-texture.mjs', 'lanyard-texture.mjs'],
 ]) {
   const out = path.join(root, hasil);
@@ -110,8 +129,24 @@ for (const [hasil, sumber, tool] of [
    dan tiga puluh lebih foto akan lolos tanpa satu pun uji berubah merah.
    Berkasnya dipecah per `folder:` — tiap kepingan itu satu bab, dan tiap nama
    berkas berekstensi foto di dalamnya milik bab tersebut. */
-const journey = readFileSync(path.join(root, 'components/experience-journey.tsx'), 'utf8');
+/* Dua berkas, satu pemeriksaan: proyek akademik & sertifikasi menyusun
+   jalurnya dengan thumb(folder, berkas) yang SAMA — bentuk sumbernya pun sama
+   (`folder: '...'` lalu nama-nama berkasnya), jadi ia cukup disambung ke
+   belakang alih-alih menyalin seluruh blok ini. */
+const journey = [
+  'components/experience-journey.tsx',
+  'components/academic-projects.tsx',
+  'components/certifications.tsx',
+]
+  .map(f => readFileSync(path.join(root, f), 'utf8'))
+  .join('\n');
 const babHilang = [];
+/* Rasio tiap foto, dipakai hamparan .sc-shots untuk melebarkan ubinnya
+   sebanding rasio fotonya. Foto tanpa rasio jatuh ke cadangan 3:2 di CSS dan
+   barisnya jadi tidak rata — rusaknya halus dan tidak ada yang meneriakkannya,
+   jadi kelengkapannya diperiksa di sini. */
+const rasio = JSON.parse(readFileSync(path.join(root, 'components/photo-ratios.json'), 'utf8'));
+const rasioHilang = [];
 
 /* Nama berkas relatif -> thumbnail. Yang diawali "/" sengaja DILUAR pola ini:
    logo perusahaan ditulis sebagai jalur mutlak ke /icons/ dan bukan milik
@@ -119,15 +154,29 @@ const babHilang = [];
    terbaca sebagai foto bab sebelumnya. */
 const potongan = journey.split(/folder: '([^']+)'/);
 let fotoBab = 0;
+/* Satu foto cuma boleh muncul sekali per bab. Key Responsibilities, Work
+   Documentation, dan Final Project dibaca berturut-turut dalam satu gulir —
+   foto yang sama muncul dua kali membuat pembacanya mengira sudah melewati
+   bagian itu. Tidak tertangkap pemeriksaan berkas-ada di atas: duanya ada. */
+const kembar = [];
 for (let i = 1; i < potongan.length; i += 2) {
   const folder = potongan[i];
+  const dipakai = new Set();
   for (const [, berkas] of potongan[i + 1].matchAll(/'([^'/][^']*\.(?:jpe?g|png))'/g)) {
     fotoBab++;
+    if (dipakai.has(berkas)) kembar.push(`${folder}/${berkas}`);
+    dipakai.add(berkas);
     const rel = `/thumbs/${encodeURIComponent(folder)}/${encodeURIComponent(berkas + '.webp')}`;
     if (!existsSync(pub(rel))) babHilang.push(`${folder}/${berkas}`);
+    if (!(`${folder}/${berkas}` in rasio)) rasioHilang.push(`${folder}/${berkas}`);
   }
 }
 assert.ok(fotoBab > 20, `cuma ${fotoBab} foto bab terbaca — regexnya yang rusak`);
+assert.deepStrictEqual(rasioHilang, [],
+  'rasionya belum ada di components/photo-ratios.json, jalankan "node tools/photo-ratios.mjs": '
+  + rasioHilang.join(', '));
+assert.deepStrictEqual(kembar, [],
+  `dipakai lebih dari sekali di bab yang sama: ${kembar.join(', ')}`);
 
 /* Jalur mutlak di berkas yang sama: logo perusahaan di rel waktu dan di bilah
    bab. Sudah ter-encode di sumbernya (spasi -> %20), jadi pub() yang
@@ -137,7 +186,7 @@ assert.ok(logoBab.length >= 4, `cuma ${logoBab.length} logo bab terbaca — rege
 for (const u of logoBab) if (!existsSync(pub(u))) babHilang.push(u);
 
 assert.deepStrictEqual(babHilang, [],
-  `dirujuk experience-journey.tsx tapi berkasnya tidak ada: ${babHilang.join(', ')}`);
+  `dirujuk bab journey / proyek akademik tapi berkasnya tidak ada: ${babHilang.join(', ')}`);
 
 console.log(`OK — ${refs.length} rujukan markup ada, ${counted} berkas PROJECTS lengkap dengan thumbnail segar, `
-  + `tidak ada aset yatim, tekstur kartu segar, ${fotoBab} foto + ${new Set(logoBab).size} logo bab journey ada`);
+  + `tidak ada aset yatim, tekstur kartu segar, ${fotoBab} foto + ${new Set(logoBab).size} logo bab journey & proyek akademik ada`);

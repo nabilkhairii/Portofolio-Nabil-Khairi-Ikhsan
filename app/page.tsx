@@ -11,8 +11,9 @@
    isinya dibangun runtime dari daftar PROJECTS. */
 
 import {
-  Blocks, CircuitBoard, Cpu, Factory, FileText, Gauge,
-  Radio, ScanSearch, SlidersHorizontal, Thermometer, Wrench, Zap,
+  Blocks, BrainCircuit, CircuitBoard, Cpu, DraftingCompass, Factory, FileText,
+  Gauge, Microchip, Radio, ScanEye, ScanSearch, SlidersHorizontal, Thermometer,
+  Wrench, Zap,
 } from 'lucide-react';
 
 import { LanyardMount } from '@/components/lanyard-mount';
@@ -29,32 +30,117 @@ import { ThemeToggle } from '@/components/ui/theme-toggle';
    yang jadi foto terakhir yang mengembang memenuhi layar.
 
    thumbs/, bukan assets/: versi 1100px dari make-thumbs.mjs. Aslinya ada yang
-   puluhan megapiksel, dan di sini empat sekaligus. */
+   puluhan megapiksel, dan di sini empat sekaligus.
+
+   Satu foto per peran, urut seperti rel waktu di seksi berikutnya: Antam, AMX,
+   Asprak UNY, ICON+ — itu yang dibaca kalimat "4 PERAN / BANYAK SUDUT
+   PANDANG" di atasnya. Sebelumnya dua di antaranya diambil dari seksi Proyek,
+   dan pitanya jadi menjanjikan sesuatu yang tidak ada di bawahnya.
+
+   ponytail: ubinnya 36vw x 36vh — rasio ~1,6 di layar 1440x900 — dan
+   object-cover memotong sisanya. Tiga foto pertama 1,27-1,98 jadi terpotong
+   di sisi kiri-kanan; "Providing Measuring ... Proteus" 0,75 (TEGAK) dan yang
+   tampak ~47% tingginya. Angka ubinnya ada di scroll-choreography.tsx. */
 const CHOREO_IMAGES = {
   topLeft: '/thumbs/Antam/System%20Placement%20Mapping.jpeg.webp',
   topRight: '/thumbs/AMX/PCB%20Layout%20Result.jpeg.webp',
   bottomLeft:
-    '/thumbs/Robotika%20Cerdas%20Arm%20Robot/Design%20Process%20for%203D%20Printing%20a%20Robot%20Manipulator%20Body.png.webp',
+    '/thumbs/Praktikum%20Asprak%20Alat%20Ukur%20dan%20Pengukuran/Providing%20Measuring%20and%20Measuring%20Instrument%20Materials%20and%20Implementing%20Them%20in%20Proteus.jpeg.webp',
   bottomRight:
-    '/thumbs/Computer%20Vision%20%26%20AI/Computer%20Vision%20Based%20Vehicle%20Detection%20Results%20Us-Cover.jpg.webp',
+    '/thumbs/Magang%20ICON%2B/Internship%20Documentation%20at%20PT%20ICON%2B%20Makassar.jpg.webp',
 };
 
 /* Set kedua, khusus HP — dan alasannya bentuk fotonya, bukan selera.
-   Keempat foto di atas MENDATAR (rasio 1,78-1,97). Di layar 390px ubin
-   pitanya jadi kolom tegak, dan foto mendatar yang dipaksa masuk ke sana
-   dipotong object-cover sampai tinggal pita tengahnya — isinya hilang.
-   Keempat ini TEGAK (0,56 / 0,75 / 0,89 / 0,56), searah dengan ubinnya.
+   Set di atas mendatar (1,27-1,98). Di layar 390px ubin pitanya jadi kolom
+   tegak (~0,64), dan foto mendatar yang dipaksa masuk ke sana dipotong
+   object-cover sampai tinggal pita tengahnya — isinya hilang. Keempat ini
+   TEGAK (0,67 / 0,56 / 0,75 / 0,84), searah dengan ubinnya — dan ubin HP-nya
+   sendiri ~0,64 (44vw x 32vh di 390x844), jadi yang pertama nyaris tanpa
+   potongan sama sekali.
+
+   Perannya tetap sama dan urutannya sama: Antam, AMX, Asprak UNY, ICON+.
+   Yang boleh beda antara kedua set cuma FOTO mana dari peran itu.
 
    Ditukar oleh <picture media> di scroll-choreography.tsx, bukan oleh JS:
    peramban memilih sebelum satu byte pun diminta, jadi HP tidak ikut
    mengunduh set mendatar yang tak akan pernah ditampilkannya. */
 const CHOREO_IMAGES_PHONE = {
   topLeft:
-    '/thumbs/Antam/Carrying%20out%20Preventive%20Maintenance%20in%20the%20Factory%20Area.png.webp',
+    '/thumbs/Antam/Become%20part%20of%20PT%20ANTAM%20(UBPP)%20Logam%20Mulia.jpeg.webp',
   topRight:
     '/thumbs/AMX/Reverse%20Engineering%20(RE)%20Electric%20Drone%20Sprayer.jpeg.webp',
   bottomLeft:
-    '/thumbs/Intalasi%20Mesin%20Listrik%20(SEM%202)/3%20Phase%20Power%20Motor%20Circuit%20to%20Manually%20Turn%20the%20Steering%20Right%20and%20Left%20Using%20a%203%20Phase%20Motor.jpeg.webp',
+    '/thumbs/Praktikum%20Asprak%20Alat%20Ukur%20dan%20Pengukuran/Providing%20Measuring%20and%20Measuring%20Instrument%20Materials%20and%20Implementing%20Them%20in%20Proteus.jpeg.webp',
+  /* Bukan "Report Creation and Data Recapitulation" seperti set mendatar:
+     rasionya 1,274, dan di ubin HP yang rasionya ~0,64 yang tersisa cuma pita
+     tegak di tengahnya. Ini foto ICON+ yang sama perannya dan sudah tegak
+     (0,839). Kedua set ini memang tidak pernah sama fotonya — itu gunanya. */
+  bottomRight:
+    '/thumbs/Magang%20ICON%2B/Preparing%20the%20Splitter%20for%20a%20New%20ODP.jpg.webp',
+};
+
+/* ── Pita kedua, di depan seksi Proyek Pengembangan ──
+   Bentuknya sama persis dengan pita di atas; yang berbeda cuma isinya. Empat
+   ubin untuk delapan proyek di kisi bawahnya, jadi memang TIDAK bisa satu
+   ubin satu proyek seperti pita peran di atas — dan itu justru kalimat yang
+   dibawanya, "8 PROYEK / SATU CARA KERJA".
+
+   Empat proyek yang sudut kerjanya berjauhan: papan sensor line follower,
+   rover ROS2 + LiDAR, computer vision kendaraan, dan deteksi objek organik
+   robot manipulator. Dipilih pemiliknya — pita ini tidak pernah menjanjikan
+   proyek mana yang masuk, cuma bahwa keempatnya satu cara kerja.
+
+   ponytail: yang di topRight TEGAK (0,75) sementara ubin pita desktop
+   rasionya ~1,6, jadi object-cover cuma menyisakan sekitar 47% tingginya —
+   dan ubin itu justru yang mengembang jadi 100vw x 100vh di akhir, tempat
+   kroppnya paling terlihat. Kalau nanti terasa terlalu terpotong, yang
+   membetulkannya mengganti foto slot itu dengan yang mendatar (folder
+   Robotika Lanjut tidak punya satu pun, jadi berarti ganti proyek), bukan
+   mengubah angka ubin di scroll-choreography.tsx — angka itu dipakai pita
+   pertama juga. */
+const CHOREO_PROJECTS = {
+  topLeft:
+    '/thumbs/P.%20Robotika%20Lanjut%20(SEM%205)/3D%20Preview%20of%20the%20Assembled%20Sensor%20Board.jpeg.webp',
+  topRight:
+    '/thumbs/Robotika%20Lanjut/Component%20Checking%20before%20Implementation%20and%20Control%20Using%20ROS%202.jpeg.webp',
+  bottomLeft:
+    '/thumbs/Computer%20Vision%20%26%20AI/Computer%20Vision%20Based%20Vehicle%20Detection%20Results%20Us-Cover.jpg.webp',
+  bottomRight:
+    '/thumbs/Robotika%20Cerdas%20Arm%20Robot/Organic%20Object%20Detection%20Testing%20Based%20on%20Model%20Training%20Results.png.webp',
+};
+
+/* Set HP-nya, alasannya sama dengan CHOREO_IMAGES_PHONE di atas: ubin pita di
+   layar 390px tegak (~0,64), dan foto mendatar yang dipaksa masuk ke sana
+   tinggal pita tengahnya. Keempat ini tegak (0,564 / 0,715 / 0,75 / 0,75).
+
+   PROYEKNYA sama dengan set mendatar — Arm Robot, line follower, computer
+   vision, rover ROS2 — tapi SLOTNYA tidak dipasangkan satu-satu seperti pita
+   peran di atas. Susunan HP disetel sendiri oleh pemiliknya, dan tidak ada
+   yang rusak karenanya: satu peramban cuma pernah melihat satu set, dan
+   kalimat yang menemani pita ini tidak menunjuk ubin mana pun.
+
+   topRight = ubin yang mengembang jadi satu layar penuh di akhir, dan foto
+   robot di lintasan yang duduk di sana rasionya 0,715 — paling dekat ke rasio
+   ubin HP-nya dari keempat foto ini, jadi yang paling sedikit terpotong
+   justru yang paling besar tampil.
+
+   Slot bottomLeft (Computer Vision) satu-satunya yang fotonya bukan hasil
+   kerjanya: seluruh folder itu tangkapan layar mendatar, dan yang tegak cuma
+   foto kelompoknya. Di ubin HP itu tetap lebih terbaca daripada grafik
+   pelatihan yang terpotong tinggal sumbu tengahnya.
+
+   Kalau nanti ada slot yang fotonya bernama berkoma, komanya WAJIB ditulis
+   %2C: set ini diteruskan ke `srcSet` di <source> (scroll-choreography.tsx),
+   dan srcset memisahkan kandidatnya dengan koma. Ditulis apa adanya, peramban
+   memotong jalurnya jadi kandidat sampah dan ubinnya kosong — tanpa error,
+   tanpa 404. Sekali kejadian di slot ini waktu pita ini dibuat. */
+const CHOREO_PROJECTS_PHONE = {
+  topLeft:
+    '/thumbs/Robotika%20Cerdas%20Arm%20Robot/Integration%20of%20Power%20and%20Communication%20Components%20for%20Robot%20Manipulator%20Testing.jpeg.webp',
+  topRight:
+    '/thumbs/P.%20Robotika%20Lanjut%20(SEM%205)/Robots%20Lined%20Up%20on%20the%20Track%20before%20a%20Run.jpeg.webp',
+  bottomLeft:
+    '/thumbs/Computer%20Vision%20%26%20AI/Project%20Group%20Members%20after%20Final%20Presentation.jpeg.webp',
   bottomRight:
     '/thumbs/Robotika%20Lanjut/Component%20Checking%20before%20Implementation%20and%20Control%20Using%20ROS%202.jpeg.webp',
 };
@@ -79,7 +165,7 @@ const TOOLS: { name: string; href: string; logo: string }[] = [
   { name: 'EasyEDA', href: 'https://easyeda.com/', logo: 'easyeda' },
   { name: 'Autodesk EAGLE', href: 'https://www.autodesk.com/products/eagle/overview', logo: 'eagle' },
   { name: 'Proteus', href: 'https://www.labcenter.com/', logo: 'proteus' },
-  { name: 'Falstad Circuit Simulator', href: 'https://www.falstad.com/circuit/', logo: 'falstad' },
+  { name: 'Falstad', href: 'https://www.falstad.com/circuit/', logo: 'falstad' },
   { name: 'Omron CX-Programmer', href: 'https://industrial.omron.eu/en/products/cx-programmer', logo: 'omron' },
   { name: 'OpenPLC Editor', href: 'https://autonomylogic.com/', logo: 'openplc' },
   { name: 'Factory I/O', href: 'https://factoryio.com/', logo: 'factoryio' },
@@ -111,6 +197,33 @@ const COMPETENCIES = [
   ['Thermal Analysis', Thermometer],
   ['System Integration', Blocks],
   ['Technical Documentation', FileText],
+] as const;
+
+/* Isi Hard Skills. Ikonnya dari lucide-react dengan alasan yang sama seperti
+   COMPETENCIES di atas — garis, bukan logo merek: keahlian tidak punya vendor,
+   dan tidak ada satu berkas pun yang ditambahkan ke public/icons/.
+
+   Delapan dari dua belas ikonnya sengaja dipakai ulang dari COMPETENCIES:
+   dua daftar ini memang beririsan (PCB, PLC, embedded, sensor, reverse
+   engineering), dan memberi ikon berbeda untuk hal yang sama justru membuat
+   pembacanya mengira itu dua hal berbeda. Yang tidak boleh sama satu sama lain
+   adalah ikon DI DALAM daftar ini — dua belas ikonnya semua berbeda.
+
+   CircuitBoard = papannya, Microchip = komponen yang disolder ke papan itu.
+   Keduanya berdekatan tapi memang beda pekerjaan. */
+const HARD_SKILLS = [
+  ['PCB Design', CircuitBoard],
+  ['Electronic Hardware Design', DraftingCompass],
+  ['Electrical System Analysis', Zap],
+  ['Hardware Testing & Troubleshooting', Wrench],
+  ['Artificial Intelligence (AI) Development', BrainCircuit],
+  ['Computer Vision', ScanEye],
+  ['Industrial Automation (PLC)', Factory],
+  ['Surface Mount Device (SMD) Soldering', Microchip],
+  ['PID Control System Tuning', SlidersHorizontal],
+  ['Embedded Programming', Cpu],
+  ['Sensor Interfacing', Radio],
+  ['Reverse Engineering', ScanSearch],
 ] as const;
 
 /* Logo baris Kontak Langsung. Inline, bukan berkas di public/icons/: tiap
@@ -177,6 +290,51 @@ const LANG_ICON = {
     </svg>
   ),
 };
+
+/* Satu bentuk untuk KEEMPAT seksi dokumentasi (Pengalaman, Proyek
+   Pengembangan, Sertifikasi, Organisasi). Dulu keempatnya satu seksi dengan
+   bilah filter; sekarang berdiri sendiri-sendiri, dan yang membedakannya cuma
+   nomor, judul, dan kisi mana yang diisi.
+
+   Kisinya sengaja kosong di markup: renderGrid() di portfolio-runtime.js yang
+   mencetak kartunya dari PROJECTS — satu kategori per id kisi, petanya GRIDS di
+   berkas itu. Menghapus atau mengganti nama sebuah `gridId` di sini berarti
+   satu seksi tampil kosong tanpa satu pun pesan error. */
+function DocSection({
+  id, gridId, no, label, title, titleEn, desc, descEn,
+}: {
+  id: string; gridId: string; no?: string; label?: string;
+  title: string; titleEn: string; desc: string; descEn: string;
+}) {
+  return (
+    /* Garis pemisahnya datang sendiri dari `main > section + section` di
+       app/portfolio.css — tidak ada seksi di sini yang menolaknya lagi.
+       Dokumentasi Pengalaman sempat memakai .band--joined (kelas itu sudah
+       dilepas): waktu itu ia menyambung bab magang yang berakhir dengan judul
+       bagiannya sendiri. Sejak bab ICON+ berakhir dengan ketiga blok teks
+       tanpa judul apa pun, sambungan tanpa garis terbaca sebagai satu tumpukan
+       panjang — dan yang memisahkannya garis ini. */
+    <section id={id} className="band">
+      <div className="shell">
+        <div className="sec-head sec-head--mid">
+          {no && (
+            <p className="label text-muted">
+              {no} — {label}
+            </p>
+          )}
+          <h2 className="display-lg mt-4 split" data-en={titleEn}>
+            {title}
+          </h2>
+          <span className="m-stripe mt-6" aria-hidden="true" />
+          <p className="prose mt-6" data-en={descEn}>
+            {desc}
+          </p>
+        </div>
+        <div id={gridId} className="pgrid mt-10" />
+      </div>
+    </section>
+  );
+}
 
 export default function Home() {
   return (
@@ -272,7 +430,7 @@ export default function Home() {
           <a href="#skills" className="mobile-menu__link">
             Skills
           </a>
-          <a href="#experience" className="mobile-menu__link">
+          <a href="#projects" className="mobile-menu__link">
             Projects
           </a>
           <a href="#contact" className="mobile-menu__link">
@@ -319,7 +477,7 @@ export default function Home() {
                   yang ditulis di sana. */}
               <div className="hero-cta mt-9">
                 <OriginButton
-                  href="#experience"
+                  href="#projects"
                   className="btn btn--solid glass"
                   text="Lihat Proyek"
                   en="View Projects"
@@ -432,7 +590,7 @@ export default function Home() {
                   industri.
                 </p>
                 <p
-                  className="prose mt-4"
+                  className="lead mt-4"
                   data-en="Competent in PCB design, PLC programming, Mini PC system integration, and troubleshooting. Oriented toward developing efficient embedded solutions tailored to industrial control and automation needs."
                 >
                   Menguasai PCB design, pemrograman PLC, integrasi sistem Mini
@@ -470,12 +628,26 @@ export default function Home() {
                     sekecil .caption/.prose. Yang dicari cuma kartunya naik. */}
                 <div className="edu-list">
                 <article className="edu spotlight reveal mt-5 max-[640px]:mt-0">
+                  {/* Kedua logo ini eager, bukan lazy seperti gambar lain di
+                      halaman: keduanya sudah masuk layar pertama di monitor
+                      lebar, dan menunda gambar yang sudah terlihat justru
+                      menahan LCP — itu yang dilaporkan DevTools sebagai
+                      LazyLoadImageIssue (diuji: satu diubah eager, isunya
+                      hilang; menambah width/height saja tidak cukup).
+                      Ongkosnya kecil: dua PNG ~240px.
+
+                      width/height tetap ditulis supaya kotaknya sudah dipesan
+                      sebelum gambarnya turun — tingginya sendiri datang dari
+                      .edu__logo--uny di portfolio.css (width: auto), jadi
+                      angka di sini tidak mengubah tampilannya. */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     className="edu__logo edu__logo--uny"
                     src="/icons/uny.png"
                     alt=""
-                    loading="lazy"
+                    width={240}
+                    height={243}
+                    loading="eager"
                   />
                   <div className="edu__body">
                     <p className="caption text-muted" data-en="Sep 2023 – Present">
@@ -509,7 +681,9 @@ export default function Home() {
                     className="edu__logo edu__logo--smk"
                     src="/icons/smk-telkom.png"
                     alt=""
-                    loading="lazy"
+                    width={256}
+                    height={249}
+                    loading="eager"
                   />
                   <div className="edu__body">
                     <p
@@ -545,7 +719,10 @@ export default function Home() {
                     permintaan jaringan. Emoji bendera (🇮🇩/🇬🇧) sengaja
                     dihindari — Windows tidak punya glyph-nya dan menampilkannya
                     sebagai dua huruf "ID"/"GB". */}
-                <div className="mt-5 flex flex-wrap gap-2">
+                {/* justify-center cuma di HP: dua chip yang totalnya lebih
+                    sempit dari kolomnya, jadi ada sisa lebar yang harus dibagi
+                    supaya barisnya duduk di bawah kepalanya yang ditengahkan. */}
+                <div className="mt-5 flex flex-wrap gap-2 max-[640px]:justify-center">
                   <span className="chip">
                     {/* viewBox 2:1 mengikuti Union Jack, bukan 3:2 rasio
                         resmi Sang Saka — dua bendera berdampingan yang beda
@@ -606,7 +783,7 @@ export default function Home() {
  <h2 className="display-lg mt-4 split">
                 HARDWARE. FIRMWARE.
                 <br />
-                AUTOMATION.
+                SOFTWARE.
               </h2>
               <span className="m-stripe mt-6" aria-hidden="true" />
             </div>
@@ -669,25 +846,37 @@ export default function Home() {
 
                 <div className="mt-10 max-[640px]:order-4 max-[640px]:mt-0">
                   <h3 className="label text-muted split split-fly">Hard Skills</h3>
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    <span className="chip">PCB Design</span>
-                    <span className="chip">Electronic Hardware Design</span>
-                    <span className="chip">Electrical System Analysis</span>
-                    <span className="chip">
-                      Hardware Testing &amp; Troubleshooting
-                    </span>
-                    <span className="chip">
-                      Artificial Intelligence (AI) Development
-                    </span>
-                    <span className="chip">Computer Vision</span>
-                    <span className="chip">Industrial Automation (PLC)</span>
-                    <span className="chip">
-                      Surface Mount Device (SMD) Soldering
-                    </span>
-                    <span className="chip">PID Control System Tuning</span>
-                    <span className="chip">Embedded Programming</span>
-                    <span className="chip">Sensor Interfacing</span>
-                    <span className="chip">Reverse Engineering</span>
+                  {/* Tiga tata letak, karena lebar kolomnya memang tiga.
+                      Namanya 10–40 huruf, jadi flex-wrap selalu meninggalkan
+                      tepi kanan bergerigi dan chip yatim di baris terakhir.
+
+                      HP (kolom ~342px): dua kolom, sel 167px — hanya ~122px
+                      tersisa untuk teks setelah padding, border, ikon, dan
+                      gap. Diukur di Chrome pada 390px: tiga chip muat satu
+                      baris, delapan jadi dua baris, dan satu — "Surface Mount
+                      Device (SMD) Soldering" — jadi tiga. Lima baris kisinya
+                      52px, satu baris 70px karena chip itu. Ditukar sengaja:
+                      dua kolom memendekkan seksinya dari 12 baris jadi 6.
+
+                      Tablet (kolom ~950px, seksinya masih satu kolom):
+                      flex-wrap dibiarkan — selebar itu chip mengalir rapi
+                      sendiri, dan kisi justru akan meregangkan tiap chip
+                      selebar kolom.
+
+                      Laptop ≥1280px (kolom 640px): dua kolom, sel 316px.
+                      Diukur di Chrome sesudah ikon dipasang: tidak ada chip
+                      yang patah dua baris di 1440px maupun 390px, jadi tiap
+                      baris kisinya setinggi satu chip.
+
+                      Utility, bukan portfolio.css: berkas itu diimpor
+                      layer(components) dan kalah dari `.flex` di utilities. */}
+                  <div className="mt-5 flex flex-wrap gap-2 max-[640px]:grid max-[640px]:grid-cols-2 lg:grid lg:grid-cols-2">
+                    {HARD_SKILLS.map(([name, Icon]) => (
+                      <span key={name} className="chip">
+                        <Icon aria-hidden="true" />
+                        {name}
+                      </span>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -695,7 +884,30 @@ export default function Home() {
               <div className="skills-col">
                 <div className="max-[640px]:order-2">
                   <h3 className="label text-muted split split-fly">Software &amp; Tools</h3>
-                  <div className="mt-5 flex flex-wrap gap-2">
+                  {/* Kisi dua kolom KHUSUS HP. Tujuh belas chip berlogo dengan
+                      nama sepanjang "Omron CX-Programmer" sampai sependek
+                      "Linux": flex-wrap di kolom 342px menaruh tiga
+                      chip di satu baris lalu satu di baris berikutnya, sisa
+                      lebar tiap ujung baris beda-beda, dan logonya ikut acak
+                      posisi. Kisi memaksa lebar yang sama.
+
+                      Utility, bukan aturan di portfolio.css: berkas itu
+                      diimpor `layer(components)` (app/globals.css) dan KALAH
+                      dari `.flex` di layer utilities — spesifisitas setinggi
+                      apa pun tidak menolong, layer diputus lebih dulu.
+                      flex-wrap/gap-2 dibiarkan: yang pertama mati sendiri di
+                      kisi, yang kedua justru gutter yang dipakai.
+
+                      Diukur di Chrome pada 390px: sel jadi 167px, dan di situ
+                      hanya tersisa ~122px untuk teks setelah padding, border,
+                      logo, dan gap. "Autodesk Fusion 360" dan "Omron
+                      CX-Programmer" masih patah dua baris; dua baris kisi itu
+                      jadi 52px, dan chip pendek di sebelahnya ikut setinggi
+                      itu karena stretch bawaan kisi. Dibiarkan — lebarnya
+                      tetap seragam dan kolom logonya tetap lurus, sedangkan
+                      memaksanya satu baris berarti mengecilkan font SEMUA chip
+                      atau memendekkan nama produknya. */}
+                  <div className="mt-5 flex flex-wrap gap-2 max-[640px]:grid max-[640px]:grid-cols-2">
                     {TOOLS.map(({ name, href, logo }) => (
                       <a
                         key={name}
@@ -719,7 +931,13 @@ export default function Home() {
                   >
                     Bahasa Pemrograman
                   </h3>
-                  <div className="mt-5 flex flex-wrap gap-2">
+                  {/* .lang-chips: di HP ketiga chipnya diregangkan mengisi
+                      lebar kolom (portfolio.css), sama seperti chip Hard
+                      Skills dan Software & Tools yang sudah jadi item kisi.
+                      Baris ini satu-satunya yang tadinya menyisakan lebar
+                      kosong. justify-center tidak dipakai lagi: begitu
+                      barisnya penuh, tak ada sisa yang perlu dibagi. */}
+                  <div className="lang-chips mt-5 flex flex-wrap gap-2">
                     <span className="chip">
                       {LANG_ICON.python}
                       Python
@@ -739,10 +957,10 @@ export default function Home() {
                   <span className="m-stripe" aria-hidden="true" />
                   <p
                     className="title-md mt-5 split"
-                    data-en="“Measure first, then draw conclusions. A design does not move forward until the instrument readings match the calculations and the requirements.”"
+                    data-en="“Conclusions come from measurement results, a design does not move forward until the instrument readings match the calculations and the requirements.”"
                   >
-                    “Ukur dulu, baru mengambil kesimpulan. Rancangan tidak akan
-                    dilanjutkan sampai angka di alat ukur sesuai dengan
+                    “Kesimpulan dapat diambil dari hasil pengukuran, perancangan
+                    tidak akan dilanjut sampai angka di alat ukur sesuai dengan
                     perhitungan dan kebutuhan.”
                   </p>
                 </div>
@@ -782,11 +1000,11 @@ export default function Home() {
             <div>
               <p
                 className="choreo__caption display-lg split"
-                data-en="8 PROJECTS<br>ONE WAY OF WORKING"
+                data-en="4 ROLES<br>MULTIPLE PERSPECTIVES"
               >
-                8 PROYEK
+                4 PERAN
                 <br />
-                SATU CARA KERJA
+                BANYAK SUDUT PANDANG
               </p>
             </div>
           </div>
@@ -797,50 +1015,88 @@ export default function Home() {
             Component tanpa JS klien — lihat catatannya di berkasnya sendiri. */}
         <ExperienceJourney />
 
-        {/* ══ EXPERIENCE & PROJECTS ══ */}
-        <section id="experience" className="band">
-          <div className="shell">
- <div className="sec-head">
-              <p className="label text-muted">04 — Work Documentation</p>
-              <h2
- className="display-lg mt-4 split"
-                data-en="WORK DOCUMENTATION."
-              >
-                DOKUMENTASI KERJA.
-              </h2>
-              <span className="m-stripe mt-6" aria-hidden="true" />
+        {/* ══ DOKUMENTASI PER KATEGORI ══
+            Empat seksi, satu per kategori PROJECTS — dulu SATU seksi dengan
+            bilah filter di atas satu kisi. Yang hilang bersama bilah itu:
+            #filters, #grid-empty, activeFilter, dan renderFilters() di
+            portfolio-runtime.js; kategori yang dulu dipilih dengan tab
+            sekarang punya alamatnya sendiri di halaman (#experience,
+            #projects, #certifications, #organization), dan itu yang ditunjuk
+            menu serta footer.
+
+            Bentuk keempatnya sama persis, jadi ditulis sekali sebagai
+            <DocSection /> di atas berkas ini. */}
+        <DocSection
+          id="experience"
+          gridId="exp-grid"
+          title="SELURUH DOKUMENTASI PENGALAMAN KERJA"
+          titleEn="ALL WORK EXPERIENCE DOCUMENTATION"
+          desc="Setiap magang dan peran paruh waktu di atas, lengkap dengan dokumentasi fotonya."
+          descEn="Every internship and part-time role above, with its full photo documentation."
+        />
+
+        {/* ══ PHOTO BAND — pita kedua, pembuka seksi Proyek Pengembangan ══
+            Komponen dan lapisan kalimat yang sama persis dengan pita di antara
+            seksi 02 dan 03; yang berbeda cuma set fotonya (lihat
+            CHOREO_PROJECTS di atas). Dipasang sebagai <section> biasa, jadi
+            garis pemisah `main > section + section` menjaganya berbatas di
+            kedua sisi seperti pita pertama.
+
+            aria-hidden dengan alasan yang sama: keempat fotonya sudah tampil
+            bersama proyeknya di kisi tepat di bawah ini. */}
+        <section aria-hidden="true" className="choreo-band relative">
+          <div className="choreo-band__fx">
+            <ScrollChoreography
+              images={CHOREO_PROJECTS}
+              imagesPhone={CHOREO_PROJECTS_PHONE}
+            />
+          </div>
+          <div className="choreo__overlay">
+            <div>
               <p
-                className="prose mt-6 max-w-[60ch]"
-                data-en="Pick a category, then click a card to see the full documentation gallery."
+                className="choreo__caption display-lg split"
+                data-en="8 PROJECTS<br>ONE WAY OF WORKING"
               >
-                Pilih kategori, lalu klik sebuah kartu untuk melihat galeri
-                dokumentasi lengkap.
+                8 PROYEK
+                <br />
+                SATU CARA KERJA
               </p>
             </div>
-
- <div className="mt-10">
-              <div
-                id="filters"
-                className="tabs"
-                role="tablist"
-                aria-label="Filter kategori proyek"
-                data-en-aria-label="Project category filter"
-              />
-            </div>
-
-            {/* Diisi renderGrid() di portfolio-runtime.js dari daftar PROJECTS.
-                .pgrid ada di sini, bukan ditulis runtime: wadahnya sendiri yang
-                jadi kisinya, jadi kartu-kartu itu anak langsungnya. */}
- <div id="project-grid" className="pgrid mt-10" />
-            <p
-              id="grid-empty"
-              className="hidden text-center py-16 prose"
-              data-en="No projects in this category."
-            >
-              Tidak ada proyek pada kategori ini.
-            </p>
           </div>
         </section>
+
+        <DocSection
+          id="projects"
+          gridId="dev-grid"
+          no="04"
+          label="Development Projects"
+          title="PROYEK PENGEMBANGAN"
+          titleEn="DEVELOPMENT PROJECTS"
+          desc="Proyek perkuliahan dan pengembangan mandiri: sistem embedded, computer vision, otomasi industri, dan robotika."
+          descEn="Coursework and self-driven development projects: embedded systems, computer vision, industrial automation, and robotics."
+        />
+
+        <DocSection
+          id="certifications"
+          gridId="cert-grid"
+          no="05"
+          label="Certifications"
+          title="SERTIFIKASI PELATIHAN"
+          titleEn="TRAINING CERTIFICATION"
+          desc="Pelatihan bersertifikat dari balai vokasi Kementerian Ketenagakerjaan dan lembaga pelatihan berizin."
+          descEn="Certified training from the Ministry of Manpower's vocational centres and a licensed training provider."
+        />
+
+        <DocSection
+          id="organization"
+          gridId="org-grid"
+          no="06"
+          label="Organization & Activities"
+          title="ORGANISASI & KEGIATAN"
+          titleEn="ORGANIZATION & ACTIVITIES"
+          desc="Kepengurusan himpunan mahasiswa, kunjungan industri, dan kegiatan kampus lainnya."
+          descEn="Student association leadership, industrial visits, and other campus activities."
+        />
 
         {/* ══ CTA BAND ══ */}
         <section className="band band--cta">
@@ -884,7 +1140,7 @@ export default function Home() {
         <section id="contact" className="band">
           <div className="shell">
  <div className="sec-head">
-              <p className="label text-muted">05 — Contact</p>
+              <p className="label text-muted">07 — Contact</p>
  <h2 className="display-lg mt-4 split" data-en="LET’S TALK.">
                 MARI BICARA.
               </h2>
@@ -1127,7 +1383,7 @@ export default function Home() {
                 </a>
               </li>
               <li>
-                <a href="#experience" className="flink">
+                <a href="#projects" className="flink">
                   Projects
                 </a>
               </li>
@@ -1221,7 +1477,11 @@ export default function Home() {
             </button>
           </header>
 
-          <p id="g-desc" className="g-desc" />
+          {/* Pembungkus polos: isinya bisa <ul> butir (proyek teknis) atau
+              deretan <p> (teks naratif yang punya baris kosong), dan yang
+              memutuskan datanya sendiri — lihat descHTML() di
+              portfolio-runtime.js. Diisi runtime, jadi kosong di markup. */}
+          <div id="g-desc" className="g-desc" />
 
           {/* Diisi openGallery(): tautan verifikasi sertifikat dan daftar
               sertifikat di LinkedIn. Kosong untuk proyek non-sertifikasi, dan

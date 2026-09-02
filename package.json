@@ -8,7 +8,7 @@
     "start": "next start -p 3001",
     "lint": "eslint",
     "check": "node tests/check-assets.mjs && node tests/check-contrast.mjs && node tests/check-encoding.mjs && node tests/check-i18n.mjs && node tests/check-marquee.mjs && node tests/check-meshline-patch.mjs && node tests/check-spec-count.mjs && node tests/check-split.mjs",
-    "check:browser": "node tests/check-lanyard-next.mjs && node tests/check-gallery.mjs && node tests/check-choreo.mjs"
+    "check:browser": "node tests/check-lanyard-next.mjs && node tests/check-lanyard-fallback.mjs && node tests/check-gallery.mjs && node tests/check-choreo.mjs && node tests/check-zoom.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

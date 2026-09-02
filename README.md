@@ -76,6 +76,19 @@ node tools/make-thumbs.mjs        # bikin/segarkan turunan .webp
 npm run check                     # pastikan tidak ada yang tertinggal
 ```
 
+Sertifikat tidak difoto sendiri: `tools/cert-shots.mjs` memotretnya dari halaman
+verifikasi Kemnaker (`credential:` di `components/portfolio-runtime.js`) ke
+`public/assets/<folder>/`, lalu ditampilkan di kotak sertifikatnya sendiri —
+di atas kartu dokumentasi, bertaut ke halaman verifikasinya. Berkas itu TIDAK
+masuk `images:`: galerinya khusus dokumentasi kegiatan.
+Berkas yang sudah ada dilewati — tambahkan `--force` untuk memotret ulang.
+
+Sertifikat dari penerbit lain tidak dipotret: alamatnya berkas asli, bukan
+halaman yang menggambar sertifikatnya. Yang seperti itu dirasterkan sekali dari
+berkasnya sendiri (`pdftoppm -png -r 150 -singlefile <pdf> <keluaran>`; PDF-nya
+disimpan di `tools/source/`, tidak ikut ke `public/`), lalu namanya ditulis di
+`certificate:` entri yang bersangkutan.
+
 ### Lanyard 3D
 
 Muka kartu punya **satu tekstur per tema** — terang di tema gelap, gelap di tema

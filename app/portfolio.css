@@ -184,6 +184,16 @@ main > section + section { border-top: 1px solid var(--hairline); }
    bisa diseleksi dan kartu lanyard tetap bisa ditarik. Di mode terang cahaya
    sekuat ini terlalu berat di atas putih, jadi diredam. */
 .aurora { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+/* Cadangan saat WebGL tidak ada (kelasnya dipasang auroraInit di
+   portfolio-runtime.js). Dua pita cahaya di warna yang sama dengan shader-nya
+   — #1c69d4 dan #e22718, ditulis mentah dan bukan var(--m-*) karena keduanya
+   perlu alfa. Tidak bergerak: yang hilang cuma geraknya, bukan hero-nya.
+   Aturan opacity tema terang di bawah ikut berlaku untuk yang ini. */
+.aurora.is-flat {
+  background:
+    radial-gradient(62% 34% at 30% 52%, rgb(28 105 212 / .55), transparent 70%),
+    radial-gradient(58% 30% at 72% 48%, rgb(226 39 24 / .38), transparent 70%);
+}
 :root[data-theme="light"] .aurora { opacity: .38; }
 .band--hero > .shell { position: relative; z-index: 1; }
 .band--tight { padding-block: 0; }
@@ -220,13 +230,49 @@ main > section + section { border-top: 1px solid var(--hairline); }
 /* Dua paragraf pembuka About dikecilkan dari skala global — .lead 20px itu
    ukuran satu kalimat pembuka di hero, dan di sini ada dua paragraf berturut
    yang jadi terbaca seperti kutipan. Dijangkarkan ke #about, bukan diubah di
-   .lead/.prose: keduanya dipakai di banyak seksi lain. */
-#about .lead { font-size: clamp(15px, 1.2vw, 17px); }
-#about .lead + .prose { font-size: 15px; }
+   .lead: ia dipakai di banyak seksi lain.
+
+   Keduanya .lead — paragraf kedua dulu .prose dan tergambar lebih kecil serta
+   lebih redup dari yang pertama; sekarang satu ukuran dan satu warna, tetap
+   dua paragraf. */
+#about .lead { font-size: clamp(15px, 1.2vw, 17px); text-align: justify; }
+/* Di HP dua paragraf ini berdiri sendirian di atas layar sebelum kompetensi —
+   13px menahannya jadi blok pembuka, bukan badan teks yang seukuran isi
+   halaman. Lantai clamp-nya 15px, jadi angkanya harus ditulis lagi. */
+/* Rata kiri lagi di HP: kolomnya tinggal ~342px, dan justify di lebar segitu
+   merenggangkan spasi antar kata sampai barisnya berlubang. */
+@media (max-width: 640px) { #about .lead { font-size: 13px; text-align: left; } }
 .prose { font-size: 16px; font-weight: 300; line-height: 1.6; color: var(--body); }
 .prose .text-ink, .prose strong { color: var(--ink); font-weight: 400; }
 
 .sec-head { max-width: 60ch; }
+
+/* Kepala seksi yang ditengahkan — keempat seksi dokumentasi memakainya.
+   60ch-nya dilepas supaya judul boleh selebar .shell, lalu isinya ditengahkan
+   satu per satu: pita M dan paragraf punya lebarnya sendiri, jadi text-align
+   saja tidak memindahkan keduanya.
+
+   Judulnya SATU BARIS, apa pun lebar layarnya, dan itu nowrap + ukuran yang
+   murni ikut lebar viewport — bukan clamp() bawaan display-lg, yang berhenti
+   menyusut di 32px dan mematahkan judul terpanjang jadi dua baris di HP.
+   Di layar lebar pengalinya sudah melewati 56px, jadi di sana ukurannya sama
+   persis dengan display-lg — yang berubah cuma layar sempit, tempat ia terus
+   menyusut alih-alih patah.
+
+   DUA pengali, dan bukan karena selera: di bawah 640px zoom halaman dimatikan
+   (--zoom: 1 di blok HP), jadi 1vw yang sama membeli ruang tata letak 20%
+   lebih sedikit di sana. Satu angka untuk keduanya berarti judulnya menjulur
+   di HP atau mengecil percuma di desktop.
+
+   ponytail: keduanya ditakar dari judul TERPANJANG yang ada sekarang —
+   "SELURUH DOKUMENTASI PENGALAMAN KERJA" (36 karakter). Judul yang lebih
+   panjang akan menjulur keluar layar; tests/check-gallery.mjs mengukurnya di
+   1440px dan 390px, jadi kalau itu terjadi ujinya yang memberi tahu. */
+.sec-head--mid { max-width: 100%; text-align: center; }
+.sec-head--mid .m-stripe,
+.sec-head--mid .prose { margin-inline: auto; }
+.sec-head--mid .display-lg { white-space: nowrap; font-size: min(5vw, 56px); }
+@media (max-width: 640px) { .sec-head--mid .display-lg { font-size: 3.8vw; } }
 
 /* ═══ M STRIPE — the system's only decorative element ═══
    4px tall, three hard stops, never a fill and never a button. */
@@ -248,8 +294,7 @@ main > section + section { border-top: 1px solid var(--hairline); }
    alasannya sendiri di blok PROJECT CARDS. Dua lagi yang sengaja tetap
    persegi: .spec (pita angka di hero) dan .jr-stop__card (keempat kartu di
    rel waktu Internship Journey). */
-.edu, .quote, .jr-act, .jr-block,
-.jr-final__shots img, .form-status, #gallery {
+.edu, .quote, .jr-act, .jr-block, .form-status, #gallery {
   border-radius: var(--r); corner-shape: var(--corner);
 }
 .chip, .field input, .field textarea, .g-thumbs img, .g-thumbs video {
@@ -369,6 +414,21 @@ main > section + section { border-top: 1px solid var(--hairline); }
   opacity: 0; transition: opacity .45s ease-out;
 }
 #lanyard-3d.is-ready { opacity: 1; }
+/* Cadangan untuk peramban tanpa WebGL: muka kartu yang sama, digambar sebagai
+   gambar biasa (alasan & pemicunya di components/lanyard-mount.tsx). Bukan
+   #lanyard-3d, jadi tidak kena inset -70% maupun pembatalan zoom di atas —
+   ia mengisi slotnya apa adanya dan kartunya duduk di tengah.
+
+   62%: kartu 3D-nya berdiri ~376px di slot 640px, dan angka ini menaruh
+   gambar diamnya di tinggi yang sama. Sudutnya membulat karena di 3D yang
+   membulat geometri kartunya, bukan teksturnya — tekstur potongannya
+   persegi. 4.5% dari 700px = ~32px, sebulat kartu aslinya. */
+.lanyard-fallback { display: grid; place-items: center; height: 100%; }
+.lanyard-fallback img {
+  height: 62%; width: auto; max-width: 92%; display: block;
+  border-radius: 4.5% / 3.1%;
+  box-shadow: 0 18px 44px rgb(0 0 0 / .3);
+}
 .lanyard-wrapper {
   position: relative; z-index: 0;
   width: 100%; height: 100%;
@@ -523,18 +583,6 @@ main > section + section { border-top: 1px solid var(--hairline); }
 .meter dd { height: 2px; background: var(--hairline); }
 .meter dd i { display: block; height: 100%; width: 0; background: var(--ink); transition: width .9s cubic-bezier(.22,.61,.36,1); }
 .reveal.is-visible .meter dd i { width: var(--v); }
-
-/* ═══ CATEGORY TABS — text only, 2px white underline when active ═══ */
-.tabs { display: flex; flex-wrap: wrap; gap: 28px; border-bottom: 1px solid var(--hairline); }
-.tab {
-  padding: 12px 0; margin-bottom: -1px; cursor: pointer; background: none;
-  font-size: 14px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
-  color: var(--body); border-bottom: 2px solid transparent;
-  transition: color .2s, border-color .2s;
-}
-.tab:hover { color: var(--ink); }
-.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
-.tab__n { font-size: 11px; color: var(--muted); margin-left: 8px; vertical-align: super; }
 
 /* ═══ PHOTO BAND — lapisan kalimat di atas ScrollChoreography ═══
    Gerakan fotonya seluruhnya milik components/ui/scroll-choreography.tsx
@@ -756,6 +804,26 @@ main > section + section { border-top: 1px solid var(--hairline); }
      panggung berikutnya, tidak bisa dilewati begitu saja. Tanpa baris ini,
      proximity cuma merapikan posisi akhir gulir. */
   scroll-snap-align: start; scroll-snap-stop: always;
+  /* Tiga baris di bawah ini yang dipakai ayunan masuk bab (@keyframes
+     jr-swing di blok "Masuknya panel"). Ditulis DI LUAR @media
+     prefers-reduced-motion supaya tampilan diamnya sama di kedua keadaan:
+     tanpa gerak pun panggungnya tetap latar penuh yang menutupi ekor bab
+     sebelumnya, cuma tidak berayun.
+
+     background WAJIB: tanpa latar, yang berputar cuma tulisannya dan bab
+     sebelumnya tembus di belakangnya. z-index menaruhnya di atas ekor bab
+     sebelumnya.
+
+     --soft, BUKAN --canvas: dengan latar halaman yang sama persis, hitam di
+     atas hitam, tepi panggungnya tidak kelihatan dan ayunannya hilang sama
+     sekali (sudah dicoba — yang terlihat cuma tulisannya ikut miring). --soft
+     satu tingkat di atas --canvas, dan border-top hairline-nya yang jadi garis
+     miring menyapu layar saat panggungnya menegak. Pasangan border-bottom
+     yang sudah ada di atas. */
+  transform-origin: bottom left;
+  background: var(--soft);
+  border-top: 1px solid var(--hairline);
+  position: relative; z-index: 1;
 }
 .jr-intro__in { position: relative; text-align: center; max-width: 760px; }
 /* Nomor bab sebagai latar, bukan hiasan yang bisa dibaca: aria-hidden di
@@ -790,7 +858,118 @@ main > section + section { border-top: 1px solid var(--hairline); }
    bab sudah dilepas — judulnya sudah dibaca utuh sekali di panggung itu. */
 .jr-chapter { margin-top: 64px; scroll-margin-top: 72px; }
 
-.jr-h { margin-top: 64px; font-size: 18px; letter-spacing: 2px; text-align: center; }
+/* ── Baris judul bagian: judul di sumbu tengah layar, logo di tepi kanan ──
+   1fr auto 1fr, jadi judulnya jatuh persis di sumbu tengah halaman — sesumbu
+   dengan .jr-final__title dan judul bagian lain. Logonya melayang absolut ke
+   tepi kanan layar (lihat .jr-hlogo di bawah), jadi tidak ada anak kisi lain
+   yang bisa menggesernya.
+
+   margin-top pindah ke sini dari .jr-h: barisnya kisi, dan margin anak kisi
+   tidak melipat keluar. Sekalian melepas `mt-16` yang dulu ditempel di dua
+   judul terakhir — utility Tailwind ada di layer yang menang atas berkas ini
+   (lihat catatan layer(components) di app/globals.css), jadi 64px-nya ikut
+   menimpa 44px versi HP di blok @media di bawah. Dengan jaraknya dipegang
+   satu kelas saja, angka HP itu berlaku lagi untuk ketiga judul. */
+/* Garis pemisah antar-bagian: satu hairline di kepala tiap baris judul, jadi
+   Tanggung Jawab / Dokumentasi Kerja / Proyek Akhir kelihatan tiga bagian
+   terpisah, bukan satu gulungan panjang. Sama tokennya dengan pemisah antar-
+   section di baris 176, jadi ikut berbalik saat temanya diganti.
+
+   Garisnya menembus padding .shell sampai ujung layar lewat ::before selebar
+   layar, bukan border-top di elemennya: isinya harus tetap di dalam shell.
+   var(--vw), bukan vw mentah — body memakai zoom .8, jadi 100vw mentah cuma
+   sampai 80% lebar layar. Yang meluber ke samping dipotong `main
+   { overflow-x: clip }` di baris 159, jadi tidak ada gulir mendatar. */
+.jr-hrow {
+  position: relative;
+  /* Jarak garis->judul dipegang satu variabel supaya baris pertama tiap bab,
+     yang garisnya dimatikan, bisa menolkannya dan naik. */
+  --hrow-pad: 28px;
+  margin-top: 64px; padding-top: var(--hrow-pad);
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px;
+}
+.jr-hrow::before {
+  content: ''; position: absolute; top: 0; left: 50%;
+  width: calc(100 * var(--vw)); margin-left: calc(-50 * var(--vw));
+  border-top: 1px solid var(--hairline);
+}
+/* Kecuali yang pertama di tiap bab (Tanggung Jawab Utama): di atasnya bukan
+   bagian sebelumnya melainkan panggung pembuka bab setinggi layar — sudah
+   jelas babak baru, tidak perlu digarisi lagi — panggung itu sudah ditutup
+   border-bottom-nya sendiri. Tanpa garis di sini, padding yang memberi napas
+   di bawahnya tidak punya alasan lagi: dinolkan, dan margin-nya dipangkas
+   64->28px, jadi judulnya naik rapat ke tepi bawah panggung.
+
+   Menang atas 44px versi HP di blok @media bawah tanpa aturan kedua: kelas
+   plus pseudo-kelas lebih spesifik dari .jr-hrow polos, di lebar berapa pun. */
+.jr-hrow:first-child { --hrow-pad: 0px; margin-top: 28px; }
+.jr-hrow:first-child::before { content: none; }
+.jr-hrow .jr-h { grid-column: 2; }
+.jr-h { font-size: 18px; letter-spacing: 2px; text-align: center; }
+
+/* Logonya masuk dengan efek judul "EMPAT PERAN, SATU BENANG MERAH" — .split
+   polos, bukan .split-fly: naik 40px sambil memudar masuk, durasi dan bezier
+   yang sama persis. Yang memicunya judul di sebelahnya: .is-visible dipasang
+   observer di portfolio-runtime.js ke elemen .split, dan selektor saudara ini
+   ikut menyala bersamanya — tidak ada observer kedua, tidak ada satu baris JS
+   pun.
+
+   TANPA blur, dan itu bukan kelalaian: blur hanya bisa lewat filter, sementara
+   filter di sini sudah dipakai perlakuan tema per-logo (.jr-logo--amx invert,
+   halo icon+) — menimpanya bikin marka AMX hilang di tema terang. Judul
+   acuannya sendiri juga tidak memakai blur; yang terbaca seperti blur di sana
+   adalah huruf-hurufnya yang naik bergantian.
+
+   Beziernya ditulis penuh, bukan var(--split-ease): variabel itu hidup di
+   .split, dan logonya saudara elemen itu, bukan keturunannya.
+
+   max-width menang atas angka per-logo .jr-logo--* yang sama-sama satu kelas
+   karena ditulis belakangan; angka-angka itu untuk meratakan empat logo
+   sebaris di rel waktu, di sini logonya cuma satu. */
+.jr-hlogo {
+  /* Di tepi KANAN LAYAR, bukan di tepi kolom isi: right dihitung dari tengah
+     barisnya (yang selebar .shell) ke tepi layar — negatif, jadi ia keluar
+     dari shell. var(--vw), bukan vw mentah, karena body memakai zoom .8;
+     24px disisakan sebagai napas dari tepi.
+
+     Absolut, jadi kolom kisi tetap kosong dan judulnya tidak bergeser
+     sepiksel pun dari sumbu tengah halaman. Kotak inset --hrow-pad/0 itu
+     persis kotak judulnya (satu-satunya anak kisi yang tersisa), dan
+     margin-block: auto menaruh logonya di sumbu yang sama dengan teks judul. */
+  position: absolute; top: var(--hrow-pad); bottom: 0; margin-block: auto;
+  right: calc(50% - 50 * var(--vw) + 24px);
+  height: 42px; width: auto; max-width: 210px; object-fit: contain;
+  opacity: 0; transform: translateY(40px);
+  transition: opacity 1.25s cubic-bezier(.165, .84, .44, 1),
+              transform 1.25s cubic-bezier(.165, .84, .44, 1);
+}
+.jr-h.is-visible ~ .jr-hlogo { opacity: 1; transform: none; }
+
+/* Bertumpuk mulai dari tablet, BUKAN cuma di HP. Penyebabnya kolom 1fr yang
+   simetris: judulnya duduk di kolom tengah selebar isinya, dan sisa ruangnya
+   dibagi DUA — jadi kapsulnya cuma kebagian separuh, bukan seluruh, ruang di
+   sebelah judul. Di 800px sisa itu tinggal ~295px sementara "PT ANTAM
+   Tbk UBPP Logam Mulia" perlu ~290px, dan di bawahnya namanya patah dua
+   sampai tiga baris sambil merapat ke judul.
+
+   800px, angka yang sama dengan blok galeri: viewport 800px masih zoom .8,
+   jadi ini titik patah tata letak, bukan titik pindah ke HP (yang 640px, di
+   blok paling bawah — di sana zoom-nya dimatikan dan ukurannya ikut turun). */
+@media (max-width: 800px) {
+  .jr-hrow { grid-template-columns: 1fr; justify-items: center; gap: 10px; }
+  .jr-hrow .jr-h { grid-column: 1; }
+  /* Ikut arus lagi di sini: barisnya sudah satu kolom dan judulnya selebar
+     layar, jadi logo yang melayang di tepi kanan akan menimpanya. */
+  .jr-hlogo { position: static; grid-column: 1; justify-self: end; }
+  /* Satu lajur: foto di atas, teksnya di bawah. */
+  .sc-card { padding: 18px; gap: 18px; }
+  /* Tinggi dasarnya diturunkan: rumus lebarnya sama, ubinnya saja yang
+     lebih kecil supaya tetap dua-tiga sebaris di layar HP. */
+  .sc-shot { flex-basis: calc(var(--ar) * 110px); max-width: calc(var(--ar) * 150px); }
+  /* Ikut arus juga: barisnya sudah pendek, menarik logonya ke atas lagi
+     membuatnya melompati garis. */
+  .jr-hlogo { height: 32px; max-width: 160px; }
+}
 
 /* ── Kartu tanggung jawab ── */
 /* Tiga baris milik .jr-resp, bukan milik masing-masing kartu: judul, foto,
@@ -833,10 +1012,66 @@ main > section + section { border-top: 1px solid var(--hairline); }
    yang dibalik di sini, bukan di markup: fotonya milik <figure> kartu dan
    judulnya <h4>, urutan itu yang benar untuk pembaca layar. */
 .jr-card__media {
+  position: relative;
   grid-row: 2; grid-column: 1; aspect-ratio: 16 / 10; overflow: hidden;
   border-radius: var(--r) var(--r) 0 0; corner-shape: var(--corner);
 }
 .jr-card__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* ── Isyarat "kotak ini bisa diketuk" ──
+   Ubin Proyek Akhir mendapatkannya dari .jr-zoom (fotonya membesar 1,04x saat
+   disorot). Kartu Tanggung Jawab Utama tidak lagi memakai kelas itu sejak
+   sampulnya membuka galeri, jadi tanpa blok ini fotonya terbaca sebagai
+   gambar mati. Skalanya ikut dikembalikan di sini.
+
+   Pemicunya .jr-card, bukan .jr-card__media: judul kartu membuka galeri yang
+   sama, dan isyaratnya harus menyala saat kursor ada di salah satu dari
+   keduanya — bukan cuma saat kebetulan di atas fotonya.
+
+   Teksnya <span data-en> di markup, bukan `content` di CSS: penukar bahasa di
+   portfolio-runtime.js bekerja pada [data-en], dan teks yang lahir dari CSS
+   tak akan pernah ikut berganti. */
+.jr-card__media img { transition: transform .5s; }
+.jr-card:hover .jr-card__media img { transform: scale(1.04); }
+/* Tirai tipis di seluruh foto plus tulisan di tengahnya. Tirainya latar
+   .jr-cue sendiri, bukan elemen tambahan: kotak ini sudah inset: 0 dan sudah
+   memudar bersama tulisannya, jadi satu opacity mengurus keduanya.
+
+   #fff, BUKAN var(--ink): yang di belakangnya foto, bukan permukaan bertema,
+   jadi warnanya tidak boleh ikut bertukar saat tema terang — sama alasannya
+   dengan .choreo__caption di atas.
+
+   .38 itu "sedikit" yang diminta, dan sengaja TIDAK dinaikkan ke angka yang
+   aman: di atas foto seterang putih, tirai setipis ini menyisakan kontras
+   ~2,1:1 untuk teks putih — di bawah ambang 4,5, dan tests/check-contrast.mjs
+   tidak bisa melihatnya karena ia mengukur pasangan warna, bukan foto.
+   text-shadow berlapis dua di bawah yang memberi tiap huruf tepinya sendiri.
+   Kalau di satu foto tetap sulit terbaca, yang memperbaikinya menaikkan tirai
+   ke .54 (ambang hitungnya) atau kembali ke pelat --card/--ink, bukan
+   bayangan yang lebih tebal. */
+.jr-cue {
+  position: absolute; inset: 0;
+  display: grid; place-content: center;
+  padding-inline: 12px; text-align: center;
+  background: rgb(0 0 0 / .38);
+  color: #fff;
+  text-shadow: 0 1px 2px rgb(0 0 0 / .95), 0 0 10px rgb(0 0 0 / .8);
+  font-size: 13px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase;
+  opacity: 0; transition: opacity .25s;
+}
+/* KHUSUS penunjuk yang bisa menyorot. Di HP isyarat ini sengaja tidak ada:
+   dulu ia dibiarkan menyala permanen di sana (tak ada hover yang bisa
+   memunculkannya), dan akibatnya kesembilan fotonya tertutup tirai terus-
+   menerus. Yang hilang cuma isyaratnya — kartunya tetap bisa diketuk.
+
+   @media (hover: hover), bukan sekadar melepas aturan coarse: di peramban
+   sentuh :hover menempel setelah ketukan, dan tanpa penjaga ini tirainya akan
+   tertinggal menyala di kartu yang barusan disentuh. */
+@media (hover: hover) {
+  .jr-card:hover .jr-cue { opacity: 1; }
+}
+/* Di luar blok itu: penavigasi papan ketik ada di layar apa pun. */
+.jr-card__media:focus-visible .jr-cue { opacity: 1; }
 /* Judulnya sebuah pelat selebar teksnya sendiri (justify-self: center, jadi
    ia menyusut ke isinya alih-alih diregangkan selebar kolom), dan
    margin-bottom negatif yang menyambungkannya ke foto: baris kisi cuma
@@ -853,16 +1088,48 @@ main > section + section { border-top: 1px solid var(--hairline); }
    Warnanya --card, sama dengan permukaan di .jr-card::before: pelat dan
    kotaknya terbaca sebagai satu bidang yang muncul menembus foto. Sudutnya
    sengaja persegi — pelat ini tidak ikut --r/--corner seperti kotak lain. */
+/* Metrik pelatnya disamakan dengan .jr-act__cap milik ubin Proyek Akhir:
+   padding, ukuran huruf, dan line-height yang sama persis. Tindihan -8px ke
+   kepala fotonya memang SUDAH sama sejak awal (terukur di kedua tempat); yang
+   membuat keduanya terbaca berbeda cuma pelat ini yang lebih besar — 15px di
+   padding 12/22 jadi 37px tinggi, lawan 30px milik ubin Proyek Akhir.
+
+   Yang TIDAK disalin: transition + latar :hover, karena pelat ini pemicu yang
+   bisa disorot dan pelat di ubin sana bukan. */
 .jr-card__title {
+  /* WAJIB, sama alasannya dengan .jr-act__cap: .jr-card__media punya
+     `position: relative` (dipasang untuk isyarat ketuk .jr-cue), dan elemen
+     terposisi dicat DI ATAS elemen statis berapa pun urutan DOM-nya. Tanpa
+     dua baris ini tindihan -8px di bawah tetap ada tapi tenggelam di balik
+     foto, dan pelatnya terbaca berdiri terpisah dari fotonya. */
+  position: relative; z-index: 1;
   grid-row: 1; grid-column: 1; justify-self: center;
-  margin: 0 0 -8px; padding: 12px 22px;
+  margin: 0 0 -8px; padding: 10px 18px;
+  /* Sama seperti .jr-act__cap di Proyek Akhir: pada max-width 100% judul
+     sepanjang "Power Distribution Board Reverse Engineering" membuat pelatnya
+     mentok kedua tepi kartu dan berubah dari lencana jadi spanduk. 24px
+     menyisakan 12px tepi di kiri-kanan.
+
+     Tinggi pelatnya tidak perlu dipatok di sini, tidak seperti di Proyek
+     Akhir: .jr-card memakai grid-template-rows: subgrid, jadi baris judul
+     sudah dibagi bersama ketiga kartu sebaris dan tingginya otomatis seragam. */
+  max-width: calc(100% - 24px);
   display: grid; place-content: center;
   background: var(--card);
   transition: background-color .25s;
-  font-size: 15px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;
-  text-align: center; color: var(--ink);
+  font-size: 13px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;
+  text-align: center; line-height: 1.35; color: var(--ink);
 }
 .jr-card:hover .jr-card__title { background: var(--elevated); }
+/* Sampul DAN judul kartu sama-sama membuka galeri foto tanggung jawab itu
+   (penangannya di portfolio-runtime.js). cursor: pointer, bukan zoom-in milik
+   .jr-zoom: yang dibuka daftar foto, bukan satu foto yang diperbesar.
+
+   Cincin fokusnya cuma akan terlihat di sampulnya — dialah satu-satunya yang
+   punya tabindex; judulnya sasaran ketuk tambahan dan sengaja tidak jadi
+   perhentian Tab kedua untuk perbuatan yang sama. */
+.jr-open { cursor: pointer; }
+.jr-open:focus-visible { outline: 2px solid var(--m-blue-dark); outline-offset: 3px; }
 .jr-card__list { grid-row: 3; grid-column: 1; margin: 18px 20px 22px; padding: 0; list-style: none; }
 .jr-card__list li {
   position: relative; padding-left: 16px; margin-top: 9px;
@@ -871,7 +1138,7 @@ main > section + section { border-top: 1px solid var(--hairline); }
 }
 .jr-card__list li::before {
   content: ""; position: absolute; left: 0; top: .6em;
-  width: 5px; height: 5px; background: var(--muted);
+  width: 5px; height: 5px; border-radius: 50%; background: var(--muted);
 }
 .jr-card__list strong { font-weight: 500; color: var(--ink); }
 
@@ -886,8 +1153,9 @@ main > section + section { border-top: 1px solid var(--hairline); }
    sifat multi-kolom CSS, dan untuk deretan foto tanpa urutan wajib, tidak ada
    yang hilang. break-inside: avoid menjaga satu foto tidak terbelah dua kolom.
 
-   Keterangannya menumpang di atas fotonya dengan gradien, bukan di bawahnya:
-   di bawah, tinggi tiap sel ikut bergantung panjang kalimatnya. */
+   Keterangannya sebuah pelat di kepala ubin — di luar fotonya, menindihnya
+   8px terakhir saja; bukan di bawah ubin, karena di bawah tinggi tiap sel
+   ikut bergantung panjang kalimatnya. */
 /* Kisi berubin seragam, bukan `columns` (masonry) seperti sebelumnya: di sana
    tiap foto memakai rasio aslinya, jadi tinggi ubinnya berbeda-beda dan dasar
    ketiga kolomnya berhenti di ketinggian yang tidak sama.
@@ -898,25 +1166,136 @@ main > section + section { border-top: 1px solid var(--hairline); }
    query container tidak boleh menanyai dirinya sendiri, jadi 100cqw di dalam
    .jr-acts jatuh ke lebar viewport, bukan lebar .jr-acts.) */
 .jr-acts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-.jr-act { position: relative; overflow: hidden; margin: 0; aspect-ratio: 4 / 3; }
-/* Bab ICON+ punya lima foto, jadi baris kedua menyisakan satu sel kosong. Yang
-   terakhir dilebarkan jadi dua kolom untuk menutupnya — dan rasionya DILEPAS:
+/* Dua baris seperti .jr-card: pelat judul di baris 1, foto di baris 2. Rasio
+   4:3 tetap dipatok di UBINNYA, bukan di barisan fotonya — yang menyamakan
+   tinggi ketiga ubin sebaris itu tinggi ubin, dan judul yang patah dua baris
+   di satu ubin memakan tinggi fotonya sendiri, bukan tinggi barisnya. */
+.jr-act {
+  position: relative; overflow: hidden; margin: 0; aspect-ratio: 4 / 3;
+  display: grid; grid-template-columns: 1fr; grid-template-rows: auto 1fr;
+}
+/* Dokumentasi Kerja ICON+ dan Proyek Akhir AMX sama-sama dua foto, jadi
+   barisnya menyisakan satu sel kosong. Yang terakhir dilebarkan jadi dua
+   kolom untuk menutupnya — dan rasionya DILEPAS:
    dengan 4:3 ia jadi setinggi dua kolom dan menarik tinggi barisnya ikut naik.
    Tanpa rasio ia teregang (align-items: stretch bawaan kisi) mengikuti tinggi
-   tetangganya di kolom pertama. Enam foto tidak kena aturan ini. */
+   tetangganya di kolom pertama. Tiga dan enam foto genap sebaris, jadi
+   keduanya tidak kena aturan ini. */
 .jr-act:last-child:nth-child(3n + 2) { grid-column: span 2; aspect-ratio: auto; }
 /* Foto dilepas dari aliran (position: absolute, seperti .pcard__media), jadi
    tinggi ubinnya SELALU datang dari rasio ubinnya sendiri. Itu syarat ubin
    melebar di atas bisa teregang: selama fotonya masih in-flow, tinggi alami
    foto selebar dua kolom yang menentukan tinggi baris, dan barisnya ikut
    membengkak alih-alih ubinnya yang menyesuaikan. */
+/* Baris 2, dan itu yang menurunkan tepi atas fotonya: sebagai elemen absolut
+   `inset: 0` diukur dari AREA KISI-nya, jadi foto mulai tepat di bawah baris
+   pelat judul. Tinggi baris itu sendiri = tinggi pelat dikurangi margin bawah
+   negatifnya — lihat .jr-act__cap, yang memaku keduanya ke angka tetap supaya
+   semua foto tetap seukuran berapa pun panjang judulnya. */
 .jr-act img {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  object-fit: cover; display: block; transition: transform .5s;
+  position: absolute; grid-row: 2; grid-column: 1; inset: 0;
+  width: 100%; height: 100%; object-fit: cover; display: block;
 }
-.jr-act:hover img { transform: scale(1.04); }
+/* ── Satu kotak: proyek akademik & sertifikasi ──
+   Bentuk yang berbeda dari Proyek Akhir bab magang, dan disengaja: di sana
+   tiga kolom berdiri sejajar sebagai tiga kotak dan fotonya kisi ubin sendiri
+   di bawahnya; di sini SATU kotak memuat semuanya — kolom pertama di
+   kepalanya, lalu teks dan seluruh fotonya mengalir bersama di bawahnya.
 
-/* ── Sorot ubin: fotonya muncul utuh, sebesar layar ──
+   Ditulis DI ATAS blok sorot foto di bawah, bukan di dekat .jr-block: aturan
+   .jr-zoom.is-open img yang memindahkan foto ke position: fixed
+   spesifisitasnya sama persis dengan .sc-shot img, jadi yang belakangan yang
+   menang. Ditaruh di sini, sorotnya tetap yang menang. */
+.sc-card {
+  display: grid; gap: 22px; padding: 24px;
+  background: var(--card); border-left: 2px solid var(--m-blue-dark);
+}
+/* Ketiga teksnya bertumpuk selebar kotak, lalu SEMUA fotonya di bawahnya
+   sebagai satu hamparan yang rata kiri-kanan — dan tidak satu pun dipotong.
+
+   Caranya aritmetika flexbox, bukan kisi dan bukan potongan: tiap ubin diberi
+   flex-basis = rasio x tinggi dasar DAN flex-grow = rasio yang sama (--ar,
+   ditulis per ubin dari components/photo-ratios.json). Sisa ruang sebaris
+   dibagi menurut flex-grow, jadi lebar tiap ubin selalu rasio x (tinggi dasar
+   + bagiannya) — artinya lebar SEBANDING rasio, dan tinggi = lebar/rasio jatuh
+   sama untuk semua ubin di baris itu. Foto utuh, baris rata, dan baris
+   terakhir ikut melebar sampai penuh: tidak ada sudut yang kosong.
+
+   Kisi tidak bisa begitu: sel yang lebarnya seragam memaksa foto potret dan
+   lanskap ke kotak yang sama — salah satunya pasti dipotong atau berkotak
+   kosong. */
+.sc-shots {
+  display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px;
+  /* Yang menambal baris terakhir kalau ubinnya sudah mentok besar: sisanya
+     dibagi rata KIRI-KANAN, jadi barisnya terbaca sebagai penutup yang
+     ditengahkan, bukan sebagai baris yang kurang satu foto. */
+  justify-content: center;
+}
+.sc-shot {
+  /* Cadangan kalau rasionya belum ada di peta: 3:2 mendatar. */
+  --ar: 1.5;
+  flex: var(--ar) 1 calc(var(--ar) * 200px);
+  /* Rem satu-satunya masalah aturan di atas: baris yang cuma berisi satu-dua
+     foto sisa membagi SELURUH lebar kotak ke mereka, dan satu foto bisa
+     membengkak setinggi layar. max-width yang ikut sebanding rasio = pagar
+     TINGGI baris (260px): karena semua ubin memakai pengali yang sama, kalau
+     satu mentok, semuanya mentok di tinggi yang sama — barisnya tetap rata,
+     hanya berhenti melebar. Sisa ruangnya diurus justify-content di atas. */
+  max-width: calc(var(--ar) * 260px);
+}
+/* Satu sel, dua penghuni: fotonya yang menentukan tinggi ubin (height auto,
+   jadi rasionya asli), dan pelat judulnya menumpang di sel yang sama supaya
+   TIDAK menambah tinggi — kalau ia menambah tinggi, ubin dengan judul dua
+   baris jadi lebih jangkung dari tetangganya dan barisnya tidak rata lagi.
+   Bukan position: absolute: .jr-zoom.is-open memindahkan pelat itu ke
+   position: fixed saat foto disorot, dan transform pemusat apa pun akan ikut
+   terbawa ke sana. */
+.sc-shot {
+  position: relative; overflow: hidden; margin: 0;
+  display: grid; grid-template-columns: 1fr;
+}
+.sc-shot > * { grid-area: 1 / 1; }
+.sc-shot img { display: block; width: 100%; height: auto; }
+/* Pelatnya --elevated, bukan --card seperti di ubin Dokumentasi Kerja: di sana
+   ubinnya berdiri di atas kanvas halaman, di sini di dalam kotak yang SUDAH
+   --card — pelat sewarna kotaknya tidak terlihat sama sekali. Ukurannya ikut
+   mengecil bersama ubinnya. */
+.sc-shot .jr-act__cap {
+  justify-self: center; align-self: start; z-index: 1; margin: 0; max-width: 100%;
+  background: var(--elevated);
+  padding: 6px 10px; font-size: 10px; letter-spacing: .6px; line-height: 1.3;
+}
+.sc-just .jr-block__list li { text-align: justify; }
+
+/* Isyarat bahwa kotaknya bisa diketuk, bukan sorotnya sendiri: sejak sorot
+   hanya terbuka lewat tap, hover tidak lagi memunculkan apa pun, dan tanpa
+   isyarat sekecil ini fotonya terbaca sebagai gambar mati. Ditulis di
+   .jr-zoom supaya ketiga bentuk kotaknya berperilaku sama. */
+.jr-zoom img { transition: transform .5s; }
+.jr-zoom:hover img { transform: scale(1.04); }
+/* Tumbuhnya ke bawah, bukan dari tengah: di atas foto ada baris judul yang
+   BUKAN foto, dan skala dari tengah menyembulkan ~5px gambar di kiri-kanan
+   pelat. Dikunci ke :hover saja supaya origin animasi sorot layar penuh
+   (per kolom, di blok @media di bawah) tidak ikut tergeser. */
+.jr-acts .jr-zoom:hover img { transform-origin: top center; }
+
+/* ── Sorot foto: sekali ketuk, fotonya muncul utuh sebesar layar ──
+   Kelasnya .jr-zoom, bukan .jr-act: yang memakainya ubin Proyek Akhir dan
+   hamparan .sc-shots — dua bentuk kotak yang berbeda rasio dan sudutnya, tapi
+   satu perilaku. Semua yang di bawah ini cuma soal sorotnya; ukuran dan
+   bingkai tiap kotak tetap milik kelasnya sendiri.
+
+   Kartu Tanggung Jawab Utama TIDAK lagi memakainya: sampulnya sekarang
+   membuka <dialog id="gallery">, karena satu kartu memuat beberapa foto dan
+   sorot ini cuma sanggup satu.
+
+   KELAS, bukan :hover dan bukan :active. Bukan :hover karena sorotnya tidak
+   boleh terbuka sendiri saat kursor cuma lewat — satu-satunya yang membukanya
+   ketukan, sama di tetikus maupun sentuhan. Bukan :active karena :active TIDAK
+   menyala untuk sentuhan di sini: diuji dengan sentuhan yang ditahan 500ms
+   lewat CDP, dan document.querySelectorAll(':active') pulang kosong. Kelasnya
+   dipasang dan dilepas oleh penangan click di portfolio-runtime.js.
+
    Fotonya DIPINDAH ke position: fixed, bukan diperbesar di tempatnya: ubin di
    kolom terluar cuma berjarak 48px dari tepi .shell, jadi apa pun yang
    di-scale di sana menjulur keluar halaman. Fixed dengan inset yang sama untuk
@@ -926,47 +1305,50 @@ main > section + section { border-top: 1px solid var(--hairline); }
    object-fit: contain, bukan cover: yang ditampilkan bingkai penuh fotonya —
    itu justru yang tidak terlihat di ubin, karena di sana ia dipotong 4:3.
 
-   pointer-events: none pada popup dan tirainya: yang menentukan hover tetap
-   ubinnya sendiri, jadi popup tidak pernah "menangkap" kursor dan menyangkut.
+   pointer-events: none pada popup dan tirainya: ketukan berikutnya harus
+   sampai ke halaman di belakangnya supaya penangan click bisa menutupnya lagi.
    var(--vh)/var(--vw), bukan vh/vw mentah — body memakai zoom .8 dan satuan
    viewport tidak ikut terskala (lihat blok ZOOM HALAMAN di atas).
 
-   Cuma di penunjuk yang benar-benar bisa hover; di layar sentuh tidak ada
-   "keluar dari ubin", popupnya akan menempel. */
-@media (hover: hover) {
-  /* animation: none WAJIB, bukan rapi-rapi: .jr-act juga .jr-fx, dan elemen
-     dengan animasi transform yang aktif menjadi containing block untuk
-     keturunan position: fixed — popupnya terkurung di dalam ubin 439px alih-
-     alih menempel ke viewport. Terukur: dengan .jr-fx menyala popupnya duduk
-     di 287,138 seukuran ubin; dimatikan, ia pindah ke 114,48 seukuran layar.
-     Yang dibatalkan cuma saat disorot, dan keadaan akhir jr-rise memang
-     transform: none — jadi tidak ada yang terlihat melompat. */
-  .jr-act:hover { overflow: visible; z-index: 60; animation: none; }
-  /* Ukurannya ditulis eksplisit, bukan mengandalkan inset + width: auto:
-     untuk elemen tergantikan (img), width: auto menang atas inset dan yang
-     dipakai ukuran intrinsiknya — 778x1158, menjulur jauh di bawah layar.
-     84 = 100 - 2x8, 88 = 100 - 2x6; pasangan dari inset di bawahnya. */
-  .jr-act:hover img {
-    position: fixed; inset: calc(6 * var(--vh)) calc(8 * var(--vw));
-    width: calc(84 * var(--vw)); height: calc(88 * var(--vh)); transform: none;
-    object-fit: contain; pointer-events: none;
-  }
-  /* Keterangannya ikut pindah ke bawah layar. Tanpa ini ia tertinggal di
-     posisi ubinnya dan mengambang sendirian di atas tirai. Gradiennya
-     dilepas: di sini tidak ada foto di belakangnya yang perlu diredam. */
-  .jr-act:hover .jr-act__cap {
-    position: fixed; left: 0; right: 0; top: auto;
-    bottom: calc(1.5 * var(--vh)); padding: 0; background: none;
-    text-align: center; pointer-events: none;
-  }
-  /* Tirai gelap. z-index -1 menaruhnya di belakang fotonya tapi tetap di dalam
-     konteks penumpukan .jr-act:hover (z-index: 60), jadi ia menutupi halaman
-     tanpa ikut menutupi popupnya. */
-  .jr-act:hover::after {
-    content: ""; position: fixed; inset: 0; z-index: -1;
-    background: rgb(0 0 0 / .82); backdrop-filter: blur(6px);
-    pointer-events: none;
-  }
+   -webkit-touch-callout menahan menu "Save Image" bawaan iOS; padanan
+   Android-nya preventDefault pada contextmenu, di runtime. */
+.jr-zoom { cursor: zoom-in; -webkit-touch-callout: none; }
+/* Pola yang sama dengan .btn, .chip, dan .pcard di halaman ini — kotaknya
+   sekarang kontrol yang bisa dicapai Tab, jadi ia perlu cincin fokus. */
+.jr-zoom:focus-visible { outline: 2px solid var(--m-blue-dark); outline-offset: 3px; }
+/* animation: none WAJIB, bukan rapi-rapi: ubinnya juga .jr-fx, dan elemen
+   dengan animasi transform yang aktif menjadi containing block untuk keturunan
+   position: fixed — popupnya terkurung di dalam ubin 439px alih-alih menempel
+   ke viewport. Terukur: dengan .jr-fx menyala popupnya duduk di 287,138
+   seukuran ubin; dimatikan, ia pindah ke 114,48 seukuran layar. Yang
+   dibatalkan cuma saat terbuka, dan keadaan akhir jr-rise memang
+   transform: none — jadi tidak ada yang terlihat melompat. */
+.jr-zoom.is-open { cursor: zoom-out; overflow: visible; z-index: 60; animation: none; }
+/* Ukurannya ditulis eksplisit, bukan mengandalkan inset + width: auto: untuk
+   elemen tergantikan (img), width: auto menang atas inset dan yang dipakai
+   ukuran intrinsiknya — 778x1158, menjulur jauh di bawah layar.
+   84 = 100 - 2x8, 88 = 100 - 2x6; pasangan dari inset di bawahnya. */
+.jr-zoom.is-open img {
+  position: fixed; inset: calc(6 * var(--vh)) calc(8 * var(--vw));
+  width: calc(84 * var(--vw)); height: calc(88 * var(--vh)); transform: none;
+  object-fit: contain; pointer-events: none;
+}
+/* Keterangannya ikut pindah ke bawah layar. Tanpa ini ia tertinggal di posisi
+   ubinnya dan mengambang sendirian di atas tirai. Pelatnya dilepas: di sini
+   yang di belakangnya tirai gelap, bukan foto — dan karena itu warnanya balik
+   putih, bukan --ink yang di tema terang hilang di atas tirai. */
+.jr-zoom.is-open .jr-act__cap {
+  position: fixed; left: 0; right: 0; top: auto;
+  bottom: calc(1.5 * var(--vh)); padding: 0; background: none; color: #fff;
+  text-align: center; pointer-events: none;
+}
+/* Tirai gelap. z-index -1 menaruhnya di belakang fotonya tapi tetap di dalam
+   konteks penumpukan .jr-zoom.is-open (z-index: 60), jadi ia menutupi halaman
+   tanpa ikut menutupi popupnya. */
+.jr-zoom.is-open::after {
+  content: ""; position: fixed; inset: 0; z-index: -1;
+  background: rgb(0 0 0 / .82); backdrop-filter: blur(6px);
+  pointer-events: none;
 }
 
 /* Mengembang keluar dari ubinnya, bukan muncul begitu saja.
@@ -984,84 +1366,136 @@ main > section + section { border-top: 1px solid var(--hairline); }
 @keyframes jr-pop   { from { opacity: 0; transform: scale(var(--pop-from, .28)); } }
 @keyframes jr-fade  { from { opacity: 0; } }
 
-@media (hover: hover) and (prefers-reduced-motion: no-preference) {
-  .jr-act:hover img { animation: jr-pop .26s cubic-bezier(.22, .61, .36, 1) both; }
-  .jr-act:nth-child(3n + 1):hover img { transform-origin: left center; }
-  .jr-act:nth-child(3n):hover img     { transform-origin: right center; }
-  .jr-act:hover::after,
-  .jr-act:hover .jr-act__cap { animation: jr-fade .26s ease-out both; }
-}
-
-/* ── Layar sentuh: tekan-tahan, lepas untuk menutup ──
-   Kelas, bukan :active. :active TIDAK menyala untuk sentuhan di sini —
-   diuji dengan sentuhan yang ditahan 500ms lewat CDP, dan
-   document.querySelectorAll(':active') pulang kosong. Kelasnya dipasang
-   pointerdown/pointerup di portfolio-runtime.js, yang sekalian menyaring
-   pointerType 'mouse' — jadi blok ini tidak perlu gerbang @media dan
-   laptop berlayar sentuh ikut kebagian.
-
-   Blok ini memang mengulang blok sorot di atas. CSS tidak punya cara memakai
-   satu blok deklarasi untuk dua selektor yang berbeda pemicunya.
-
-   -webkit-touch-callout menahan menu "Save Image" bawaan iOS; padanan
-   Android-nya preventDefault pada contextmenu, di runtime. */
-.jr-act { -webkit-touch-callout: none; }
-.jr-act.is-pressed { overflow: visible; z-index: 60; animation: none; }
-.jr-act.is-pressed img {
-  position: fixed; inset: calc(6 * var(--vh)) calc(8 * var(--vw));
-  width: calc(84 * var(--vw)); height: calc(88 * var(--vh)); transform: none;
-  object-fit: contain; pointer-events: none;
-}
-.jr-act.is-pressed .jr-act__cap {
-  position: fixed; left: 0; right: 0; top: auto;
-  bottom: calc(1.5 * var(--vh)); padding: 0; background: none;
-  text-align: center; pointer-events: none;
-}
-.jr-act.is-pressed::after {
-  content: ""; position: fixed; inset: 0; z-index: -1;
-  background: rgb(0 0 0 / .82); backdrop-filter: blur(6px);
-  pointer-events: none;
-}
-/* --pop-from .5, bukan .28: di HP ubinnya 166px dan popupnya 84vw = 328px,
-   jadi 166/328 = 0,51. Angka mulainya harus seukuran ubin di layar itu, dan
-   perbandingannya berbeda dari desktop. transform-origin dibiarkan center —
-   di dua kolom arah tumbuhnya tidak sejelas di tiga. */
 @media (prefers-reduced-motion: no-preference) {
-  .jr-act.is-pressed img { --pop-from: .5; animation: jr-pop .26s cubic-bezier(.22, .61, .36, 1) both; }
-  .jr-act.is-pressed::after,
-  .jr-act.is-pressed .jr-act__cap { animation: jr-fade .26s ease-out both; }
+  .jr-zoom.is-open img { animation: jr-pop .26s cubic-bezier(.22, .61, .36, 1) both; }
+  /* Arah tumbuhnya ditentukan kolom tempat ubinnya berdiri; kolom tengah
+     center. */
+  .jr-acts .jr-zoom.is-open:nth-child(3n + 1) img { transform-origin: left center; }
+  .jr-acts .jr-zoom.is-open:nth-child(3n) img { transform-origin: right center; }
+  .jr-zoom.is-open::after,
+  .jr-zoom.is-open .jr-act__cap { animation: jr-fade .26s ease-out both; }
 }
+/* Pelat judul yang sama persis dengan .jr-card__title Tanggung Jawab Utama:
+   berdiri DI LUAR fotonya (baris 1 kisi ubin, bukan menumpang di atas gambar),
+   selebar teksnya sendiri, lalu margin bawah -8px yang menempelkannya ke
+   kepala foto — 8px terakhirnya saja yang menindih gambar.
+
+   position: relative + z-index WAJIB: fotonya position: absolute, dan elemen
+   terposisi dicat di atas elemen statis berapa pun urutan DOM-nya. Tanpa dua
+   baris itu pelatnya tenggelam di balik foto. */
 .jr-act__cap {
-  position: absolute; left: 0; right: 0; bottom: 0; padding: 28px 14px 12px;
-  background: linear-gradient(transparent, rgb(0 0 0 / .78));
-  color: #fff; font-size: 13px; font-weight: 400; line-height: 1.35;
+  position: relative; z-index: 1;
+  grid-row: 1; grid-column: 1; justify-self: center;
+  /* Tinggi DIPATOK dua baris, dan margin bawahnya persis setengahnya. Dua
+     akibatnya, keduanya yang diminta:
+
+     min-height inilah yang membuat SEMUA foto seukuran: kalau tinggi pelat
+     dibiarkan mengikuti isinya, judul dua baris memakan 14px lebih banyak
+     dari judul satu baris dan fotonya ikut lebih pendek di ubin yang
+     ukurannya sama persis (terukur: 226 lawan 240). 2.7em = dua baris pada
+     line-height 1.35; 20px = padding atas + bawah.
+
+     margin bawah -8px, angka yang sama dengan .jr-card__title di Kegiatan &
+     Tanggung Jawab Utama: pelat berdiri DI ATAS foto dan cuma 8px terakhirnya
+     yang menindih, bukan separuhnya.
+
+     place-content: center karena pelat satu baris kini lebih tinggi dari
+     isinya — tanpa itu teksnya menempel ke tepi atas. */
+  min-height: calc(2.7em + 20px);
+  display: grid; place-content: center;
+  margin: 0 0 -8px; padding: 10px 18px;
+  /* calc, bukan 100%: pada 100% nama sepanjang "Schematic PCB PDB (Power
+     Distribution Board) Auxiliary" (54 huruf) membuat pelatnya mentok kedua
+     tepi ubin dan berubah dari lencana jadi spanduk — beda sendiri dari nama
+     pendek seperti "X-30L Drone System Wiring Diagram" yang pelatnya menyusut
+     ke lebar teksnya. 24px menyisakan 12px tepi di kiri-kanan, jadi ubinnya
+     tetap terlihat mengapit pelat sepanjang apa pun namanya. */
+  max-width: calc(100% - 24px);
+  background: var(--card); color: var(--ink);
+  font-size: 13px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;
+  text-align: center; line-height: 1.35;
 }
 
 /* ── Proyek akhir ── */
+/* Judul proyeknya berdiri polos di kanvas halaman, TANPA pelat: pelat itu
+   milik judul per-foto (.jr-act__cap di tiap ubin di bawah), dan dua pelat
+   bertumpuk membuat yang mana judul foto dan yang mana judul proyek jadi
+   kabur. */
 .jr-final__title { font-size: 28px; font-weight: 700; line-height: 1.3; color: var(--ink); text-align: center; }
-/* align-items: stretch (bawaan kisi, ditulis di sini karena versi sebelumnya
-   memakai start): kolom foto jadi setinggi kolom teks di sebelahnya, tidak
-   lagi berhenti di tengah atau menjulur melewatinya. */
-.jr-final { display: grid; grid-template-columns: .9fr 1.1fr; gap: 28px; }
-/* Tiga baris sama tinggi yang membagi tinggi kolom teks. object-fit: contain,
-   BUKAN cover: isinya wiring diagram, layout PCB, dan peta penempatan —
-   memotong sisinya berarti membuang keterangan yang justru jadi isi gambarnya.
-   Sisa ruang di dalam sel diisi --card, jadi kotaknya tetap rata. */
-.jr-final__shots { display: grid; grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.jr-final__shots img {
-  width: 100%; height: 100%; object-fit: contain; display: block;
-  background: var(--card); border: 1px solid var(--hairline);
-}
-.jr-final__cols { display: grid; gap: 16px; }
-/* align-content: center, bukan align-items: kotaknya diregangkan setinggi
-   kolom foto di sebelahnya, dan teksnya cuma mengisi sepertiga atasnya. Yang
-   digeser seluruh isi kotak sebagai satu blok — rata kiri seperti semula,
-   tapi duduk di tengah tingginya. */
+/* Fotonya sendiri tidak punya kelas di sini: bagian ini memakai .jr-acts
+   dan .jr-act milik Dokumentasi Kerja (lihat experience-journey.tsx). Yang
+   tersisa cuma ketiga kolom teksnya, dan sekarang mereka berdiri sejajar di
+   bawah foto — bukan lagi satu kolom di sebelah kolom foto. */
+.jr-final__cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+/* align-content: start, bukan center: ketiga kotak diregangkan setinggi yang
+   terpanjang (bawaan kisi), dan dengan center judul "Latar Proyek",
+   "Kegiatan Utama", dan "Kontribusi" berhenti di tiga ketinggian berbeda.
+   Dari atas, ketiganya sebaris. */
 .jr-block {
-  display: grid; align-content: center;
+  display: grid; align-content: start;
   padding: 20px; background: var(--card); border-left: 2px solid var(--m-blue-dark);
+  /* Keduanya untuk sapuan di bawah: relative jadi jangkarnya, hidden memotong
+     pita cahaya di tepi kotak. Tidak ada isi .jr-block yang menjulur keluar,
+     jadi hidden aman — ikon butir Latar Proyek berjangkar ke <li>-nya sendiri
+     (position: relative di sana), bukan ke kotak ini. */
+  position: relative; overflow: hidden;
 }
-.jr-block__h { color: var(--ink); font-size: 15px; }
+/* ── Sapuan cahaya yang menyertai kotaknya naik ──
+   Sekali jalan, dan delay-nya --reveal-delay yang SAMA dengan kotaknya: kalau
+   sapuannya berjalan sendiri, di kotak kedua dan ketiga ia sudah lewat sebelum
+   kotaknya mulai naik.
+
+   rgb yang sama di ketiga stop dan cuma alfanya yang berubah — gradien dari
+   `transparent` (= rgba(0,0,0,0)) menuju warna terang melewati abu-abu di
+   tengah interpolasinya dan menyisakan pita kotor. */
+.jr-block::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  --sweep: 255 255 255;
+  background: linear-gradient(to top,
+    rgb(var(--sweep) / 0) 0%,
+    rgb(var(--sweep) / .09) 50%,
+    rgb(var(--sweep) / 0) 100%);
+  transform: translateY(100%);
+}
+/* Di tema terang pita putih di atas --card yang nyaris putih tidak terlihat
+   sama sekali; yang membaca sebagai sapuan di sana justru bayangan. */
+:root[data-theme="light"] .jr-block::after { --sweep: 0 0 0; }
+.jr-block.is-visible::after {
+  animation: jr-sweep .7s cubic-bezier(.22, .61, .36, 1) var(--reveal-delay, 0ms) both;
+}
+/* Berakhir DI ATAS kotaknya, bukan kembali ke bawah: `both` menahan keadaan
+   akhir, dan -100% menaruhnya di luar area yang terpotong overflow. */
+@keyframes jr-sweep {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(-100%); }
+}
+/* Ikon + judul sebaris. Ukuran & warnanya menyalin .comp-grid svg: garis tipis
+   --muted, jadi ikonnya menandai kolomnya tanpa berteriak lebih keras dari
+   judulnya sendiri. */
+/* Garis pemisah judul dan butirnya. --hairline, warna garis yang sama dengan
+   seluruh halaman ini, dan padding-bottom yang memberi judulnya jarak dari
+   garis itu — tanpa padding, garisnya menempel di dasar huruf. Membentang
+   selebar kotak isinya (.jr-block sudah punya padding sendiri). */
+.jr-block__h {
+  display: flex; align-items: center; gap: 8px; color: var(--ink); font-size: 15px;
+  padding-bottom: 10px; border-bottom: 1px solid var(--hairline);
+}
+.jr-block__h svg { width: 16px; height: 16px; flex: none; stroke-width: 1.5; color: var(--muted); }
+/* Tangan + panah: dua ikon lucide yang ditumpuk (lihat HandUp di
+   experience-journey.tsx). Kotaknya 20px, bukan 16px seperti ikon tunggal:
+   dua gambar butuh tempat.
+
+   Panahnya di TENGAH ATAS, tidak lagi di sudut kanan seperti gear yang dulu:
+   HandHelping merentang mendatar dan pucuk tintanya baru mulai di sekitar
+   sepertiga atas viewBox — pita di atasnya kosong selebar ikon, dan panah
+   yang menunjuk ke atas memang harus segaris dengan tangannya. Tingginya
+   dipilih supaya ekor panah berhenti sekitar sepiksel di atas tinta tangan. */
+.jr-ico-stack { position: relative; display: block; width: 20px; height: 20px; flex: none; }
+.jr-block__h .jr-ico-stack svg { position: absolute; }
+.jr-block__h .jr-ico-stack svg:first-child {
+  width: 9px; height: 9px; top: -2px; left: 50%; margin-left: -4.5px;
+}
+.jr-block__h .jr-ico-stack svg:last-child { width: 17px; height: 17px; bottom: 0; left: 1.5px; }
 .jr-block__list { margin-top: 12px; padding: 0; list-style: none; }
 .jr-block__list li {
   position: relative; padding-left: 16px; margin-top: 9px;
@@ -1069,9 +1503,20 @@ main > section + section { border-top: 1px solid var(--hairline); }
 }
 .jr-block__list li::before {
   content: ""; position: absolute; left: 0; top: .62em;
-  width: 5px; height: 5px; background: var(--muted);
+  width: 5px; height: 5px; border-radius: 50%; background: var(--muted);
 }
 .jr-block__list strong { font-weight: 500; color: var(--ink); }
+/* Kolom Latar Proyek: ikon menggantikan kotak persegi sebagai butirnya —
+   segitiga peringatan untuk butir masalah, kunci pas untuk butir tindakan
+   (mana yang mana ditentukan di experience-journey.tsx, bukan di sini).
+   Ikonnya sewarna teks butirnya, bukan merah: yang ditandai watak butirnya,
+   dan satu kolom penuh merah membaca seperti galat halaman. */
+.jr-block__list--ico li { padding-left: 26px; }
+.jr-block__list--ico li::before { content: none; }
+.jr-block__list--ico svg {
+  position: absolute; left: 0; top: .42em;
+  width: 16px; height: 16px; stroke-width: 1.5; color: var(--muted);
+}
 
 /* ── Masuknya panel ──
    animation-timeline: view() — CSS murni, tanpa observer dan tanpa scroll
@@ -1093,7 +1538,28 @@ main > section + section { border-top: 1px solid var(--hairline); }
   from { transform: scaleY(0); }
   to   { transform: scaleY(1); }
 }
+/* Panggung pembuka tiap bab masuk miring 30° berporos sudut kiri-bawah, lalu
+   menegak sambil digulir — bab baru terbaca seperti kartu yang dijatuhkan ke
+   tempatnya, di atas ekor bab sebelumnya.
+
+   Mekanismenya sama dengan .jr-fx di bawah: animation-timeline: view(), CSS
+   murni. BUKAN GSAP ScrollTrigger seperti komponen aslinya — <body> di sini
+   ber-zoom .8, dan matematika gulir JS salah hitung di bawah zoom itu; itu
+   persis alasan useScroll dilepas dari scroll-choreography.tsx. Timeline CSS
+   dihitung peramban dari tata letaknya sendiri, jadi ia kebal zoom.
+
+   entry 0% -> entry 75%: mulai saat tepi atas panggung menyentuh dasar layar,
+   tegak saat ia sudah tiga perempat masuk. Itu jangkauan yang sama dengan
+   `top bottom` -> `top 25%` milik ScrollTrigger di komponen aslinya.
+
+   Ganti 30deg kalau terlalu dramatis — cuma angka ini yang mengatur sudutnya. */
+@keyframes jr-swing { from { transform: rotate(30deg); } }
 @media (prefers-reduced-motion: no-preference) {
+  .jr-intro {
+    animation: jr-swing linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 75%;
+  }
   .jr-fx {
     animation: jr-rise linear both;
     animation-timeline: view();
@@ -1132,6 +1598,103 @@ main > section + section { border-top: 1px solid var(--hairline); }
      layar 320px dan halamannya bisa digeser mendatar. */
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
 }
+
+/* ═══ KOTAK SERTIFIKAT ═══
+   SATU panel bersambung: potret sertifikat di atas, dokumentasi pelatihannya
+   di bawah, satu latar yang sama menaungi keduanya. Latarnya milik .certbox —
+   dulu milik .certbox__doc, dan sertifikat serta kartunya berdiri sebagai dua
+   kotak terpisah berjarak 12px.
+
+   Sasaran kliknya tetap DUA, dan itu tidak boleh ikut lebur: yang atas keluar
+   ke halaman verifikasi (tab baru), yang bawah membuka galeri di halaman ini.
+   Yang dulu membedakan keduanya bingkai masing-masing; sekarang garis pemisah
+   di antaranya, label berpanah di bagian sertifikat, dan sorot yang berbeda —
+   latar yang menyala untuk yang ke luar, cincin untuk kartunya.
+
+   align-content: start supaya kotak yang kartunya lebih pendek tidak
+   meregangkan jarak sertifikat-ke-kartu di dalamnya: yang boleh berbeda tinggi
+   antar-sel itu sertifikatnya (rasio tiap dokumen berbeda tipis), bukan
+   jaraknya. */
+.certbox {
+  display: grid; gap: 10px; align-content: start; padding: 10px;
+  background: var(--elevated);
+  border: 1px solid var(--hairline); border-radius: 12px; corner-shape: var(--corner);
+}
+/* Kelima sertifikat SEBARIS, bukan empat lalu satu menggantung sendirian di
+   baris kedua: auto-fill 300px milik .pgrid cuma muat empat di .shell selebar
+   1344px. Dipatok lima kolom — semuanya selebar sama, termasuk yang
+   sertifikatnya mendatar: sempat dicoba memberinya dua kolom supaya
+   tergambar sebesar aslinya, dan yang didapat satu kotak yang menonjol
+   sendiri dari barisnya.
+
+   Cuma di layar yang memang selebar itu: 1280px viewport asli = 1600px ruang
+   tata letak setelah zoom .8 (lihat blok ZOOM HALAMAN), jadi tiap kolom masih
+   ~252px. Di bawahnya auto-fill milik .pgrid lagi yang memutuskan — lima kolom
+   di layar sempit bukan "sebaris", melainkan lima kartu yang tidak terbaca. */
+@media (min-width: 1280px) {
+  #cert-grid { grid-template-columns: repeat(5, 1fr); }
+  /* Lebih besar tanpa mengurangi jumlah kolomnya: kisinya keluar dari .shell
+     ke kiri dan kanan. Lebar kolom satu-satunya cara membesarkan
+     sertifikatnya — potretnya sudah selebar kolom dikurangi padding, jadi
+     menyetel rasio atau padding tidak menambah apa pun.
+
+     Keluarnya DIHITUNG, bukan satu angka mati, karena ruang yang tersedia
+     berubah menurut lebar layar: .shell dipatok 1440px sementara ruang tata
+     letak = 100 x var(--vw) (100vw dibagi zoom .8, lihat blok ZOOM HALAMAN).
+     Selisih keduanya dibagi dua = ruang kosong tiap sisi; 24px disisakan
+     sebagai jarak ke tepi, dan clamp menahannya di antara 0 (layar yang
+     .shell-nya belum mentok — tidak ada yang bisa dipinjam) dan -120px (di
+     layar sangat lebar, kisinya berhenti melebar alih-alih ikut menganga).
+
+     Angka mati sempat dipakai dan salah dua kali: -100px di balik
+     @media (min-width: 1440px) tidak pernah menyala, karena viewport 1440px
+     yang sesungguhnya menyisakan ~1422px setelah bilah gulir. Rumus ini tidak
+     punya ambang untuk dilewatkan. Pagarnya tetap diuji: check-gallery.mjs
+     memastikan halaman tidak bisa digulir mendatar. */
+  #cert-grid { margin-inline: clamp(-120px, calc((1440px - 100 * var(--vw)) / 2 + 24px), 0px); }
+}
+/* Garis pemisah, bukan bingkai: yang memisahkan sertifikat dari dokumentasinya
+   sekarang satu garis di dalam panel yang sama. */
+.certbox__doc {
+  display: block; padding-bottom: 10px;
+  border-bottom: 1px solid var(--hairline);
+  transition: background-color .2s;
+}
+/* Sorotnya latar yang menyala, BUKAN naik seperti .pcard: di dalam panel
+   bersama, yang bergerak naik menabrak isi di sebelahnya alih-alih terbaca
+   sebagai kartu yang terangkat. */
+.certbox__doc:hover { background: var(--carbon); }
+/* offset negatif supaya cincin fokusnya jatuh DI DALAM panel: dengan offset
+   positif ia menimpa tepi panel dan terbaca seperti panelnya yang terpilih,
+   bukan tautan sertifikatnya. */
+.certbox__doc:focus-visible { outline: 2px solid var(--m-blue-dark); outline-offset: -2px; }
+/* Kartunya menyesuaikan diri pada panel: sudutnya ikut sudut dalam panel
+   (12px dikurangi padding + border), dan sorotnya cincin di dalam — angkatan
+   6px bawaan .pcard akan menariknya menembus garis pemisah di atasnya. */
+.certbox .pcard { border-radius: 8px; }
+.certbox .pcard:hover { transform: none; box-shadow: inset 0 0 0 2px var(--ink); }
+/* Rasio dipatok, bukan mengikuti tinggi asli tiap potret: tinggi aslinya
+   meleset antar-sertifikat — yang empat dipotret lalu di-trim tepat di tepi
+   isinya (isi tiap sertifikat beda beberapa baris teks), dan yang kelima
+   MENDATAR karena datang dari PDF berformat lanskap. Tanpa rasio yang sama,
+   label dan kartu dokumentasi di bawahnya berhenti sebaris.
+
+   4/5 = rasio keempat potret Kemnaker, jadi yang mayoritas hampir tidak
+   menyisakan pita sama sekali; yang mendatar duduk di tengah dengan pita
+   gelap seukuran matras bingkai. Sempat dicoba sebaliknya — rasio apa adanya
+   dan kotak dua kolom untuk yang mendatar — lalu dikembalikan ke sini:
+   sertifikat yang membesar sendiri memecah barisnya. contain, bukan cover:
+   sertifikat yang terpotong tidak ada gunanya. */
+.certbox__doc img {
+  display: block; width: 100%; height: auto;
+  aspect-ratio: 4 / 5; object-fit: contain;
+}
+.certbox__go {
+  display: block; margin-top: 10px; text-align: center;
+  font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
+  color: var(--body); transition: color .2s;
+}
+.certbox__doc:hover .certbox__go { color: var(--ink); }
 
 .pcard {
   position: relative; display: block; overflow: hidden; cursor: pointer;
@@ -1216,9 +1779,9 @@ main > section + section { border-top: 1px solid var(--hairline); }
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
 }
 /* Dua baris, dan angka itu diukur bukan dikira. Instansi terpanjang di sini
-   77 huruf ("PT Aneka Tambang Tbk (ANTAM) UBPE Logam Mulia — Intern,
+   77 huruf ("PT Aneka Tambang Tbk (ANTAM) UBPP Logam Mulia — Intern,
    Electrical Maintenance") = 245px pada 9px, sementara kotak captionnya 191px
-   di kartu desktop 218px. Satu baris memotongnya di "…UBPE Lo…" — nama
+   di kartu desktop 218px. Satu baris memotongnya di "…UBPP Lo…" — nama
    instansinya lolos, tapi PERANNYA hilang, dan justru peran itu yang
    menambah keterangan di luar judulnya. 245/191 = 1,28 baris, jadi dua baris
    memuat seluruhnya dengan sisa. Ongkosnya 11px caption (25% -> 32% tinggi
@@ -1539,7 +2102,39 @@ a.chan:hover .chan__v { color: var(--ink); }
   /* top tetap 64px seperti desktop: .topnav memakai h-16 di semua lebar, dan
      zoom body yang 1 di sini tidak mengubah hubungan keduanya. */
   .jr-chapter { margin-top: 48px; }
-  .jr-h { margin-top: 44px; font-size: 15px; letter-spacing: 1.6px; }
+  /* 13px, bukan 15px, dan itu yang membuat susunan sebaris di bawah muat:
+     di 15px/1,6px judul "Key Activities & Responsibilities" terukur 325px,
+     sementara kolom yang tersisa di sebelah logo cuma ~281px di layar 390px —
+     ia akan patah dua baris. Versi Indonesianya lebih pendek (31 huruf lawan
+     33), jadi yang Inggris ini memang kasus terberatnya. */
+  .jr-h { font-size: 13px; letter-spacing: 1.2px; }
+  /* Di HP judul dan logo duduk SEBARIS, bukan bertumpuk seperti blok 800px di
+     atas: judul di sumbu tengah layar, logo perusahaan menempel di pojok
+     kanan tepat di bawah garis pemisah bagian. Barisnya jadi jauh lebih
+     pendek — susunan bertumpuk memakan 32px logo + 10px gap DI BAWAH judul
+     (baris Proyek Akhir 84px), yang ini 40px.
+
+     Logonya kembali ABSOLUT seperti di desktop, dan itu satu-satunya cara
+     judulnya tetap di tengah LAYAR: begitu ia jadi anak kisi, ia memakan
+     kolomnya sendiri di kanan dan judul yang tersisa terdorong ~30px ke kiri
+     dari sumbu tengah. Absolut, kolom kisinya tetap satu dan judulnya duduk
+     di tengah kotak isi barisnya.
+
+     padding-inline 64px yang menjaga keduanya tidak bertindih, dan simetris
+     supaya sumbu tengahnya tidak ikut bergeser — kanan untuk logonya (paling
+     lebar 51px, marka ANTAM, dan max-width 56px di bawah yang mengunci itu),
+     kiri semata-mata sebagai pasangannya. Judul terpanjang, "Key Activities &
+     Responsibilities", jadi dua baris di lebar 218px yang tersisa; itu memang
+     yang dikehendaki, bukan efek samping.
+
+     margin-block: auto di antara top/bottom menaruh logo di sumbu vertikal
+     judulnya — ikut turun sendiri saat judulnya dua baris, jadi keduanya
+     tetap sejajar tanpa angka kedua yang harus dijaga. */
+  .jr-hrow { margin-top: 44px; --hrow-pad: 22px; padding-inline: 64px; }
+  .jr-hlogo {
+    position: absolute; top: var(--hrow-pad); bottom: 0; margin-block: auto;
+    right: 0; height: 18px; max-width: 56px;
+  }
 
   /* Satu kolom: menyejajarkan baris antar-kartu tidak lagi berarti, dan
      subgrid di sini malah menahan tiap kartu ke tinggi baris terpanjang. */
@@ -1555,16 +2150,120 @@ a.chan:hover .chan__v { color: var(--ink); }
   /* Di dua kolom ubin melebar itu SENDIRIAN di barisnya — tidak ada tetangga
      yang meregangkannya, jadi rasionya dikembalikan. */
   .jr-act:last-child:nth-child(3n + 2) { aspect-ratio: 4 / 3; }
-  .jr-act__cap { font-size: 11px; padding: 22px 10px 9px; }
+  /* Diperketat dari nilai laptop, dan itu perlu justru KARENA pelatnya kini
+     dibatasi calc(100% - 24px): di ubin 166px sisa 24px itu memangkas hampir
+     seperlima lebar teksnya, dan nama 54 huruf yang tadinya 3 baris jadi 4
+     (terukur: 73px, 26% tinggi ubin). Insetnya dikecilkan ke 12px dan
+     hurufnya dirapatkan supaya kembali ke 3 baris.
 
-  /* Satu kolom: tidak ada kolom teks di sebelahnya yang tingginya perlu
-     diikuti, jadi fotonya kembali setinggi aslinya. */
-  .jr-final { grid-template-columns: 1fr; gap: 18px; }
-  .jr-final__shots { grid-template-rows: none; }
-  .jr-final__shots img { height: auto; }
+     ponytail: di ubin selebar 166px, nama 54 huruf memang tidak akan pernah
+     jadi satu-dua baris pada ukuran yang masih terbaca — yang benar-benar
+     menyelesaikannya memendekkan nama berkasnya. */
+  .jr-act__cap {
+    font-size: 10px; letter-spacing: .4px; padding: 6px 8px;
+    max-width: calc(100% - 12px); line-height: 1.3;
+    /* Pasangan yang sama seperti di layar lebar, dihitung ulang dengan metrik
+       HP: 2.6em = dua baris pada line-height 1.3, 12px = padding atas+bawah,
+       margin bawahnya setengahnya. Judul 54 huruf di ubin 166px tetap butuh
+       tiga baris dan melewati patokan ini — di sana batasnya jatuh sedikit di
+       atas tengah pelat. Ubin HP sendiri sudah tidak sama tinggi (zigzag
+       memanjangkannya menyamai blok teks pasangannya), jadi memaksakan tiga
+       baris untuk semua ubin cuma menambah pelat tinggi di judul pendek. */
+    min-height: calc(2.6em + 12px);
+    margin-bottom: -6px;
+  }
+  /* --pop-from .5, bukan .28 bawaan: di HP ubinnya 166px dan popupnya
+     84vw = 328px, jadi 166/328 = 0,51. Angka mulainya harus seukuran ubin di
+     layar itu, dan perbandingannya berbeda dari desktop. */
+  .jr-zoom.is-open img { --pop-from: .5; }
+
+  /* ── Proyek Akhir di HP: foto dan blok teksnya berselang-seling ──
+     Baris 1 foto kiri, baris 2 foto kanan, baris 3 foto kiri lagi. KHUSUS HP:
+     di layar lebar susunannya tetap dua hamparan bertumpuk (tiga foto sebaris,
+     lalu tiga kolom teks) — zigzag pernah dicoba di sana dan dibatalkan.
+
+     Tiga kolom teks selebar sepertiga layar HP tinggal ~110px dan tiap
+     butirnya patah jadi lima baris, jadi susunan desktopnya memang tidak bisa
+     dipakai di sini; yang menggantikannya bukan tumpukan satu kolom melainkan
+     pasangan foto-teks, supaya tiap blok punya gambar di sebelahnya.
+
+     `display: contents` pada kedua wadah: kotak .jr-acts dan .jr-final__cols
+     lenyap dari tata letak, dan foto serta blok teks jadi item kisi yang sama
+     di .jr-final__grid. Tanpa itu keduanya dua kotak terpisah dan tidak ada
+     `order` yang bisa menyelang-selingnya. mt-8 milik .jr-final__cols ikut
+     lenyap bersama kotaknya — jaraknya sekarang gap kisi ini. */
+  .jr-final__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .jr-final__grid > .jr-acts,
+  .jr-final__grid > .jr-final__cols { display: contents; }
+  /* Bab tanpa Proyek Akhir (ICON+): ketiga blok berdiri tanpa foto, jadi tidak
+     ada yang bisa diselang-seling — dan tiga kolom selebar sepertiga layar HP
+     adalah persis susunan yang alinea di atas menolaknya. Ditumpuk satu kolom. */
+  .jr-final__cols--solo { grid-template-columns: 1fr; }
+
+  /* Urutan barunya: foto1, blok1, blok2, foto2, foto3, blok3. Dua item per
+     baris, jadi fotonya jatuh di kiri-kanan-kiri. Ditulis satu per satu, bukan
+     dengan rumus nth-child: cuma ada tiga foto dan tiga blok, dan rumus untuk
+     enam item tetap yang harus dibaca ulang tiap kali cuma menyembunyikan
+     urutannya. */
+  .jr-final__grid > .jr-acts > .jr-act:nth-child(1) { order: 1; }
+  .jr-final__grid > .jr-final__cols > .jr-block:nth-child(1) { order: 2; }
+  .jr-final__grid > .jr-final__cols > .jr-block:nth-child(2) { order: 3; }
+  .jr-final__grid > .jr-acts > .jr-act:nth-child(2) { order: 4; }
+  .jr-final__grid > .jr-acts > .jr-act:nth-child(3) { order: 5; }
+  .jr-final__grid > .jr-final__cols > .jr-block:nth-child(3) { order: 6; }
+
+  /* Rasio 4:3 DILEPAS di sini, dan itu syaratnya "seukuran fotonya" bisa
+     ditepati sama sekali: satu butir Kontribusi saja sudah lebih tinggi dari
+     125px (166px pada 4:3), jadi kalau fotonya yang memaksa tinggi baris,
+     teksnya yang tumpah. Dibalik: teks yang menentukan tinggi baris, dan
+     fotonya meregang menyamainya (align-items: stretch bawaan kisi). Hasilnya
+     kedua kotak sebaris selalu sama tinggi.
+
+     Baris kedua membatalkan .jr-act:last-child:nth-child(3n + 2) — pada AMX
+     yang dua foto, aturan itu melebarkan foto kedua jadi dua kolom dan
+     selang-selingnya bubar (terukur: foto 342px, turun ke barisnya sendiri).
+     Selektornya harus MENGULANG kedua pseudo-kelas itu: `.jr-final__grid
+     .jr-act` cuma 0-2-0 dan kalah dari 0-3-0 milik aturan aslinya. */
+  .jr-final__grid .jr-act { aspect-ratio: auto; height: 100%; }
+  .jr-final__grid .jr-act:last-child:nth-child(3n + 2) {
+    grid-column: auto; aspect-ratio: auto;
+  }
+  /* AMX cuma dua foto untuk tiga blok: yang ketiga tidak punya pasangan, dan
+     tanpa baris ini ia berdiri setengah lebar dengan sel kosong di sebelahnya. */
+  .jr-final__grid--2 > .jr-final__cols > .jr-block:nth-child(3) { grid-column: 1 / -1; }
+
+  /* Diperkecil dari skala HP yang biasa (14px padding, 13px butir): di kolom
+     ~166px angka itu membuat tiap butir jadi menara. */
   .jr-final__title { font-size: 20px; }
-  .jr-block { padding: 14px; }
-  .jr-block__list li { font-size: 13px; }
+  .jr-block { padding: 10px; }
+  /* Giliran naiknya dinolkan di HP. Di sini ketiga kotak ada di baris kisi
+     yang berbeda (zigzag), jadi masing-masing sudah masuk layar pada gulir
+     yang berbeda — jedanya sudah datang dari gulirnya sendiri, dan menunggu
+     1,3 detik lagi setelah kotaknya jelas terlihat cuma terbaca sebagai lag.
+
+     transition-delay yang ditimpa, BUKAN --reveal-delay: observer di
+     portfolio-runtime.js menulis variabel itu sebagai gaya inline, dan tidak
+     ada aturan CSS yang bisa mengalahkannya tanpa !important. */
+  .jr-block { transition-delay: 0s; }
+  /* Sapuannya ikut dinolkan, kalau tidak ia berjalan 1,3 detik setelah
+     kotaknya — di sini animation-delay yang ditimpa, karena sapuan itu
+     animation dan bukan transition. */
+  .jr-block.is-visible::after { animation-delay: 0s; }
+  /* Jarak judul ke garisnya ikut mengecil bersama tipografinya; 10px di kotak
+     yang tingginya cuma ~200px terbaca sebagai celah, bukan pemisah. */
+  .jr-block__h { font-size: 11px; gap: 6px; padding-bottom: 6px; }
+  .jr-block__h svg { width: 13px; height: 13px; }
+  .jr-block__list { margin-top: 8px; }
+  .jr-block__list li { font-size: 10px; line-height: 1.45; margin-top: 7px; }
+  .jr-block__list--ico li { padding-left: 17px; }
+  .jr-block__list--ico svg { width: 12px; height: 12px; }
+
+  /* Ketiga kepala kolom About — Core Competencies, Education, Bahasa —
+     ditengahkan. Di kolom selebar layar HP isinya sudah simetris (comp-grid
+     dua kolom, edu-list dua kartu yang isinya juga tengah), dan label rata
+     kiri di atasnya terbaca seperti tersisa dari tata letak lain. `h3.label`
+     supaya cuma ketiganya yang kena: .label lain di #about semuanya <p>. */
+  #about h3.label { text-align: center; }
 
   /* Dua kolom: dua belas kompetensi jadi enam baris, bukan dua belas. */
   .comp-grid { grid-template-columns: 1fr 1fr; column-gap: 12px; }
@@ -1638,34 +2337,22 @@ a.chan:hover .chan__v { color: var(--ink); }
      menyedot perhatian dari isinya. */
   .quote .title-md { font-size: 15px; line-height: 1.45; }
 
+  /* Cuma JUDULNYA yang ditengahkan; isi tiap blok tetap rata kiri. h3.label
+     supaya yang kena persis keempat judul itu — .label lain di #skills bukan
+     <h3>. Pola yang sama dipakai #about h3.label di atas. */
+  #skills h3.label { text-align: center; }
+  /* Chip Bahasa Pemrograman diregangkan mengisi barisnya. `1 1 auto`, BUKAN
+     `1` (= 1 1 0%): dengan basis 0 ketiganya jadi sama lebar ~108px, dan
+     "Ladder Diagram" yang butuh ~120px patah dua baris. Dengan basis auto
+     mereka tumbuh dari lebar aslinya, jadi yang terpanjang tetap terpanjang
+     dan tidak ada yang patah. Tiap baris flex membagi sisanya sendiri, jadi
+     ini tetap benar kalau nanti chipnya bertambah dan barisnya jadi dua. */
+  .lang-chips > .chip { flex: 1 1 auto; }
+
   /* Chip dirapatkan supaya dua-tiga muat sebaris, bukan satu. */
   .chip { padding: 7px 10px; font-size: 12px; gap: 7px; }
   .chip img, .chip svg { width: 16px; height: 16px; }
   .chip .chip__flag { width: 24px; height: 12px; }
-
-  /* ── Filter kategori: satu baris yang digeser ──
-     Lima tab berjumlah ~620px; di 342px flex-wrap memecahnya jadi tiga baris
-     tumpukan yang terbaca seperti daftar, bukan deret pilihan. nowrap +
-     overflow-x mengembalikannya jadi satu deret yang diusap ke kanan.
-     Margin negatif membawanya sampai ke tepi layar — itu yang memberi tahu
-     bahwa deretnya masih berlanjut; kalau berhenti di padding .shell, potongan
-     terakhirnya terbaca seperti tab yang terpotong.
-     overflow-y: hidden karena satu sumbu `auto` membuat sumbu lain ikut jadi
-     `auto`: tanpa ini margin -1px milik .tab menghasilkan bilah gulir tegak
-     setinggi satu piksel.
-
-     Tanpa scroll-snap, dan itu hasil pengukuran bukan selera: dengan
-     snap-align: start peramban menyejajarkan tab pertama ke tepi port
-     gulirnya dan mengabaikan padding-inline — begitu halaman dibuka
-     scrollLeft langsung jadi 24, "ALL" terpotong separuh di tepi kiri layar.
-     Deret lima tab juga tidak butuh snap: tidak ada halaman untuk dilompati. */
-  .tabs {
-    flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden;
-    gap: 20px; scrollbar-width: none;
-    margin-inline: -24px; padding-inline: 24px;
-  }
-  .tabs::-webkit-scrollbar { display: none; }
-  .tab { flex: none; font-size: 12px; letter-spacing: 1px; }
 
   /* ── Kisi proyek dua kolom ──
      auto-fill minmax(min(100%,300px)) selalu jatuh ke satu kolom di 342px, dan
@@ -1865,10 +2552,29 @@ a.chan:hover .chan__v { color: var(--ink); }
 }
 .g-close:hover { background: var(--ink); color: var(--canvas); }
 
+/* DUA bentuk, dan yang memilih datanya sendiri (descHTML() di
+   portfolio-runtime.js): daftar butir untuk proyek teknis — satu kalimat satu
+   butir, sama seperti di CV — atau paragraf untuk teks naratif. Karena itu
+   pembungkusnya <div> polos, dan gaya daftarnya menempel di <ul> di dalamnya.
+
+   Titik butirnya digambar sendiri lewat ::before, bukan list-style: ukurannya
+   bisa diatur dan warnanya ikut aksen halaman, sementara ::marker masih tidak
+   seragam di semua peramban. list-style/margin/padding ditulis eksplisit meski
+   preflight Tailwind sudah meresetnya — berkas ini yang memutuskan bentuk
+   daftarnya, bukan urutan layer-nya. */
 .g-desc {
   font-size: 15px; font-weight: 300; line-height: 1.6; color: var(--body);
   padding: 0 24px 24px; border-bottom: 1px solid var(--hairline);
 }
+.g-desc ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.g-desc li { position: relative; padding-left: 18px; }
+.g-desc li::before {
+  content: ""; position: absolute; left: 2px; top: .62em;
+  width: 5px; height: 5px; border-radius: 50%; background: var(--m-blue);
+}
+/* Jarak antar-paragraf, bukan margin di tiap <p>: yang pertama tidak boleh
+   mendorong dirinya turun dari baris instansi di atasnya. */
+.g-desc p + p { margin-top: 12px; }
 
 /* Baris tautan sertifikat. :empty, bukan hidden dari JS: proyek non-sertifikasi
    tidak punya tautan sama sekali, dan barisnya harus hilang berikut garisnya. */
@@ -2080,15 +2786,19 @@ a.chan:hover .chan__v { color: var(--ink); }
   .g-nav.glass:hover { transform: translateY(-50%); }
   html { scroll-behavior: auto; }
   .reveal { opacity: 1; transform: none; transition: none; }
+  /* Keadaan diamnya translateY(100%) — di luar kotak yang terpotong overflow,
+     jadi tanpa animasi ia sekadar tidak pernah terlihat. */
+  .jr-block::after { animation: none; }
   .split .w > span { transition: none; transform: none; opacity: 1; }
+  .jr-hlogo { transition: none; transform: none; opacity: 1; }
   .t-check, .t-check path { animation: none; }
   .g-img.is-front { animation: none; }
   .g-img, .chip, .btn { transition: none; }
   /* Cincinnya tetap, angkatnya tidak: penanda sorot masih ada tanpa gerakan. */
   .pcard { transition: none; }
   .pcard:hover, .pcard:focus-visible { transform: none; }
-  .jr-act img { transition: none; }
-  .jr-act:hover img { transform: none; }
+  .jr-zoom img { transition: none; }
+  .jr-zoom:hover img { transform: none; }
   /* Tanpa animasi, .jr-rail::after tidak pernah digambar — dan scaleY(0)
      bawaannya akan menyembunyikan rel tintanya selamanya. */
   .jr-rail::after { transform: none; }

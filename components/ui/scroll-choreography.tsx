@@ -121,14 +121,26 @@ export function ScrollChoreography({
     return () => mq.removeEventListener("change", baca);
   }, []);
 
-  /* Di HP ubinnya lebih tinggi DAN lebih lebar: fotonya tegak, dan 36x24 di
-     layar 390px menyisakan pita yang terlalu pendek untuk isinya. Jaraknya
-     ikut digeser keluar — tanpa itu 44vw pada pusat +-20vw saling bertindih
-     4vw di tengah. Hasilnya: mendatar -46..-2 dan +2..+46, tegak -34..-2 dan
-     +2..+34; celah 4 dan tepinya tidak tersentuh. */
+  /* Satu invarian mengikat keempat angka ini: offset = ukuran/2 + 2. Itu yang
+     menaruh celah 4 di tengah tanpa ubin yang bertindih. Ubah ukurannya,
+     hitung ulang offsetnya — kalau tidak, dua ubin saling menimpa di tengah.
+
+     Desktop 36x36: sebelumnya 24vh, dan pada 1440x900 ubinnya 518x216 —
+     rasio 2,4, pita yang terlalu pipih untuk foto Asprak yang TEGAK (0,75);
+     yang tampak cuma 31% tingginya. Di 36vh ubinnya 518x324 (rasio 1,6) dan
+     yang tampak jadi ~47%.
+
+     36vh, bukan lebih: jejak tegaknya 2*(20+18) = 76vh, jadi masih ada 12vh
+     di atas dan di bawah. vw dan vh BUKAN satuan yang sama panjang — 36x36
+     tidak menghasilkan bujur sangkar; untuk rasio 1,0 di layar 16:9 tingginya
+     harus 57,6vh, dan jejaknya 119vh: tidak muat.
+
+     HP 44x32: ubinnya lebih tinggi DAN lebih lebar dari desktop, karena di
+     layar 390px ubin desktop menyisakan pita yang terlalu pendek untuk isinya.
+     Jejaknya mendatar -46..-2 dan +2..+46, tegak -34..-2 dan +2..+34. */
   const { w: boxW, h: boxH, x: offX, y: offY } = phone
     ? { w: "44vw", h: "32vh", x: "24vw", y: "18vh" }
-    : { w: "36vw", h: "24vh", x: "20vw", y: "14vh" };
+    : { w: "36vw", h: "36vh", x: "20vw", y: "20vh" };
 
   // Default positions relative to center
   const xLeft = `-${offX}`;

@@ -239,7 +239,13 @@ splitChars();
   const canvas = document.getElementById('aurora');
   if (!canvas) return;
   const gl = canvas.getContext('webgl', { alpha: true, premultipliedAlpha: false, antialias: false });
-  if (!gl) return;                    // tanpa WebGL: kanvas kosong, halaman tetap utuh
+  /* Tanpa WebGL kanvasnya tidak pernah tergambar sama sekali — dan karena ini
+     latar hero, yang tersisa bidang kosong tanpa satu pun tanda ada yang
+     gagal. Kelasnya memasang pita gradien CSS berwarna sama (app/portfolio.css)
+     sebagai gantinya: diam, tidak bergerak, tapi hero-nya tidak jadi polos.
+     Kartu lanyard punya cadangannya sendiri di lanyard-mount.tsx — sebabnya
+     satu dan sama: WebGL tidak tersedia. */
+  if (!gl) return void canvas.classList.add('is-flat');
 
   /* Prop komponen aslinya. Warnanya diambil dari palet M di app/portfolio.css:
      default #f7f7f7 + #e100ff (magenta) sama sekali di luar template ini. */
@@ -577,13 +583,10 @@ if (!reduced && matchMedia('(pointer: fine)').matches) {
 /* Categories carry no color of their own — the M tricolor is brand-identity
    only, so cards share one chrome and differ by label.
 
-   `all` bukan kategori proyek: tidak ada satu pun entri PROJECTS yang memakai
-   `cat: 'all'`, dan renderGrid memperlakukannya sebagai "jangan saring".
-   Tempatnya di sini supaya ia ikut dua hal yang sudah berjalan dari objek ini —
-   urutan tab (renderFilters memetakan Object.keys) dan tab pertama yang aktif
-   saat halaman dibuka (activeFilter) — tanpa satu pun cabang baru di keduanya.
-   Konsekuensinya cuma satu: catLabel('all') ikut terdefinisi, dan itu memang
-   yang dipakai tabnya. */
+   Labelnya dipakai di dua tempat: baris kategori di kartu dan kepala galeri
+   (catLabel). Judul seksinya sendiri BUKAN dari sini — sejak tiap kategori
+   berdiri sebagai seksi tersendiri, judulnya ditulis dwibahasa di
+   app/page.tsx. Kunci `all` ikut hilang bersama bilah filternya. */
 /* Tautan luar per kategori: [kunci label di UI, alamatnya]. Dipasang lewat
    openGallery, bukan disalin ke tiap entri PROJECTS — satu daftar yang sama
    untuk seluruh kategori, dan kalau alamatnya berubah cuma satu baris di
@@ -614,7 +617,6 @@ const LINK_ICON = {
 };
 
 const CATEGORIES = {
-  all:        { label: 'Semua' },
   industri:   { label: 'Experience' },
   akademik:   { label: 'Development Project' },
   sertifikasi:{ label: 'Sertifikasi' },
@@ -625,7 +627,7 @@ const PROJECTS = [
   {
     id: 'antam', cat: 'industri', isNew: true,
     title: 'Sistem Inventaris Gudang & Preventive Maintenance',
-    org: 'PT Aneka Tambang Tbk (ANTAM) UBPE Logam Mulia — Intern, Electrical Maintenance',
+    org: 'PT Aneka Tambang Tbk (ANTAM) UBPP Logam Mulia — Intern, Electrical Maintenance',
     period: 'Jul 2026 – Sekarang',
     desc: 'Mengembangkan sistem inventaris gudang berbasis Raspberry Pi untuk mendigitalkan transaksi inventaris, mendukung monitoring safety stock, dan memperbaiki perencanaan pengadaan material (penyelesaian proyek 70%). Mendigitalkan instruksi kerja Preventive Maintenance menjadi dokumentasi visual untuk 67 dari 107 mesin industri (63%), sehingga standardisasi perawatan dan pemahaman teknisi ikut naik. Menyusun KPI Control Board Pillar 1 untuk Maintenance Maturity Level Assessment (MMLA) dengan menstandarkan indikator kinerja di tingkat Bureau, Work Unit, dan Cost Center.',
     tags: ['Raspberry Pi', 'Preventive Maintenance', 'MMLA', 'PCB Design'],
@@ -638,8 +640,9 @@ const PROJECTS = [
       'Ensuring Normal Voltage and Current in Production Machinery Components.jpeg',
       'Performing Maintenance on the Pneumatic Components of Production Machinery.jpeg',
       'Vibration Check on Scrubber Motor for Work Instruction Documentation.jpeg',
-      'Wiring Diagram for the Electrical Maintenance Warehouse Inventory Data Collection Project.png',
-      'PCB Layout Result for the Inventory Data Collection System.jpeg',
+      'Inventory System Wiring Diagram.png',
+      'Verifying PCB Trace Connectivity.png',
+      'PCB Layout Result.jpeg',
       'System Placement Mapping.jpeg',
       'Meeting on Planning and Revising the MMLA Method.jpeg',
       "Training on the Implementation of the MMLA Method in the Company's Maintenance Department.jpeg",
@@ -663,8 +666,11 @@ const PROJECTS = [
       'Conducting Research and Adjustment of Drone Components for PCB Design.jpeg',
       'the PCB part of the power drone that supplies all voltage and current to the system and propeller.jpeg',
       'Measuring the Dimensions of a PCB and the Distance between Components.jpeg',
-      'Path when Routing PCB Power Parts.jpeg',
-      'Display for Function Efficient PCBs.jpeg',
+      'X-30L Drone System Wiring Diagram.png',
+      'Schematic PCB PDB (Power Distribution Board) Main.png',
+      'Schematic PCB PDB (Power Distribution Board) Auxiliary.png',
+      '3D PCB PDB (Power Distribution Board) Main.png',
+      '3D PCB PDB (Power Distribution Board) Auxiliary.png',
       'PCB Layout Result.jpeg',
       'AMX Electrical Team.jpeg',
     ],
@@ -690,7 +696,17 @@ const PROJECTS = [
     images: [
       'Report Creation and Data Recapitulation.jpg',   // pertama = sampul kartu
       'Internship Opening and Briefing.jpg',
+      // Alur survei, urut seperti mengerjakannya: penugasan dari tim kantor,
+      // koordinat titiknya, hitung port di lapangan, lalu verifikasi balik.
+      'Receive information from the office team regarding ODP locations that need to be surveyed.png',
+      'Waiting for ODP coordinates after identifying the location to be surveyed.png',
+      'Documenting and Counting Output Ports on ICONNET ODPs.png',
+      'Calculating the ODP port output utilized by users in the vicinity of a specified location or coordinate point.jpg',
+      'Verify with the relevant office team regarding the number of ports currently in use by nearby users at the specified ODP coordinates.png',
       'Preparing ODP Components.jpg',
+      'Preparing New ODPs for Installation at New Locations.jpg',
+      'Preparing the Splitter for a New ODP.jpg',
+      'Installing an adapter on a new ODP.jpg',
       'Organizing PT. ICON+ Event Activities.jpg',
       'Internship Documentation at PT ICON+ Makassar.jpg',
     ],
@@ -745,6 +761,13 @@ const PROJECTS = [
     desc: 'Mengembangkan rover robot berbasis ROS2 dengan mengintegrasikan Jetson Orin Nano, LiDAR, dan motor driver untuk navigasi robot. Mengonfigurasi ROS2 workspace, komunikasi SSH, dan mengembangkan kontrol motor berbasis Python. Mengimplementasikan visualisasi data LiDAR 360° menggunakan Foxglove untuk menampilkan hasil pemindaian lingkungan.',
     tags: ['ROS 2', 'LiDAR', 'Jetson Orin Nano', 'Foxglove', 'Python'],
     folder: 'Robotika Lanjut',
+    /* Sampul kartunya foto rakitan rover-nya, bukan foto pemeriksaan komponen
+       — lihat coverOf(). Berkasnya tetap di urutan aslinya di images: yang di
+       bawah urutan kerjanya (periksa komponen dulu, baru dirakit), dan itu
+       juga urutan galerinya saat dibuka. Foto pemeriksaan komponen itu yang
+       sekarang dipakai pita foto di atas seksi ini (CHOREO_PROJECTS di
+       app/page.tsx); keduanya bertukar tempat. */
+    cover: 'Robot Components for Remote Control Integration and LiDAR Sensor Detection.jpeg',
     images: [
       'Component Checking before Implementation and Control Using ROS 2.jpeg',
       'Robot Components for Remote Control Integration and LiDAR Sensor Detection.jpeg',
@@ -823,11 +846,14 @@ const PROJECTS = [
   },
   {
     id: 'p-cloud', cat: 'akademik',
-    title: 'Praktikum Komputasi Awan',
+    title: 'Sistem Pemantauan dan Kontrol Suhu Ruangan Cerdas Berbasis IoT dengan Firebase',
     org: 'Universitas Negeri Yogyakarta',
-    period: '2025',
-    desc: 'Praktikum komputasi awan mencakup provisioning layanan, kontainerisasi dengan Docker, serta integrasi layanan cloud sebagai backend untuk sistem embedded dan IoT.',
-    tags: ['Cloud', 'Docker', 'Linux', 'Firebase'],
+    period: 'Des 2025 – Des 2025',
+    desc: 'Proyek ini menjawab tidak efisiennya pengelolaan suhu ruangan secara manual dengan membangun sistem otomasi cerdas yang mampu menjaga kenyamanan lingkungan secara real-time. Pengembangannya mengintegrasikan sensor DHT11 untuk pembacaan suhu dan kelembapan, mikrokontroler ESP32 sebagai unit pemrosesan, dan Firebase Realtime Database untuk sinkronisasi data berbasis cloud. Keluarannya sistem yang berfungsi penuh: pengguna dapat memantau kondisi ruangan dan mengendalikan kipas DC secara otomatis maupun dari jarak jauh lewat dasbor MIT App Inventor. Sistem ini terpakai untuk implementasi smart home, optimasi suhu ruang server, dan menjaga kestabilan iklim rumah kaca demi efisiensi energi sekaligus kenyamanan pengguna.',
+    tags: ['ESP32', 'DHT11', 'Firebase', 'MIT App Inventor'],
+    /* Sampulnya grafik data, bukan foto pertama: yang paling mewakili proyek
+       ini pembacaan sensornya, bukan tampilan aplikasinya. */
+    cover: 'Data graph on Influxdb obtained from sensor readings.jpeg',
     folder: 'P. Komputasi Awan',
     images: [
       'Create simple applications for control systems.jpeg',
@@ -849,6 +875,9 @@ const PROJECTS = [
        LinkedIn adalah pembungkus /safety/go/ yang membawa token sesi
        (mt=, lipi=) milik satu sesi login — bukan sesuatu yang boleh terbit. */
     credential: 'https://skillhub.kemnaker.go.id/sertifikat/pelatihan/1d7ecb4f-36b2-4c32-be79-eb43601108a5',
+    /* Potret sertifikatnya, ditampilkan di atas kartu dan bertaut ke
+       `credential` di atas. Dibuat tools/cert-shots.mjs. */
+    certificate: 'Training Completion Certificate from Kemnaker SkillHub.png',
     folder: 'Sertifikasi K3 Listrik',
     images: [
       'Explanation of Material from the Supervisor.png',
@@ -864,8 +893,13 @@ const PROJECTS = [
     desc: 'Sertifikasi pembacaan dan identifikasi komponen elektronik pasif: pembacaan kode warna resistor, kapasitor, dan induktor, beserta fungsi dan formula keluaran masing-masing komponen.',
     tags: ['Komponen Pasif', 'Kemnaker RI', 'Sertifikat'],
     credential: 'https://skillhub.kemnaker.go.id/sertifikat/pelatihan/c56c6b17-13b3-4f8b-ac5a-6320bbd46ba1',
+    /* Potret sertifikatnya, ditampilkan di atas kartu dan bertaut ke
+       `credential` di atas. Dibuat tools/cert-shots.mjs. */
+    certificate: 'Training Completion Certificate from Kemnaker SkillHub.png',
     folder: 'BPVP AMBON',
-    images: ['Introduction to the Functions and Output Formulas of Each Component.png'],
+    images: [
+      'Introduction to the Functions and Output Formulas of Each Component.png',
+    ],
   },
   {
     id: 'bpvp-banyuwangi', cat: 'sertifikasi', isNew: true,
@@ -875,6 +909,9 @@ const PROJECTS = [
     desc: 'Short course penggunaan alat ukur mekanis dan elektrik: kalibrasi, prosedur pengukuran yang benar, pembacaan skala, serta analisis ketidakpastian hasil ukur.',
     tags: ['Alat Ukur', 'Kalibrasi', 'Kemnaker RI'],
     credential: 'https://skillhub.kemnaker.go.id/sertifikat/pelatihan/da5a85a0-6089-425c-b5fd-6a15765abc3a',
+    /* Potret sertifikatnya, ditampilkan di atas kartu dan bertaut ke
+       `credential` di atas. Dibuat tools/cert-shots.mjs. */
+    certificate: 'Training Completion Certificate from Kemnaker SkillHub.png',
     folder: 'BPVP Banyuwangi Short Course Menggunakan Alat Ukur Mekanis dan Elektrik',
     images: [
       'Learning How Micrometer Mechanical Measuring Instruments Work and Calculating Their Measurements (Case Study).png',
@@ -889,11 +926,38 @@ const PROJECTS = [
     desc: 'Pelatihan keselamatan dan kesehatan kerja: identifikasi risiko di tempat kerja, penggunaan APD, prosedur tanggap darurat, dan penerapan budaya kerja aman.',
     tags: ['K3 Umum', 'APD', 'Sertifikat'],
     credential: 'https://skillhub.kemnaker.go.id/sertifikat/pelatihan/47bbd3c5-f527-4d37-9139-d8443afdcb56',
+    /* Potret sertifikatnya, ditampilkan di atas kartu dan bertaut ke
+       `credential` di atas. Dibuat tools/cert-shots.mjs. */
+    certificate: 'Training Completion Certificate from Kemnaker SkillHub.png',
     folder: 'Short Course Pelatihan keselamatan dan kesehatan kerja (K3)',
     images: [
       'How to Calculate and Management Risks at Work.png',
       'Frequency and Severity Values in a Job.png',
       'Risk Level Class from Calculation of Frequency and Severity Values.png',
+    ],
+  },
+  {
+    id: 'blkpp-diy', cat: 'sertifikasi', isNew: true,
+    title: 'Menggunakan Alat dan Bahan Reparasi serta Perawatan Telepon Seluler',
+    org: 'BLKPP Daerah Istimewa Yogyakarta — Dinas Tenaga Kerja dan Transmigrasi DIY',
+    period: 'Feb 2026',
+    desc: 'Pelatihan online E-Training BLKPP DIY selama 40 JPL: penggunaan alat dan bahan reparasi serta perawatan telepon seluler, mulai dari pembacaan kerusakan sampai prosedur perawatannya. Diselesaikan dengan predikat BAIK.',
+    tags: ['Reparasi Ponsel', 'BLKPP DIY', 'E-Training'],
+    /* Bukan halaman verifikasi seperti keempat sertifikat Kemnaker di atas,
+       melainkan berkas aslinya di Drive — itu satu-satunya alamat yang
+       diberikan penerbitnya. tools/cert-shots.mjs sengaja melewatinya: yang
+       dipotretnya halaman verifikasi, dan Drive tidak begitu. */
+    credential: 'https://drive.google.com/file/d/1XtQ5y3mD2bNMRZIgUtvUaxQjg1RTPKfr/view',
+    /* Halaman pertama BLKPPDIY.pdf (tools/source/), dirasterkan pdftoppm.
+       PDF-nya sendiri tidak ikut ke public/: galeri menampilkan <img>, dan
+       berkas yang tidak pernah dirujuk cuma menambah berat deploy. */
+    certificate: 'Training Certificate from BLKPP DIY.png',
+    cover: 'Presentation of Material Before Final Exam.jpg',
+    folder: 'BLKPPDIY Short Course',
+    images: [
+      'Meeting and Discussion of Material with Advisor.png',
+      'Presentation of Material Before Final Exam.jpg',
+      "Results of a Final Quiz Designed to Measure Participants' Understanding of Tool Use in the Soldering Process.png",
     ],
   },
   {
@@ -918,7 +982,7 @@ const PROJECTS = [
     title: 'Diskusi Departemen Teknik Elektro & Elektronika',
     org: 'Himpunan Mahasiswa Vokasi Elektro dan Elektronika (HMVE UNY)',
     period: '2025',
-    desc: 'Forum penyampaian aspirasi mahasiswa Program Studi Teknik Elektro dan Elektronika kepada dosen dan pengelola program studi.',
+    desc: 'Untuk semua mahasiswa, terutama mahasiswa baru: kampus menyediakan ruang untuk menyampaikan aspirasi langsung ke departemen. Lewat forum diskusi seperti ini kita bisa memberi masukan jujur soal kendala belajar dan kebutuhan fasilitas. Masukan mahasiswa itu kunci supaya kualitas pendidikan di departemen tetap relevan dengan tantangan industri dan perkembangan teknologi hari ini.\n\nSaya senang bisa hadir di Talk Event yang diselenggarakan Departemen Teknik Elektro & Elektronika Universitas Negeri Yogyakarta (UNY) bersama HMVE UNY. Di acara itu saya berdiskusi langsung dengan dosen dan pengelola program studi soal peningkatan kualitas pembelajaran dan pembaruan infrastruktur laboratorium. Sebagai mahasiswa, itu cara nyata untuk ikut memperbaiki fasilitas praktikum kampus secara berkelanjutan.',
     tags: ['Forum Aspirasi', 'Organisasi', 'HMVE'],
     folder: 'Diskusi Departemen Teknik Elektro & Elektronika',
     images: [
@@ -932,8 +996,8 @@ const PROJECTS = [
     id: 'studi-banding', cat: 'organisasi',
     title: 'Studi Banding Divisi Kewirausahaan HMVE UNY & HME Polines',
     org: 'Himpunan Mahasiswa Vokasi Elektro dan Elektronika (HMVE UNY)',
-    period: '2025',
-    desc: 'Studi banding Divisi Kewirausahaan HMVE UNY dengan HME Politeknik Negeri Semarang: membahas program kerja yang dijalankan tiap himpunan, mengevaluasi apa yang sudah berjalan dan apa yang bisa diperbaiki, serta bertukar praktik pengelolaan merchandise dan branding divisi.',
+    period: 'Mei 2025',
+    desc: 'Bagi mahasiswa teknik, studi banding bukan sekadar program formal yang diadakan demi jalan-jalan antarkampus. Di baliknya ada pertukaran cara pandang tentang sistem belajar, budaya akademik, dan pengembangan kemampuan mahasiswa. Yang sering luput: perbedaan ekosistem organisasi antarkampus berpengaruh besar pada kualitas lulusannya, terutama pada kesiapan menghadapi industri dan kemampuan bekerja lintas disiplin.\n\nSebagai bagian dari panitia Studi Banding HMVE UNY 2025, saya terlibat langsung dalam kegiatan yang berlangsung pada Sabtu, 17 Mei 2025 di Politeknik Negeri Semarang (POLINES) bersama HME Polines. Program ini jadi ruang diskusi terbuka bagi mahasiswa vokasi untuk bertukar pengalaman, sistem organisasi, dan strategi pengembangan kompetensi, sekaligus memperluas jejaring dan cara pandang di luar lingkungan kampus sendiri.',
     tags: ['Studi Banding', 'Kewirausahaan', 'Organisasi', 'HMVE'],
     folder: 'Studi Banding',
     images: [
@@ -946,30 +1010,61 @@ const PROJECTS = [
     ],
   },
   {
-    id: 'kunjungan', cat: 'organisasi',
-    title: 'Kunjungan Industri',
+    /* Tiga kunjungan, tiga entri — dulu satu entri "Kunjungan Industri" yang
+       memuat delapan fotonya sekaligus. Yang dikunjungi memang tiga tempat
+       berbeda dengan cerita yang berbeda pula, dan satu galeri campuran
+       membuat ketiganya kehilangan konteksnya masing-masing.
+
+       FOLDER-nya tetap satu ('Kunjungan Industri'): yang dipecah ceritanya,
+       bukan berkasnya. check-assets memasangkan folder + nama berkas, jadi
+       beberapa entri boleh berbagi folder yang sama. */
+    id: 'kunjungan-lrt', cat: 'organisasi',
+    title: 'Kunjungan Industri PT LRT Jakarta',
     org: 'Universitas Negeri Yogyakarta, Program Studi Teknik Elektronika',
-    period: '2024 – 2025',
-    desc: 'Kunjungan industri untuk mengamati langsung penerapan sistem otomasi, kelistrikan, dan proses produksi di lingkungan manufaktur.',
-    tags: ['Industri', 'Otomasi', 'Studi Lapangan'],
+    period: '2024',
+    desc: 'Banyak yang mengira sistem kelistrikan kereta hanya soal memasok daya untuk menggerakkan motornya, padahal di dalamnya ada mekanisme kontrol dan proteksi yang jauh lebih rumit. Satu hal yang menarik dipelajari: sistem traksi LRT memakai proteksi berlapis, dan arus tidak normal, lonjakan tegangan, atau anomali sensor terdeteksi dalam hitungan milidetik untuk mencegah kerusakan komponen sekaligus menjaga keselamatan penumpang. Dengan begitu keretanya tetap beroperasi stabil meski terjadi fluktuasi daya atau gangguan kecil di jalur.\n\nPada kunjungan industri ke PT LRT Jakarta di Stasiun Velodrome, saya belajar langsung tentang sistem kelistrikan, kontrol otomasi, dan komponen mekanis yang menopang presisi gerak keretanya. Pengalaman itu memperluas cara saya melihat teknologi transportasi sebagai solusi utama mobilitas perkotaan ke depan.',
+    tags: ['LRT Jakarta', 'Sistem Traksi', 'Proteksi', 'Kontrol Otomasi'],
     folder: 'Kunjungan Industri',
     images: [
       'Industrial Visit to LRT Jakarta.webp',
       'Explanation regarding the LRT Jakarta train operating system.webp',
-      'Meetings and explanations related to JAKI.webp',
+    ],
+  },
+  {
+    id: 'kunjungan-artifa', cat: 'organisasi',
+    title: 'Kunjungan Industri PT Artifa Sukses Persada',
+    org: 'Universitas Negeri Yogyakarta, Program Studi Teknik Elektronika',
+    period: 'Nov 2024',
+    desc: 'Industri manufaktur bergerak cepat memasuki era Industri 4.0, dan robotika, otomasi, serta sistem cerdas jadi tulang punggung proses produksinya. Teknologi seperti lengan robot, Automated Guided Vehicle (AGV), dan sistem kontrol presisi membuat produksi lebih cepat, lebih akurat, dan konsisten, sekaligus menaikkan efisiensi, keselamatan, dan kualitas produk.\n\nPada 4 November 2024 saya mengikuti kunjungan industri ke PT Artifa Sukses Persada dan mengamati langsung sistem otomasi industrinya: lengan robot, AGV, dan simulator forklift. Pengalaman itu memberi gambaran nyata penerapannya di lapangan dan menyiapkan saya membaca tantangan serta peluang industri ke depan.',
+    tags: ['Industri 4.0', 'Lengan Robot', 'AGV', 'ROS 2'],
+    /* Sampulnya lantai produksinya, bukan foto papan nama: yang diceritakan
+       entri ini sistem otomasinya. */
+    cover: 'Robot Control System using ROS2 in the Sorting Industry.webp',
+    folder: 'Kunjungan Industri',
+    images: [
       'Industrial Visit to PT Infiniti Group.webp',
       'Explanation of material related to the development of robotics in the industrial era 4.0.webp',
+      'Seeing the development and transformation of tools in the field of robotics in industry 4.0.webp',
       'Robot Control System using ROS2 in the Sorting Industry.webp',
       'Robot for sorting goods which is controlled directly from ROS2.png',
-      'Seeing the development and transformation of tools in the field of robotics in industry 4.0.webp',
     ],
+  },
+  {
+    id: 'kunjungan-jsc', cat: 'organisasi',
+    title: 'Kunjungan Industri Jakarta Smart City',
+    org: 'Universitas Negeri Yogyakarta, Program Studi Teknik Elektronika',
+    period: 'Nov 2024',
+    desc: 'Bagi yang penasaran bagaimana teknologi dipakai mengelola kota modern, Jakarta memberi contoh nyata lewat konsep smart city-nya. Salah satu penerapan utamanya aplikasi JAKI, satu platform terpadu berisi layanan publik, informasi kota, pelaporan infrastruktur, dan pemantauan tinggi muka air untuk mitigasi banjir. Sistem itu menunjukkan bagaimana data, sensor, dan teknologi digital bekerja bersama menghasilkan layanan publik yang lebih cepat, lebih cerdas, dan lebih tanggap.\n\nPada Senin, 4 November 2024, saya mengikuti kunjungan industri ke Jakarta Smart City. Dari kegiatan itu saya melihat langsung bagaimana teknologi menopang pengambilan keputusan berbasis data dan ikut membangun lingkungan perkotaan yang lebih efisien serta berkelanjutan.',
+    tags: ['Smart City', 'JAKI', 'Layanan Publik', 'Data'],
+    folder: 'Kunjungan Industri',
+    images: ['Meetings and explanations related to JAKI.webp'],
   },
   {
     id: 'expo', cat: 'organisasi',
     title: 'National Expo of Faculty of Vocational Products',
     org: 'Universitas Negeri Yogyakarta (UNY)',
-    period: '2025',
-    desc: 'Berpartisipasi dalam pameran nasional produk Fakultas Vokasi UNY, memamerkan hasil rancangan perangkat keras dan sistem elektronika kepada pengunjung akademik maupun industri.',
+    period: 'Okt 2024',
+    desc: 'Bagi sesama mahasiswa dan penggemar teknologi, terutama di bidang teknik, pameran produk vokasi tempat terbaik untuk melihat bagaimana teori di kelas benar-benar diterapkan. Dari sana terlihat bagaimana lengan robot enam sumbu bekerja sebagai aktuator presisi untuk kebutuhan manufaktur industri. Begitu juga drone yang bertumpu pada kestabilan roll, pitch, dan yaw untuk terbang pada ketinggian terkendali, serta rancangan PCB kustom yang jadi otak sistem elektronikanya.\n\nSaya bersyukur mendapat kesempatan mengunjungi Pameran Nasional Produk Fakultas Vokasi Universitas Negeri Yogyakarta (UNY) pada 28 Oktober 2024. Dalam kunjungan itu saya menelusuri berbagai proyek inovatif mahasiswa Teknik Elektronika, mulai dari lengan robot, drone, sampai purwarupa skematik PCB. Terima kasih khusus untuk Dzaki Fajri Arrafi yang menyempatkan diri menjelaskan dan berbagi banyak hal tentang sistem mekanis lengan robot.',
     tags: ['Pameran', 'Produk Vokasi', 'Presentasi Teknis'],
     folder: 'National Expo of Faculty of Vocational Products at Universitas Negeri Yogyakarta (UNY)',
     images: [
@@ -1033,16 +1128,26 @@ const PROJECTS_EN = {
     desc: 'Designed and implemented a three-phase induction motor control system for forward-reverse operation using magnetic contactors. Designed the power and control circuits while integrating MCBs, push buttons, overload relays, and indicator modules into the control panel. Performed system testing by measuring starting current, running current, and phase-to-phase voltage to verify safe and reliable motor operation.',
   },
   'p-cloud': {
-    title: 'Cloud Computing Lab',
-    desc: 'Cloud computing coursework covering service provisioning, containerization with Docker, and using cloud services as a backend for embedded and IoT systems.',
+    title: 'IoT Based Intelligent Room Temperature Monitoring and Control System using Firebase',
+    desc: 'This project aims to address the inefficiencies of manual room temperature management by creating an intelligent automation system capable of maintaining environmental comfort in real time. The development process involved integrating a DHT11 sensor for temperature and humidity detection, an ESP32 microcontroller as the processing unit, and Firebase Realtime Database for cloud-based data synchronization. The output of this project is a functional system that allows users to monitor room conditions and control DC fans automatically or remotely via an MIT App Inventor dashboard. This system is highly applicable for smart home implementations, server room temperature optimization, and maintaining climate stability in greenhouses to enhance energy efficiency and user comfort.',
   },
-  kunjungan: {
-    title: 'Industrial Visits',
+  'kunjungan-lrt': {
+    title: 'Industrial Visit to PT LRT Jakarta',
     org: 'Universitas Negeri Yogyakarta, Electronics Engineering Study Program',
-    desc: 'Industrial visits observing automation, electrical systems, and production processes first-hand in manufacturing environments.',
+    desc: 'Many people assume that train electrical systems are only about supplying power to drive the motors, but in reality, they involve complex control and protection mechanisms. One interesting insight I learned is how LRT traction systems use a redundant protection system, where any abnormal current, voltage surge, or sensor anomaly is detected within milliseconds to prevent component failure and ensure passenger safety. This allows the train to maintain stable operation even during power fluctuations or minor track disturbances.\n\nDuring an industrial visit to PT LRT Jakarta at Velodrome Station, I had the opportunity to directly learn about electrical systems, automation control, and mechanical components that support precise train movement. This experience broadened my perspective on how transportation technology continues to evolve as a key solution for future urban mobility.',
+  },
+  'kunjungan-artifa': {
+    title: 'Industrial Visit to PT Artifa Sukses Persada',
+    org: 'Universitas Negeri Yogyakarta, Electronics Engineering Study Program',
+    desc: 'Manufacturing industries are rapidly entering the era of Industry 4.0, where robotics, automation, and intelligent systems become the backbone of production processes. Technologies such as robotic arms, Automated Guided Vehicles (AGV), and precision control systems enable faster, more accurate, and consistent manufacturing, while enhancing efficiency, safety, and product quality.\n\nOn November 4th, 2024, I participated in an industrial visit to PT Artifa Sukses Persada, where I directly observed industrial automation systems, including robotic arms, AGVs, and a forklift simulator. This experience provided valuable insights into real-world industrial applications and prepared me to better understand future industry challenges and opportunities.',
+  },
+  'kunjungan-jsc': {
+    title: 'Industrial Visit to Jakarta Smart City',
+    org: 'Universitas Negeri Yogyakarta, Electronics Engineering Study Program',
+    desc: 'For those curious about how technology is applied in managing a modern city, Jakarta provides a real example through its smart city concept. One of its key implementations is the JAKI application, an integrated platform offering public services, city information, infrastructure reporting, and water level monitoring for flood mitigation. This system demonstrates how data, sensors, and digital technology work together to create faster, smarter, and more responsive public services.\n\nOn Monday, November 4th, 2024, I participated in an industrial visit to Jakarta Smart City. Through this activity, I gained firsthand insight into how technology supports data driven decision making and contributes to building a more efficient and sustainable urban environment.',
   },
   expo: {
-    desc: 'Took part in the national expo of UNY Vocational Faculty products, showing hardware and electronic system designs to academic and industry visitors.',
+    desc: 'For fellow students and technology enthusiasts, especially those in the engineering field, the vocational product exhibition is the best place to see how classroom theory can be implemented directly. Through this experience, we can see how a six-axis robotic arm can function as a precision actuator for industrial manufacturing needs. The same applies to drones that rely on roll, pitch, and yaw stability for controlled altitude operations, as well as custom PCB designs that serve as the brains of electronic systems.\n\nI am grateful for the opportunity to visit the National Exhibition of the Faculty of Vocational Products at Yogyakarta State University (UNY) on October 28, 2024. During this visit, I explored various innovative projects by Electronic Engineering students, including robotic arms, drones, and PCB schematic prototypes. Special thanks to Dzaki Fajri Arrafi for taking the time to introduce and share valuable insights into the mechanical systems of robotic arms.',
   },
   'k3-listrik': {
     title: 'Awareness K3 Electricity',
@@ -1063,6 +1168,11 @@ const PROJECTS_EN = {
     title: 'Occupational Health and Safety Certificate',
     desc: 'Occupational health and safety training: workplace risk identification, PPE use, emergency response procedures, and building a safe working culture.',
   },
+  'blkpp-diy': {
+    title: 'Using Repair Tools and Materials for Mobile Phone Maintenance',
+    org: 'BLKPP Special Region of Yogyakarta — Manpower and Transmigration Office of DIY',
+    desc: 'A 40-hour BLKPP DIY online e-training on using repair tools and materials for mobile phone maintenance, from reading a fault to the maintenance procedure itself. Completed with a "Good" grade.',
+  },
   hmve: {
     title: 'Vice Head of Entrepreneurship Division, HMVE UNY',
     org: 'Electrical and Electronics Vocational Student Association (HMVE UNY)',
@@ -1071,17 +1181,16 @@ const PROJECTS_EN = {
   diskusi: {
     title: 'Electrical & Electronics Engineering Department Forum',
     org: 'Electrical and Electronics Vocational Student Association (HMVE UNY)',
-    desc: 'A forum carrying student input from the Electrical and Electronics Engineering program to lecturers and program management.',
+    desc: "To all students, especially new students, our university provides a platform to voice our aspirations directly to the department. Through these discussion forums, we can provide honest feedback on learning challenges and facility needs. Student input is key to ensuring that the quality of education in our department remains relevant to today's industrial challenges and technological advancements.\n\nI am glad to have attended the Talk Event hosted by the Department of Electrical & Electronic Engineering at Yogyakarta State University (UNY) with HMVE UNY. During this event, I engaged directly with lecturers and supervisors to discuss enhancing learning quality and upgrading laboratory infrastructure. As a student, this was a tangible way for me to contribute to the continuous improvement of our campus practicum facilities.",
   },
   'studi-banding': {
     title: 'Comparative Study, HMVE UNY & HME Polines Entrepreneurship Divisions',
     org: 'Electrical and Electronics Vocational Student Association (HMVE UNY)',
-    desc: 'Comparative study between the HMVE UNY and HME Politeknik Negeri Semarang entrepreneurship divisions: reviewing the work programs each association runs, evaluating what worked and what could be improved, and exchanging practices in merchandise management and divisional branding.',
+    desc: 'For engineering students, a comparative study is not merely a formal program organized for the sake of a campus trip. Behind it, there is a meaningful exchange of perspectives on learning systems, academic culture, and student skill development. A detail that is often overlooked is how differences in organizational ecosystems across campuses can significantly influence the quality of graduates, especially in terms of industry readiness and cross disciplinary teamwork.\n\nAs part of the organizing committee of HMVE UNY Comparative Study 2025, I was directly involved in this activity held on Saturday, May 17th, 2025 at Politeknik Negeri Semarang (POLINES) with HME Polines. This program became an open discussion platform for vocational students to share experiences, organizational systems, and competency development strategies, while also expanding networks and perspectives beyond their own campus environment.',
   },
 };
 
 const CATEGORIES_EN = {
-  all: 'All',
   industri: 'Experience',
   akademik: 'Development Project',
   sertifikasi: 'Certifications',
@@ -1093,7 +1202,12 @@ const MONTHS_EN = { Mei: 'May', Agu: 'Aug', Okt: 'Oct', Des: 'Dec', Sekarang: 'P
 
 /** Ambil field proyek pada bahasa aktif; jatuh ke bahasa Indonesia bila tak ada. */
 const t = (p, field) => (lang === 'en' && PROJECTS_EN[p.id]?.[field]) || p[field];
-const catLabel = (key) => (lang === 'en' && CATEGORIES_EN[key]) || CATEGORIES[key].label;
+/* `?.` dan `?? ''` bukan kehati-hatian berlebihan: kartu Tanggung Jawab Utama
+   membuka galeri yang sama dengan objek buatan sendiri (lihat "KARTU TANGGUNG
+   JAWAB" di bawah), dan objek itu tidak punya kategori — ia bukan proyek.
+   Tanpa ini CATEGORIES[undefined].label melempar dan galerinya tidak terbuka
+   sama sekali. */
+const catLabel = (key) => (lang === 'en' && CATEGORIES_EN[key]) || CATEGORIES[key]?.label || '';
 /* Tidak ada penerjemah tag: `tags:` di PROJECTS memang tidak pernah dirender.
    Datanya sengaja ditinggalkan kalau nanti mau ditampilkan. */
 const period = (s) =>
@@ -1119,12 +1233,43 @@ const captionOf = (file, i) => {
 
 const esc = (s) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-/* ═══ 3. GRID + FILTERS ═════════════════════════════════════ */
+/* `desc` proyek di galeri: DATANYA yang memutuskan bentuknya, bukan cabang per
+   proyek di sini.
 
-const grid = document.getElementById('project-grid');
-const emptyMsg = document.getElementById('grid-empty');
-const filterBar = document.getElementById('filters');
-let activeFilter = Object.keys(CATEGORIES)[0];
+   Ada baris kosong di dalamnya -> ia memang bercerita, dan tiap paragrafnya
+   ditulis apa adanya sebagai <p>. Itu dipakai kunjungan industri, studi
+   banding, expo, dan forum — teks naratif yang kalau dipecah per kalimat
+   berubah jadi daftar poin yang tidak pernah dimaksudkan.
+
+   Tanpa baris kosong -> satu kalimat satu butir, bentuk yang sama dengan CV,
+   dan itu sebabnya `desc` proyek teknis tetap ditulis sebagai satu kalimat
+   panjang. Dipisah di TITIK yang diikuti spasi lalu huruf besar, bukan di
+   setiap titik: "mAP@0.50" dan "2.510 ODP" sama-sama bertitik di tengah angka,
+   dan pemisah yang lebih longgar memecah keduanya jadi butir yang tidak
+   berarti apa-apa.
+
+   esc() per potongan karena jalur ini innerHTML sekarang, bukan textContent. */
+const descHTML = (s) => (s.includes('\n')
+  ? s.split(/\n+/).map(p => `<p>${esc(p)}</p>`).join('')
+  : `<ul>${s.split(/(?<=\.)\s+(?=[A-Z])/).map(b => `<li>${esc(b)}</li>`).join('')}</ul>`);
+
+/* ═══ 3. GRID PER KATEGORI ══════════════════════════════════
+   Tiap kategori punya seksinya sendiri di halaman, jadi kisinya pun sendiri —
+   dan dengan begitu tidak ada lagi yang perlu difilter. Yang ikut hilang saat
+   bilah tab dilepas: activeFilter, CAT_KEYS, renderFilters(), pendengar klik
+   di #filters, dan #grid-empty (kisi yang kosong sekarang berarti kategorinya
+   memang kosong — itu data yang salah, bukan keadaan yang perlu dijelaskan ke
+   pengunjung).
+
+   Kunci petanya = nilai `cat` di PROJECTS, nilainya = id kisi di app/page.tsx
+   (prop gridId <DocSection />). Salah satunya salah ketik = seksi itu tampil
+   kosong, tanpa error. */
+const GRIDS = {
+  industri: 'exp-grid',
+  akademik: 'dev-grid',
+  sertifikasi: 'cert-grid',
+  organisasi: 'org-grid',
+};
 
 /* Satu kartu per proyek: kotak berisi foto sampul, teksnya selalu terbaca.
    Menggantikan AccordionGallery — di sana satu panel melebar saat disorot dan
@@ -1183,37 +1328,50 @@ const cardHTML = (p) => `
     </span>
   </button>`;
 
-/* Seluruh kategori sekaligus, tanpa halaman: yang dulu memaksa pemecahan
+/* Seluruh kartu sekaligus, tanpa halaman: yang dulu memaksa pemecahan
    empat-empat adalah flex-grow yang dianimasikan (properti layout, satu reflow
    per panel per frame). Kartu tidak menganimasikan apa pun yang mengubah tata
-   letak, jadi sepuluh kartu sama murahnya dengan empat. */
+   letak, jadi sepuluh kartu sama murahnya dengan empat.
+
+   Keempat kisi dalam SATU fungsi: isi kartunya bergantung bahasa (judul,
+   kategori, instansi), dan applyLang cukup memanggil yang ini sekali setiap
+   bahasa ditukar. Satu fungsi per kisi berarti empat panggilan yang harus
+   diingat di sana — dan yang terlupakan akan tampak sebagai satu seksi yang
+   tertinggal di bahasa lama. */
+/* Sertifikat dapat kotaknya sendiri: potret sertifikatnya DI ATAS — sekali
+   klik membuka halaman verifikasi Kemnaker di tab baru — lalu di bawahnya
+   kartu dokumentasi pelatihan yang sama persis dengan kartu kategori lain,
+   membuka galeri seperti biasa.
+
+   Dua sasaran klik dalam satu sel kisi, jadi keduanya sengaja tidak berbentuk
+   sama: yang ke LUAR situs berbingkai garis dengan label panah, yang ke DALAM
+   halaman tetap kartu foto. Yang tanpa `credential` + `certificate` jatuh ke
+   kartu biasa — satu jalur render untuk semua kategori, tanpa cabang per
+   kategori di renderGrid.
+
+   `certificate` DITULIS per entri, bukan satu nama berkas yang sama untuk
+   semuanya: empat sertifikat Kemnaker memang sekembar (dipotret
+   tools/cert-shots.mjs dari halaman verifikasinya), tapi yang kelima datang
+   sebagai PDF dan namanya sendiri. Satu konstanta bersama berarti yang kelima
+   diam-diam kehilangan kotaknya. */
+const itemHTML = (p) => (!p.credential || !p.certificate ? cardHTML(p) : `
+  <div class="certbox">
+    <a class="certbox__doc" href="${p.credential}" target="_blank" rel="noopener noreferrer"
+       aria-label="${T().credential}: ${esc(t(p, 'title'))}">
+      <img loading="lazy" decoding="async" src="${thumbSrc(p, p.certificate)}"
+           alt="${esc(t(p, 'title'))}" draggable="false">
+      <span class="certbox__go">${T().credential} &#8599;</span>
+    </a>
+    ${cardHTML(p)}
+  </div>`);
+
 function renderGrid() {
-  const list = activeFilter === 'all' ? PROJECTS : PROJECTS.filter(p => p.cat === activeFilter);
-  grid.innerHTML = list.map(cardHTML).join('');
-  emptyMsg.classList.toggle('hidden', list.length > 0);
+  for (const [cat, id] of Object.entries(GRIDS)) {
+    document.getElementById(id).innerHTML =
+      PROJECTS.filter(p => p.cat === cat).map(p => itemHTML(p)).join('');
+  }
 }
 
-const CAT_KEYS = Object.keys(CATEGORIES);
-
-function renderFilters() {
-  const counts = { all: PROJECTS.length };
-  for (const p of PROJECTS) counts[p.cat] = (counts[p.cat] || 0) + 1;
-
-  filterBar.innerHTML = CAT_KEYS.map(key => `
-    <button class="tab" role="tab" data-filter="${key}" aria-selected="${key === activeFilter}">
-      ${catLabel(key)}<span class="tab__n">${counts[key] || 0}</span>
-    </button>`).join('');
-}
-
-filterBar.addEventListener('click', (e) => {
-  const btn = e.target.closest('[data-filter]');
-  if (!btn || btn.dataset.filter === activeFilter) return;
-  activeFilter = btn.dataset.filter;
-  renderFilters();
-  renderGrid();
-});
-
-renderFilters();
 renderGrid();
 
 /* ═══ 4. GALLERY MODAL ══════════════════════════════════════
@@ -1272,10 +1430,15 @@ function openGallery(p, card) {
   current = p;
   const multi = p.images.length > 1;
 
-  document.getElementById('g-cat').textContent = catLabel(p.cat);
+  /* Disembunyikan kalau kosong, bukan dibiarkan kosong: kartu Tanggung Jawab
+     Utama tidak punya kategori, dan <p> kosong ber-.label tetap memakan satu
+     tinggi baris — lubang 12px di atas judul popupnya. */
+  const catEl = document.getElementById('g-cat');
+  catEl.textContent = catLabel(p.cat);
+  catEl.hidden = !catEl.textContent;
   document.getElementById('g-title').textContent = t(p, 'title');
   document.getElementById('g-org').textContent = `${t(p, 'org')} · ${period(p.period)}`;
-  document.getElementById('g-desc').textContent = t(p, 'desc');
+  document.getElementById('g-desc').innerHTML = descHTML(t(p, 'desc'));
 
   /* Tautan: yang spesifik dulu (halaman verifikasi proyek ini), baru bagian
      profil LinkedIn untuk kategorinya. Alamatnya konstanta kita sendiri,
@@ -1343,8 +1506,13 @@ function closeGallery() {
 /* open — satu klik kartu. Dulu perlu dua ketukan di layar sentuh: yang pertama
    mengaktifkan panel akordeon, yang kedua baru membuka galeri. Kartu tidak
    punya keadaan aktif, jadi ketukan pertama sudah membuka; <button> mengurus
-   Enter/Space sendiri. */
-grid.addEventListener('click', (e) => {
+   Enter/Space sendiri.
+
+   Didengar di document, bukan di #project-grid: kartu yang sama sekarang
+   dicetak ke DUA kisi (#exp-grid di seksi Dokumentasi Pengalaman), dan satu
+   pendengar yang mencari .pcard terdekat melayani keduanya tanpa perlu tahu
+   kisi mana yang diketuk. */
+document.addEventListener('click', (e) => {
   const card = e.target.closest('.pcard');
   if (!card) return;
   openGallery(PROJECTS.find(p => p.id === card.dataset.id), card);
@@ -1451,7 +1619,6 @@ function applyLang(l) {
 
   splitChars();
   buildMarquees();     // teks CTA ditulis ulang oleh data-en; salinannya harus dibangun ulang
-  renderFilters();
   renderGrid();
 }
 
@@ -1546,34 +1713,93 @@ document.getElementById('copy-email').addEventListener('click', async () => {
   else say(T().copyManual + EMAIL);
 });
 
-/* ═══ TEKAN-TAHAN FOTO DOKUMENTASI ═══
-   Di penunjuk, popup .jr-act diurus :hover sepenuhnya di CSS. Di sentuh tidak
-   ada padanannya: :active tidak menyala untuk sentuhan di halaman ini (diuji
-   dengan sentuhan ditahan 500ms — tidak ada satu pun elemen yang cocok
-   :active), jadi kelasnya dipasang sendiri di sini.
+/* ═══ KETUK FOTO BAB JOURNEY ═══
+   Satu pemicu untuk semua penunjuk: ketukan. Sempat :hover di tetikus dan
+   tekan-tahan di sentuhan — dua jalur untuk satu perilaku, dan yang :hover
+   membuka popup selayar penuh hanya karena kursor kebetulan lewat. Sekarang
+   dua-duanya lewat click, jadi CSS-nya pun tinggal satu blok (.is-open).
 
-   pointerdown, bukan touchstart: satu pasang event yang sama juga menangani
-   pena, pointerType menyaring tetikus (di sana :hover yang bekerja), dan
-   pointercancel-nya yang menutup popup begitu peramban memutuskan gerakan itu
-   gulir, bukan tahan.
+   click, bukan pointerdown: click sudah menyaring sendiri gerakan yang
+   ternyata gulir atau seret — ia baru menyala kalau turun dan naiknya di
+   elemen yang sama. Itu yang dulu perlu pointercancel.
 
-   contextmenu ditahan KHUSUS di ubin ini: tekan-tahan di atas <img> membuka
+   Satu penangan di document, bukan satu per kotak: kotaknya 30+ dan semuanya
+   dirender server. Ketukan di kotak yang sama menutupnya lagi; ketukan di mana
+   pun selain kotak juga menutup — popup dan tirainya pointer-events: none,
+   jadi ketukan di atasnya jatuh ke halaman di belakangnya dan sampai ke sini.
+
+   contextmenu ditahan KHUSUS di kotak ini: tekan-tahan di atas <img> membuka
    menu unduh gambar bawaan peramban, tepat menutupi popup yang baru muncul. */
-let pressedAct = null;
-const releaseAct = () => {
-  if (!pressedAct) return;
-  pressedAct.classList.remove('is-pressed');
-  pressedAct = null;
+let openZoom = null;
+const closeZoom = () => {
+  if (!openZoom) return;
+  openZoom.classList.remove('is-open');
+  openZoom.setAttribute('aria-expanded', 'false');
+  openZoom = null;
 };
-document.addEventListener('pointerdown', (e) => {
-  if (e.pointerType === 'mouse') return;
-  pressedAct = e.target.closest('.jr-act');
-  if (pressedAct) pressedAct.classList.add('is-pressed');
-}, { passive: true });
-document.addEventListener('pointerup', releaseAct, { passive: true });
-document.addEventListener('pointercancel', releaseAct, { passive: true });
+document.addEventListener('click', (e) => {
+  const hit = e.target.closest('.jr-zoom');
+  const sama = hit === openZoom;
+  closeZoom();
+  if (!hit || sama) return;
+  openZoom = hit;
+  hit.classList.add('is-open');
+  hit.setAttribute('aria-expanded', 'true');
+});
+/* Kotaknya <figure>/<div> ber-role="button", bukan <button> sungguhan — dan
+   cuma kontrol asli yang mengubah Enter/Spasi jadi click sendiri. Escape
+   menutup, seperti overlay mana pun. */
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') return closeZoom();
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const hit = e.target.closest?.('.jr-zoom, .jr-open');
+  if (!hit) return;
+  e.preventDefault();
+  hit.click();
+});
 document.addEventListener('contextmenu', (e) => {
-  if (e.target.closest('.jr-act')) e.preventDefault();
+  if (e.target.closest('.jr-zoom')) e.preventDefault();
+});
+
+/* ═══ KARTU TANGGUNG JAWAB → GALERI ═══
+   Tiap kartu Tanggung Jawab Utama membuka <dialog id="gallery"> yang SAMA
+   dengan kartu proyek, bukan popup sendiri. Yang didapat gratis karenanya:
+   strip thumbnail, tombol maju-mundur, hitungan "3 / 5", ESC, jebakan fokus,
+   tombol Back peramban, dan animasi FLIP dari kotak yang diketuk. Popup baru
+   berarti menulis ulang semuanya, lalu merawatnya dua kali.
+
+   Ongkosnya satu: openGallery() menuntut bentuk objek PROJECTS, jadi kartunya
+   dijadikan objek seperti itu di sini. Bukan proyek sungguhan — `cat` sengaja
+   kosong (lihat catLabel di atas) dan `links: []` mematikan baris tautannya.
+
+   `id` diberi awalan 'jr:' supaya TIDAK pernah cocok dengan kunci PROJECTS_EN:
+   t() menerjemahkan lewat id, dan id yang kebetulan sama akan menampilkan
+   judul proyek lain di kepala popup. Judul dan butirnya sendiri dibaca dari
+   DOM, yang isinya sudah dalam bahasa yang sedang aktif — jadi tidak ada
+   terjemahan kedua yang perlu dijaga tetap sinkron di sini. */
+const respProject = (card) => {
+  const judul = card.querySelector('.jr-card__title').textContent.trim();
+  return {
+    id: `jr:${card.dataset.folder}:${judul}`,
+    folder: card.dataset.folder,
+    images: JSON.parse(card.dataset.photos),
+    title: judul,
+    org: card.dataset.org,
+    period: card.dataset.period,
+    /* Butirnya digabung jadi satu string karena descHTML() memang memecah di
+       titik-lalu-huruf-besar — tiap butir sudah diakhiri titik, jadi ia
+       kembali jadi daftar yang sama di dalam popup. textContent, bukan
+       innerHTML: <strong> di butirnya tidak ikut, dan descHTML tidak
+       menerima HTML mentah. */
+    desc: [...card.querySelectorAll('.jr-card__list li')]
+      .map((li) => li.textContent.trim()).join(' '),
+    links: [],
+  };
+};
+document.addEventListener('click', (e) => {
+  const hit = e.target.closest('.jr-open');
+  if (!hit) return;
+  openGallery(respProject(hit.closest('.jr-card')), hit);
 });
 
 window.__portfolio = { observeReveals, PROJECTS };

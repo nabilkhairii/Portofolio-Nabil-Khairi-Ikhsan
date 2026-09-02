@@ -24,7 +24,10 @@ const enBlock = block('const PROJECTS_EN = {', '}');
 for (const id of ids) {
   const key = new RegExp(`^  '?${id}'?: \\{([\\s\\S]*?)^  \\},`, 'm').exec(enBlock);
   assert.ok(key, `proyek "${id}" belum ada di PROJECTS_EN`);
-  assert.ok(/\bdesc: '/.test(key[1]), `proyek "${id}" belum punya terjemahan desc`);
+  /* Kutip mana pun: satu deskripsi memakai kutip ganda karena isinya
+     mengandung apostrof ("today's industrial challenges"), dan regex yang cuma
+     mengenal kutip tunggal melaporkannya sebagai terjemahan yang hilang. */
+  assert.ok(/\bdesc: ['"]/.test(key[1]), `proyek "${id}" belum punya terjemahan desc`);
 }
 
 // ── 2. kamus UI: kunci id dan en harus persis sama ──

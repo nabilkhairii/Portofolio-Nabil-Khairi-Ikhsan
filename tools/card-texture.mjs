@@ -27,9 +27,14 @@ const SRC = 'tools/source/profile.png';
    Kartunya sengaja berlawanan dengan latar halaman supaya selalu terlihat:
    di tema gelap kartunya terang, di tema terang kartunya gelap. Fotonya sendiri
    tidak ikut dibalik; hanya badan kartu, pola chevron, dan panel QR-nya. */
+/* `face` = muka kartunya saja, dipotong dari tekstur yang sama. Itu yang
+   dipakai sebagai cadangan statis di peramban tanpa WebGL — lihat
+   components/lanyard-mount.tsx. Dipotong di sini, bukan digeser lewat
+   background-position di CSS, supaya FACE_W/FACE_TOP/FACE_BOTTOM di bawah
+   tetap jadi satu-satunya tempat batas muka kartu ditulis. */
 const VARIANTS = [
-  { file: 'public/card-texture-dark.png', invert: true, tema: 'dark' },
-  { file: 'public/card-texture-light.png', invert: false, tema: 'light' },
+  { file: 'public/card-texture-dark.png', face: 'public/card-face-dark.png', invert: true, tema: 'dark' },
+  { file: 'public/card-texture-light.png', face: 'public/card-face-light.png', invert: false, tema: 'light' },
 ];
 
 // Blok branding acara di muka kartu. Batasnya dari pemindaian baris: setiap
@@ -216,7 +221,13 @@ for (const v of VARIANTS) {
   assert.ok(max > 200, `varian ${v.tema}: area foto tidak terang (maks ${max}) — fotonya tidak ikut tertempel`);
   assert.ok(min < 120, `varian ${v.tema}: area foto tidak punya bagian gelap (min ${min}) — rambut/jasnya hilang`);
 
-  console.log(`${v.file.padEnd(32)} tema ${v.tema.padEnd(5)} badan kartu ${v.invert ? 'terang' : 'gelap'}`);
+  await sharp(v.file)
+    .extract({ left: 0, top: FACE_TOP, width: FACE_W, height: FACE_BOTTOM - FACE_TOP })
+    .png({ compressionLevel: 9 })
+    .toFile(v.face);
+
+  console.log(`${v.file.padEnd(32)} tema ${v.tema.padEnd(5)} badan kartu ${v.invert ? 'terang' : 'gelap'}`
+    + `  -> ${v.face} ${FACE_W}x${FACE_BOTTOM - FACE_TOP}`);
 }
 
 console.log(`OK — ${W}x${H}, ${WIPE.length} blok branding dihapus, foto berlatar ${photoW}x${PHOTO.height} `
