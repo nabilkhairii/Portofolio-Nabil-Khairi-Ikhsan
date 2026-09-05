@@ -33,7 +33,7 @@ import { ThemeToggle } from '@/components/ui/theme-toggle';
    puluhan megapiksel, dan di sini empat sekaligus.
 
    Satu foto per peran, urut seperti rel waktu di seksi berikutnya: Antam, AMX,
-   Asprak UNY, ICON+ — itu yang dibaca kalimat "4 PERAN / BANYAK SUDUT
+   Asprak UNY, ICON+ — itu yang dibaca kalimat "4 PERAN, / BERAGAM SUDUT
    PANDANG" di atasnya. Sebelumnya dua di antaranya diambil dari seksi Proyek,
    dan pitanya jadi menjanjikan sesuatu yang tidak ada di bawahnya.
 
@@ -400,9 +400,13 @@ export default function Home() {
                 keadaan akan saling menimpa diam-diam. */}
             <ThemeToggle className="flex-none" />
 
+            {/* Visibilitasnya di portfolio.css bersama .nav-dock, bukan
+                `md:hidden` di sini: hamburger dan dock header itu dua keadaan
+                dari SATU hal, dan dua titik patah terpisah sempat menyisakan
+                pita 720-767px tanpa navigasi apa pun. */}
             <button
               id="menu-btn"
-              className="menu-btn md:hidden"
+              className="menu-btn"
               aria-label="Buka menu"
               data-en-aria-label="Open menu"
               aria-expanded="false"
@@ -439,14 +443,25 @@ export default function Home() {
         </nav>
       </div>
 
+      {/* ══ AURORA — latar SELURUH halaman ══
+          position: fixed di app/portfolio.css: satu kanvas, satu konteks
+          WebGL, dan tiap seksi yang digulir lewat kebagian cahaya yang sama.
+
+          Di luar <main>, bukan di dalam salah satu seksi: elemen fixed yang
+          bersarang di dalam seksi ber-overflow:hidden mudah terkurung diam-diam
+          begitu ada leluhur yang punya transform. */}
+      <canvas id="aurora" className="aurora" aria-hidden="true" />
+
       <main>
         {/* ══ HERO — photo band ══ */}
         <section id="hero" className="band band--hero">
-          <canvas id="aurora" className="aurora" aria-hidden="true" />
           <div className="shell grid gap-12 lg:grid-cols-[1.1fr_.9fr] lg:gap-16 items-center">
             <div className="reveal">
-              <p className="label text-muted shimmer">
-                Applied Bachelor (D4) · Electronics Engineering
+              <p
+                className="label text-muted shimmer"
+                data-en="Applied Bachelor (D4) · Electronics Engineering"
+              >
+                Sarjana Terapan (D4) · Teknik Elektronika
               </p>
               {/* .split — mesin yang sama dengan heading "DARI SKEMATIK…":
                   portfolio-runtime.js memecahnya jadi satu span per huruf, lalu
@@ -486,12 +501,19 @@ export default function Home() {
                     px-8 dan text-[14px] milik komponen ini utility Tailwind,
                     dan layer utilities selalu menang atas berkas itu. Di
                     kolom 166px ukuran bawaannya mematahkan label jadi dua
-                    baris. Pasangannya .hero-cta .btn di portfolio.css. */}
+                    baris. Pasangannya .hero-cta .btn di portfolio.css, dan
+                    angkanya sengaja sama persis — keduanya berdiri sebaris
+                    dalam kisi dua kolom sama lebar, jadi ukuran yang berbeda
+                    membuat salah satunya patah lebih dulu.
+
+                    whitespace-nowrap yang benar-benar melarang "UNDUH CV"
+                    patah jadi "UNDUH" / "CV"; clamp cuma mengecilkannya
+                    supaya larangan itu tidak berubah jadi luberan. */}
                 <FlowButton
-                  href="/Curriculum%20Vitae_M.%20Nabil%20Khairi%20Ikhsan.pdf"
+                  href="/Curriculum%20Vitae%20(CV)%20M.%20Nabil%20Khairi%20Ikhsan.pdf"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="max-[640px]:px-3.5 max-[640px]:text-[12px] max-[640px]:tracking-[1px]"
+                  className="whitespace-nowrap max-[640px]:px-3 max-[640px]:text-[clamp(9px,3vw,12px)] max-[640px]:tracking-[0.5px]"
                   text="Unduh CV"
                   en="Download CV"
                 />
@@ -564,11 +586,11 @@ export default function Home() {
               <p className="label text-muted">01 — About</p>
               <h2
  className="display-lg mt-4 split"
-                data-en="FROM SCHEMATIC<br>TO A SYSTEM THAT RUNS."
+                data-en="FROM SCHEMATIC<br class='br-hp'> TO<br class='br-lg'> A SYSTEM THAT RUNS"
               >
                 DARI SKEMATIK
                 <br />
-                KE SISTEM YANG JALAN.
+                KE SISTEM YANG JALAN
               </h2>
               <span className="m-stripe mt-6" aria-hidden="true" />
             </div>
@@ -1000,11 +1022,11 @@ export default function Home() {
             <div>
               <p
                 className="choreo__caption display-lg split"
-                data-en="4 ROLES<br>MULTIPLE PERSPECTIVES"
+                data-en="4 ROLES,<br>MULTIPLE PERSPECTIVES"
               >
-                4 PERAN
+                4 PERAN,
                 <br />
-                BANYAK SUDUT PANDANG
+                BERAGAM SUDUT PANDANG
               </p>
             </div>
           </div>
@@ -1101,13 +1123,26 @@ export default function Home() {
         {/* ══ CTA BAND ══ */}
         <section className="band band--cta">
  <div className="shell text-center">
-            {/* data-marquee: lajunya ikut kecepatan scroll, arahnya ikut arah
-                scroll. CSS pendampingnya sudah ada sejak awal (.band--cta .mq,
-                .mq.shimmer .mq__copy), begitu juga buildMarquees() di jalur
-                ganti bahasa. */}
+            {/* .shimmer, TANPA .split — sama seperti "Open to work" di seksi
+                Kontak, dan alasannya sama: .split membungkus tiap huruf jadi
+                <span> ber-transform, dan background-clip:text milik induk tidak
+                menembusnya. Karena .shimmer memakai -webkit-text-fill-color:
+                transparent, yang tersisa bukan judul tanpa kilau melainkan
+                judul yang tidak terlihat. Satu efek per teks.
+
+                Efek scroll-nya tetap ada, lewat .reveal: ia menganimasi
+                ELEMEN-nya (opacity + translateY 28px sekali masuk layar), bukan
+                tiap hurufnya, jadi tak ada keturunan ber-transform yang memutus
+                background-clip:text — transform pada elemen yang SAMA aman.
+                Observer-nya sudah mengamati .reveal (portfolio-runtime.js),
+                jadi tak ada JS baru.
+
+                data-marquee juga dilepas: geser mendatar yang mengikuti
+                kecepatan scroll itu yang bikin judulnya tak pernah tenang.
+                .band--cta .mq di app/portfolio.css jadi tak terpakai, dibiarkan
+                supaya marquee-nya gampang dikembalikan. */}
             <h2
-              className="display-md shimmer"
-              data-marquee="-60"
+              className="display-md shimmer reveal"
               data-en="Ready to build something together?"
             >
               Siap membangun sesuatu bersama?
@@ -1119,16 +1154,47 @@ export default function Home() {
               Terbuka untuk magang, proyek freelance, dan kolaborasi teknis di
               bidang elektronika dan otomasi industri.
             </p>
-            <div className="mt-9 flex flex-wrap justify-center gap-3">
+            {/* SATU BARIS di HP: flex-nowrap mencabut pembungkusnya, dan
+                whitespace-nowrap menjaga labelnya sendiri tidak patah dua baris
+                — tanpa yang kedua, tombolnya memang sebaris tapi tulisannya
+                yang pecah.
+
+                Ukurannya clamp(), bukan satu angka mati seperti text-[12px]
+                milik hero: label terpanjang di sini "DOWNLOAD CV (PDF)" (17
+                huruf), enam huruf lebih panjang dari "UNDUH CV" di hero, jadi
+                ukuran tetap yang muat di 430px akan meluber di 320px. 2.7vw
+                mengikat lebarnya ke lebar layar, dan pagar 9-12px menjaganya
+                tetap terbaca di ujung kecil dan tidak membesar melebihi hero di
+                ujung besar; tracking .5px, bukan 1.5px bawaannya, karena pada
+                17 huruf jarak itu sendiri makan 17px.
+
+                Ruang yang tersedia = lebar layar - 48px (padding-inline .shell
+                24px). Dihitung untuk label Inggris yang lebih panjang: sisa
+                ~13px di 320px, ~38px di 360px, ~46px di 375px.
+
+                Tingginya 40px di HP (min-h-10 + py-2), turun dari 48px bawaan
+                FlowButton. Dipasang DI SINI, bukan di komponennya: 48px itu
+                angka yang menyamakan FlowButton dengan .btn supaya keduanya
+                sebaris di hero, dan memendekkannya di komponen akan membuat
+                pasangan "Lihat Proyek"/"Unduh CV" di sana jadi beda tinggi.
+                Kedua tombol pita ini berdiri sendiri, tanpa tetangga .btn.
+
+                Utility Tailwind, bukan portfolio.css — layer utilities selalu
+                menang atas berkas itu; alasan yang sama dengan hero. */}
+            <div className="mt-9 flex flex-wrap justify-center gap-3 max-[640px]:flex-nowrap max-[640px]:gap-2">
               <FlowButton
                 href="#contact"
+                className="whitespace-nowrap max-[640px]:min-h-10 max-[640px]:py-2 max-[640px]:px-3 max-[640px]:text-[clamp(9px,2.7vw,12px)] max-[640px]:tracking-[0.5px]"
+                solid
                 text="Hubungi Saya"
                 en="Get in Touch"
               />
               <FlowButton
-                href="/Curriculum%20Vitae_M.%20Nabil%20Khairi%20Ikhsan.pdf"
+                href="/Curriculum%20Vitae%20(CV)%20M.%20Nabil%20Khairi%20Ikhsan.pdf"
                 target="_blank"
                 rel="noopener noreferrer"
+                className="whitespace-nowrap max-[640px]:min-h-10 max-[640px]:py-2 max-[640px]:px-3 max-[640px]:text-[clamp(9px,2.7vw,12px)] max-[640px]:tracking-[0.5px]"
+                solid
                 text="Unduh CV (PDF)"
                 en="Download CV (PDF)"
               />
@@ -1141,8 +1207,8 @@ export default function Home() {
           <div className="shell">
  <div className="sec-head">
               <p className="label text-muted">07 — Contact</p>
- <h2 className="display-lg mt-4 split" data-en="LET’S TALK.">
-                MARI BICARA.
+ <h2 className="display-lg mt-4 split" data-en="LET’S TALK">
+                MARI BICARA
               </h2>
               <span className="m-stripe mt-6" aria-hidden="true" />
             </div>
@@ -1259,7 +1325,7 @@ export default function Home() {
                 />
               </form>
 
- <div>
+ <div className="c-info">
                 <h3
                   className="label text-muted split split-fly"
                   data-en="Information &amp; Direct Contact"
@@ -1330,6 +1396,13 @@ export default function Home() {
 
                 <div className="quote mt-10">
                   <span className="m-stripe" aria-hidden="true" />
+                  {/* .shimmer, dan .split/.split-fly DILEPAS untuk itu: dua efek
+                      ini tidak bisa dipakai bersama. background-clip:text milik
+                      induk tidak menembus huruf ber-transform milik .split-fly
+                      (sama seperti .mq.shimmer di portfolio.css), dan karena
+                      .shimmer memakai -webkit-text-fill-color: transparent,
+                      yang tersisa bukan teks tanpa kilau melainkan teks yang
+                      hilang sama sekali. Satu efek per teks. */}
                   <p className="label mt-5 text-ink shimmer">Open to work</p>
                   <p
                     className="prose mt-3"
@@ -1350,7 +1423,7 @@ export default function Home() {
         <div className="shell grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <span className="m-stripe m-stripe--brand" aria-hidden="true" />
-            <p className="title-lg mt-4">
+            <p className="title-lg mt-4 split">
               M. NABIL
               <br />
               KHAIRI IKHSAN
@@ -1421,7 +1494,7 @@ export default function Home() {
               </li>
               <li>
                 <a
-                  href="/Curriculum%20Vitae_M.%20Nabil%20Khairi%20Ikhsan.pdf"
+                  href="/Curriculum%20Vitae%20(CV)%20M.%20Nabil%20Khairi%20Ikhsan.pdf"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flink"

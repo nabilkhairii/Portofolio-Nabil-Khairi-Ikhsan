@@ -1,9 +1,13 @@
 'use client';
 
-/* portfolio-runtime.js menjalankan seluruh perilaku halaman: bahasa ID/EN,
+/* portfolio-runtime.js menjalankan seluruh perilaku halaman: tombol bahasa,
    reveal, split text, stroke text, aurora, marquee, dock, grid proyek +
-   filter, galeri, nav, tema, dan form. Semuanya bekerja langsung di DOM lewat
+   filter, galeri, nav, dan form. Semuanya bekerja langsung di DOM lewat
    id/kelas yang dipasang page.tsx.
+
+   Penukaran teks statis ID/EN sendiri ada di lang-swap.ts dan dipanggil di
+   sini lebih dulu — berkas itu menjelaskan kenapa ia tidak boleh ikut
+   menunggu chunk runtime.
 
    Vanilla, bukan React: 1.600 baris itu sudah teruji apa adanya (lihat
    tests/), dan menuliskannya ulang jadi komponen cuma menambah versi kedua
@@ -16,13 +20,17 @@
 
 import { useEffect } from 'react';
 
+import { langAwal, tukarTeksStatis } from './lang-swap';
+
 export function SiteBehavior() {
   useEffect(() => {
-    // @ts-expect-error — portfolio-runtime.js tidak punya import/export sama
-    // sekali, jadi TS menganggapnya skrip global alih-alih modul. Menambahkan
-    // `export {}` cuma untuk menyenangkan TS akan mengubah berkas yang
-    // seluruh isinya berjalan di ruang global; bundler-nya sendiri tidak
-    // keberatan memuatnya seperti ini.
+    /* Bahasa dulu, runtime belakangan — dan impornya sengaja statis: berkas
+       ini ikut bundel utama yang sudah terunduh saat efek ini jalan, jadi
+       teksnya berpindah ke bahasa yang benar tanpa menunggu chunk runtime.
+       Kalau ditunggu, di HP lambat halaman terbaca Indonesia ~1,5 detik
+       lebih dulu. Catatan lengkapnya di lang-swap.ts. */
+    tukarTeksStatis(langAwal());
+
     void import('./portfolio-runtime.js');
   }, []);
 

@@ -115,10 +115,12 @@ try {
     cards: document.querySelectorAll('.pgrid .pcard').length,
     empty: [...document.querySelectorAll('.pgrid')].filter(g => !g.children.length).map(g => g.id),
     grids: document.querySelectorAll('.pgrid').length,
-    /* Judul seksi dokumentasi: white-space: nowrap, jadi selalu satu baris —
-       yang bisa gagal adalah MENJULUR keluar kotaknya, dan itu tidak terlihat
-       sebagai error apa pun. Selisih positif = judulnya lebih lebar dari
-       .shell; kecilkan pengali vw di .sec-head--mid .display-lg. */
+    /* Judul seksi dokumentasi: nowrap (satu baris) dari 641px ke atas, boleh
+       membungkus di HP. Yang bisa gagal di dua-duanya sama — MENJULUR keluar
+       kotaknya, dan itu tidak terlihat sebagai error apa pun. Selisih positif =
+       judulnya lebih lebar dari .shell; kecilkan pengali vw di
+       .sec-head--mid .display-lg. Saat membungkus, scrollWidth mengukur kata
+       terpanjangnya, jadi pengukuran yang sama tetap berlaku. */
     over: [...document.querySelectorAll('.sec-head--mid h2')]
       .map(h => [h.closest('section').id, Math.round(h.scrollWidth - h.parentElement.clientWidth)])
       .filter(([, px]) => px > 0),
@@ -165,14 +167,24 @@ try {
     'id', 'tombol bahasa tidak memindahkan halaman ke Indonesia');
   await sleep(300);
 
-  for (const w of [1440, 641, 390]) {
+  /* 344px = layar luar Galaxy Z Fold, yang tersempit yang benar-benar dipakai;
+     di sanalah judul terpanjang paling mungkin patah. */
+  for (const w of [1440, 641, 390, 344]) {
     await send('Emulation.setDeviceMetricsOverride',
       { width: w, height: 844, deviceScaleFactor: 0, mobile: w < 641 });
-    await sleep(300);
+    await sleep(500);
     const narrow = await ev(`JSON.stringify({
       over: [...document.querySelectorAll('.sec-head--mid h2')]
         .map(h => [h.closest('section').id, Math.round(h.scrollWidth - h.parentElement.clientWidth)])
         .filter(([, px]) => px > 0),
+      /* SATU baris, di lebar mana pun dan bahasa mana pun. Di HP ukurannya
+         bukan dari CSS melainkan dari fitJudulSeksi() di portfolio-runtime.js,
+         yang membesarkan tiap judul sampai barisnya menyentuh kotaknya — kalau
+         pengukurannya meleset, yang terlihat judul dua baris di sini. */
+      pecah: [...document.querySelectorAll('.sec-head--mid h2')]
+        .map(h => [h.closest('section').id,
+          Math.round(h.getBoundingClientRect().height / parseFloat(getComputedStyle(h).lineHeight))])
+        .filter(([, lines]) => lines > 1),
       wrapped: ${w} < 1000 ? [] : [...document.querySelectorAll('.sec-head--mid .prose')]
         .map(p => [p.closest('section').id,
           Math.round(p.offsetHeight / parseFloat(getComputedStyle(p).lineHeight))])
@@ -180,6 +192,8 @@ try {
       scrollX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     })`);
     assert.deepStrictEqual(narrow.over, [], `judul ID menjulur di ${w}px: ${JSON.stringify(narrow.over)}`);
+    assert.deepStrictEqual(narrow.pecah, [],
+      `judul ID lebih dari satu baris di ${w}px: ${JSON.stringify(narrow.pecah)}`);
     assert.deepStrictEqual(narrow.wrapped, [],
       `keterangan ID patah lebih dari satu baris di ${w}px: ${JSON.stringify(narrow.wrapped)}`);
     assert.ok(narrow.scrollX <= 0, `halaman bisa digulir mendatar ${narrow.scrollX}px di ${w}px`);
@@ -300,7 +314,7 @@ try {
 
   console.log(`OK — ${g0.cards} kartu di ${g0.grids} kisi kategori (sesuai jumlah PROJECTS), `
     + `${g0.certs.length} kotak sertifikat bertaut ke halaman verifikasi, `
-    + `judul & keterangan seksi satu baris tanpa menjulur (juga di 641/390px), `
+    + `judul seksi satu baris tanpa menjulur (juga di 641/390/344px, dua bahasa), keterangan satu baris, `
     + `sudut corner-shape ${g0.squircle}; `
     + `galeri: deskripsi ${g.descItems} butir (naratif ${narasi.p} paragraf), terbuka di tengah (${Math.round(g.x)}px kiri = ${Math.round(g.vw - g.x - g.w)}px kanan, `
     + `${Math.round(g.y)}px atas = ${Math.round(g.vh - g.y - g.h)}px bawah), judul "${g.title}", foto terpasang, Escape menutup`);

@@ -39,14 +39,30 @@
   --radius-sm: 4px;
   --container-shell: 1440px;
 
-  /* body di-zoom 0.8 (portfolio.css), tapi media query membaca viewport asli —
-     bukan ruang yang tersedia setelah diperkecil. Titik patah bawaan dibagi
-     0.8 supaya patahnya tetap pada lebar isi yang sama; angka ini berpasangan
-     dengan --zoom di portfolio.css, ubah keduanya atau tidak sama sekali. */
-  --breakpoint-sm: 800px;
-  --breakpoint-md: 960px;
-  --breakpoint-lg: 1280px;
-  --breakpoint-xl: 1600px;
+  /* Titik patah = lebar VIEWPORT, bukan lebar isi. Dulu tiap angka dibagi 0.8
+     supaya patahnya jatuh pada lebar isi yang sama seperti bawaan Tailwind
+     (640/768/1024/1280 isi = 800/960/1280/1600 viewport). Akibatnya tata letak
+     laptop baru menyala di viewport 1280px, dan SEMUA tablet berhenti di tata
+     letak satu kolom walau ruangnya cukup: iPad Mini 768px viewport = 960px
+     isi, Surface Pro 912 = 1140, Nest Hub 1024 = 1280 — yang terakhir itu
+     persis selebar laptop, tapi tetap satu kolom.
+
+     Sekarang `lg` menyala di 768px viewport, jadi iPad, Surface, Zenbook Fold,
+     dan Nest Hub semuanya dapat tata letak dua kolom yang sama dengan laptop.
+     Yang paling sempit dari mereka masih punya 960px ruang isi.
+
+     Urutannya WAJIB menaik: Tailwind mengurutkan varian menurut nilainya, dan
+     kalau `lg` lebih kecil dari `sm`, elemen yang memakai keduanya (footer:
+     `sm:grid-cols-2 lg:grid-cols-4`) akan dimenangkan `sm` di laptop. Itu
+     sebabnya keempatnya digeser bersama, bukan `lg` saja.
+
+     Pasangannya di portfolio.css adalah blok 768px di sana. Yang TIDAK ikut
+     turun cuma @media (max-width: 800px) milik .jr-hrow — alasannya ditulis
+     di blok itu, dan ini bukan angka yang boleh disamakan begitu saja. */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 720px;
+  --breakpoint-lg: 768px;
+  --breakpoint-xl: 1024px;
 }
 
 /* ── Tiga bawaan preflight v3 yang dipulihkan ──────────────────────────────

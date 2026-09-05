@@ -3,27 +3,22 @@
    Sections: motion runtime · project data · grid + filters · gallery modal
    ═══════════════════════════════════════════════════════════ */
 
+import { langAwal, tukarTeksStatis } from './lang-swap';
+import { PHOTOS_ID } from './photo-captions';
+
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ═══ 0. BAHASA ═════════════════════════════════════════════
-   Halaman ditulis dalam bahasa Indonesia; versi Inggrisnya menumpang di
-   data-en / data-en-placeholder / data-en-aria-label / data-en-alt.
-   Aslinya direkam DI SINI, sebelum apa pun menyentuh DOM — pemecah huruf di
-   bawah membongkar markup asli, jadi kalau direkam belakangan yang tersimpan
-   sudah berupa span. */
-/* Bawaan 'en', bukan 'id', meski markupnya ditulis dalam bahasa Indonesia:
-   pengunjung pertama kali mendapat versi Inggris, dan pilihannya baru menang
-   setelah ia menekan tombol bahasa. Markupnya tetap Indonesia karena itu yang
-   jadi sumber — data-en yang menumpang di atasnya, bukan sebaliknya. */
-let lang = localStorage.getItem('lang') || 'en';
+   Penukaran teks statis (data-en dan kawan-kawannya) pindah ke lang-swap.ts —
+   site-behavior.tsx sudah memanggilnya saat mount, jauh sebelum chunk ini
+   selesai diunduh, dan alasannya ada di berkas itu. Yang tinggal di sini teks
+   yang lahir di JavaScript: kamus UI, judul & deskripsi proyek, label
+   kategori, dan nama bulan.
 
-const EN_ATTRS = [['placeholder', 'enPlaceholder'], ['aria-label', 'enAriaLabel'], ['alt', 'enAlt']];
-const ID_HTML = new Map();
-const ID_ATTR = new Map();
-
-document.querySelectorAll('[data-en]').forEach(el => ID_HTML.set(el, el.innerHTML));
-document.querySelectorAll('[data-en-placeholder],[data-en-aria-label],[data-en-alt]')
-  .forEach(el => ID_ATTR.set(el, Object.fromEntries(EN_ATTRS.map(([a]) => [a, el.getAttribute(a)]))));
+   `lang` dibaca lagi dari sumber yang sama, bukan dioper: keduanya membaca
+   localStorage, dan applyLang() di bawah yang menjadikannya satu nilai begitu
+   tombol bahasa ditekan. */
+let lang = langAwal();
 
 /* Teks yang lahir di JavaScript, bukan di HTML. */
 const UI = {
@@ -173,7 +168,11 @@ function splitOne(el, doc) {
   const chars = [];                           // urutan hurufnya, untuk --d di bawah
   const build = (src, out) => {
     src.childNodes.forEach((n) => {
-      if (n.nodeName === 'BR') return void out.append(doc.createElement('br'));
+      // Disalin, bukan dibuat baru: <br> di judul About memikul kelas yang
+      // menentukan patahan mana yang dipakai laptop dan mana yang dipakai HP
+      // (.br-lg / .br-hp di app/portfolio.css). <br> baru datang tanpa kelas
+      // itu, dan kedua patahan akan menyala sekaligus.
+      if (n.nodeName === 'BR') return void out.append(n.cloneNode(false));
       if (n.nodeType !== 3) {
         const clone = n.cloneNode(false);      // pembungkusnya utuh, isinya dipecah
         build(n, clone);
@@ -247,16 +246,17 @@ splitChars();
      satu dan sama: WebGL tidak tersedia. */
   if (!gl) return void canvas.classList.add('is-flat');
 
-  /* Prop komponen aslinya. Warnanya diambil dari palet M di app/portfolio.css:
-     default #f7f7f7 + #e100ff (magenta) sama sekali di luar template ini. */
+  /* Prop komponen aslinya, nilainya persis seperti yang diminta. Warnanya
+     kembali ke default SoftAurora: putih + magenta, di luar palet M. */
   const P = {
-    speed: 0.5, scale: 1.5, brightness: 0.9,
-    color1: '#1c69d4',                // --m-blue-dark
-    color2: '#e22718',                // --m-red
-    noiseFrequency: 2.5, noiseAmplitude: 1.0,
-    bandHeight: 0.42, bandSpread: 1.0,
-    octaveDecay: 0.1, layerOffset: 0, colorSpeed: 1.0,
-    enableMouseInteraction: true, mouseInfluence: 0.2,
+    speed: 0.8, scale: 1.5, brightness: 0.9,
+    color1: '#f7f7f7',                // putih
+    color2: '#e100ff',                // magenta
+    white: 0,                         // color1 sudah putih, tak perlu ditambah
+    noiseFrequency: 1.5, noiseAmplitude: 1.0,
+    bandHeight: 0.5, bandSpread: 1.0,
+    octaveDecay: 0.1, layerOffset: 0, colorSpeed: 1.5,
+    enableMouseInteraction: false, mouseInfluence: 0.5,
   };
   /* Digambar pada setengah resolusi lalu direntang CSS. Shader ini menghitung
      3 oktaf Perlin 3D dua kali per piksel — pada layar retina itu mahal, dan
@@ -289,6 +289,7 @@ uniform float uBandSpread;
 uniform float uOctaveDecay;
 uniform float uLayerOffset;
 uniform float uColorSpeed;
+uniform float uWhite;
 uniform vec2 uMouse;
 uniform float uMouseInfluence;
 uniform bool uEnableMouse;
@@ -358,7 +359,14 @@ float perlin3D(float amplitude, float frequency, float px, float py, float pz) {
 }
 
 float auroraGlow(float t, vec2 shift) {
-  vec2 uv = gl_FragCoord.xy / uResolution.y;
+  /* Aslinya kedua sumbu dibagi tinggi layar, jadi lebar pola noise-nya ikut
+     rasio layar: di HP yang tinggi dan sempit uv.x cuma sampai ~0.46, dan yang
+     tampil satu gelombang melar, bukan gelombang yang sama seperti di desktop.
+     Sumbu x dinormalkan ke lebar lalu dikali rasio acuan 16:9 — jumlah dan
+     bentuk gelombangnya jadi sama di layar mana pun. Sumbu y tetap dibagi
+     tinggi, persis seperti semula, karena pita cahayanya memang diukur
+     terhadap tinggi layar. */
+  vec2 uv = vec2(gl_FragCoord.x / uResolution.x * 1.7778, gl_FragCoord.y / uResolution.y);
   uv += shift;
 
   float noiseVal = 0.0;
@@ -385,9 +393,18 @@ void main() {
     shift = (uMouse - 0.5) * uMouseInfluence;
   }
 
+  // Ditahan di variabel, bukan dipanggil dua kali: auroraGlow itu 3 oktaf
+  // perlin, dan pita putih di bawah memakai nilai yang sama.
+  float glow1 = auroraGlow(t, shift);
+  float glow2 = auroraGlow(t + uLayerOffset, shift);
+
   vec3 col = vec3(0.0);
-  col += 0.99 * auroraGlow(t, shift) * cosineGradient(uv.x + uTime * uSpeed * 0.2 * uColorSpeed, vec3(0.5), vec3(0.5), vec3(1.0), vec3(0.3, 0.20, 0.20)) * uColor1;
-  col += 0.99 * auroraGlow(t + uLayerOffset, shift) * cosineGradient(uv.x + uTime * uSpeed * 0.1 * uColorSpeed, vec3(0.5), vec3(0.5), vec3(2.0, 1.0, 0.0), vec3(0.5, 0.20, 0.25)) * uColor2;
+  col += 0.99 * glow1 * cosineGradient(uv.x + uTime * uSpeed * 0.2 * uColorSpeed, vec3(0.5), vec3(0.5), vec3(1.0), vec3(0.3, 0.20, 0.20)) * uColor1;
+  col += 0.99 * glow2 * cosineGradient(uv.x + uTime * uSpeed * 0.1 * uColorSpeed, vec3(0.5), vec3(0.5), vec3(2.0, 1.0, 0.0), vec3(0.5, 0.20, 0.25)) * uColor2;
+  // Inti pitanya diputihkan sedikit: lapis pertama SoftAurora aslinya #f7f7f7,
+  // dan palet biru+merah di atas kehilangan putih itu. Aditif, jadi cuma bagian
+  // paling terang yang memutih, tepinya tetap biru dan merah.
+  col += uWhite * (glow1 + glow2);
 
   col *= uBrightness;
   float alpha = clamp(length(col), 0.0, 1.0);
@@ -420,7 +437,6 @@ void main() {
 
   const u = (n) => gl.getUniformLocation(prog, n);
   gl.uniform1f(u('uSpeed'), P.speed);
-  gl.uniform1f(u('uScale'), P.scale);
   gl.uniform1f(u('uBrightness'), P.brightness);
   gl.uniform3fv(u('uColor1'), hexToVec3(P.color1));
   gl.uniform3fv(u('uColor2'), hexToVec3(P.color2));
@@ -431,9 +447,25 @@ void main() {
   gl.uniform1f(u('uOctaveDecay'), P.octaveDecay);
   gl.uniform1f(u('uLayerOffset'), P.layerOffset);
   gl.uniform1f(u('uColorSpeed'), P.colorSpeed);
+  gl.uniform1f(u('uWhite'), P.white);
   gl.uniform1f(u('uMouseInfluence'), P.mouseInfluence);
   gl.uniform1i(u('uEnableMouse'), P.enableMouseInteraction ? 1 : 0);
-  const uTime = u('uTime'), uRes = u('uResolution'), uMouse = u('uMouse');
+  const uTime = u('uTime'), uRes = u('uResolution'), uMouse = u('uMouse'), uScale = u('uScale');
+
+  /* Skala pola mengikuti rasio layar, dan ini SATU-SATUNYA penyesuaian HP di
+     sini. Sebabnya: auroraGlow menormalkan sumbu x ke rasio acuan 16:9, jadi
+     satu layar HP memuat gelombang sebanyak layar lebar dalam ruang seperempat
+     lebarnya — yang terbaca bukan aurora, tapi bintik rapat. Skalanya
+     diturunkan sebanding kekurangan rasionya, dengan lantai .7. Lantainya dua
+     kali disetel: di 1 (tanpa penyesuaian) polanya terbaca bintik rapat, di
+     .45 gelombangnya membesar sampai satu pita menguasai layar dan menindih
+     teks. Di layar 16:9 ke atas pengalinya 1: tampilan desktopnya tidak
+     berubah sama sekali.
+     Dihitung di resize(), bukan sekali di awal: memutar HP mengubah rasionya.
+     Bobotnya juga diredam di layar sempit — lihat @media .aurora di
+     app/portfolio.css; itu yang mengurus terang, ini yang mengurus ukuran. */
+  const REF = 16 / 9;
+  const skala = (w, h) => P.scale * Math.min(1, Math.max(0.7, (w / h) / REF));
 
   function resize() {
     const w = Math.max(1, Math.round(canvas.clientWidth * RES));
@@ -442,8 +474,11 @@ void main() {
     canvas.width = w; canvas.height = h;
     gl.viewport(0, 0, w, h);
     gl.uniform3f(uRes, w, h, w / h);
+    gl.uniform1f(uScale, skala(w, h));
   }
 
+  // enableMouseInteraction mati: dibiarkan supaya menyalakannya kembali cukup
+  // satu nilai di P, bukan menulis ulang penangannya.
   const mouse = [0.5, 0.5], target = [0.5, 0.5];
   if (P.enableMouseInteraction) {
     // Didengarkan di window, bukan di kanvas: kanvasnya pointer-events none,
@@ -468,15 +503,21 @@ void main() {
 
   if (reduced) return void requestAnimationFrame(render);   // satu bingkai diam
 
-  let raf = 0, running = false;
-  const loop = (t) => { render(t); raf = requestAnimationFrame(loop); };
-  // Shader ini yang paling mahal di halaman — berhenti total begitu hero lewat.
-  new IntersectionObserver(([e]) => {
-    if (e.isIntersecting === running) return;
-    running = e.isIntersecting;
-    if (running) raf = requestAnimationFrame(loop);
-    else cancelAnimationFrame(raf);
-  }).observe(canvas);
+  /* Tidak ada yang menghentikan loop ini: kanvasnya position: fixed, jadi ia
+     latar SEMUA seksi dari hero sampai footer. Sempat dipadamkan di bawah
+     seksi Skills dan sempat dibekukan selama kartu lanyard digenggam; dua-duanya
+     dilepas atas permintaan — cahayanya memang diminta ikut sampai bawah, dan
+     membekukannya saat kartu ditarik tidak terasa bedanya.
+
+     Yang menahan ongkosnya: setengah resolusi (RES), requestAnimationFrame yang
+     berhenti sendiri saat tabnya tidak terlihat, dan gambar tiap bingkai KEDUA
+     di bawah. Shader ini yang paling mahal di halaman (3 oktaf Perlin 3D, dua
+     kali, per piksel) sementara cahayanya bergerak dalam hitungan detik — 30
+     bingkai/detik tidak terlihat bedanya. Kalau masih terasa berat di HP, RES
+     yang berikutnya diturunkan. */
+  let gilir = 0;
+  const loop = (t) => { if ((gilir ^= 1)) render(t); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
 })();
 
 /* ScrollVelocity: marquee yang lajunya ikut kecepatan scroll.
@@ -616,13 +657,34 @@ const LINK_ICON = {
   github: '<path fill="currentColor" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>',
 };
 
+/* Label Indonesia, dan HARUS Indonesia: ini sisi `id` dari pasangan dengan
+   CATEGORIES_EN di bawah. Tiga di antaranya sempat berisi teks Inggris, jadi
+   lencana kartu tetap berbahasa Inggris saat halaman dipindah ke Indonesia
+   — dan cuma "Sertifikasi" yang ikut berpindah. Kata-katanya sengaja sama
+   dengan judul seksinya di app/page.tsx. */
 const CATEGORIES = {
-  industri:   { label: 'Experience' },
-  akademik:   { label: 'Development Project' },
+  industri:   { label: 'Pengalaman Kerja' },
+  akademik:   { label: 'Proyek Pengembangan' },
   sertifikasi:{ label: 'Sertifikasi' },
-  organisasi: { label: 'Organization & Activities' },
+  organisasi: { label: 'Organisasi & Kegiatan' },
 };
 
+/* URUTAN `images` = urutan galerinya saat dibuka, dan untuk proyek
+   Pengembangan (kategori akademik) urutannya satu aturan, bukan selera per
+   proyek — ditulis TANPA menyebut nama medannya berikut tanda kutipnya, karena
+   tests/check-gallery.mjs mencacah entri PROJECTS dengan mencari pola itu di
+   berkas mentah dan komentar pun ikut terhitung:
+
+     1. VIDEO dulu kalau ada — itu bukti proyeknya berjalan, dan yang paling
+        dicari orang yang membuka popupnya.
+     2. HASIL / keluarannya — sistem yang bekerja, hasil deteksi, grafik
+        metrik.
+     3. PROSESNYA — desain, layout, penyolderan, pelatihan model.
+     4. TIM dan foto opsional PALING BELAKANG — foto kelas, foto kelompok.
+
+   Kalau urutan ini menggeser sampul kartunya (coverOf memakai foto BUKAN-video
+   pertama), sampulnya ditulis eksplisit lewat `cover` di proyek itu, bukan
+   dengan menyimpang dari aturan. */
 const PROJECTS = [
   {
     id: 'antam', cat: 'industri', isNew: true,
@@ -635,17 +697,30 @@ const PROJECTS = [
     images: [
       // Paling depan = sampul panel & thumbnail grid (lihat coverOf).
       'Become part of PT ANTAM (UBPP) Logam Mulia.jpeg',
+      // Urutannya sama dengan ketiga kartu Tanggung Jawab di bab ANTAM
+      // (experience-journey.tsx): Preventive Maintenance, sistem inventaris,
+      // lalu MMLA. Satu urutan untuk dijaga, bukan dua.
       'Carrying out Preventive Maintenance in the Factory Area.png',
+      'Documentation and Digitization Results of Preventive Maintenance Work Instructions.png',
       'Preventive Maintenance Preparation in the Smelting and Refining Section.jpeg',
       'Ensuring Normal Voltage and Current in Production Machinery Components.jpeg',
       'Performing Maintenance on the Pneumatic Components of Production Machinery.jpeg',
+      'Conducting operational testing on the HCl, NaOH, and demineralized water pumps to ensure smooth operation, the absence of excessive vibration, and stable rotation.png',
+      'Checking the conductivity value of the product water.png',
       'Vibration Check on Scrubber Motor for Work Instruction Documentation.jpeg',
+      'MTTR Target Never Achieved.jpeg',
       'Inventory System Wiring Diagram.png',
       'Verifying PCB Trace Connectivity.png',
+      'Cutting the PCB according to the dimensions from the mechanical design.jpeg',
       'PCB Layout Result.jpeg',
       'System Placement Mapping.jpeg',
+      'System Placement Design Following Room Mapping.png',
+      'Project Implementation and Testing for Equipment Stock Borrowing and Return.png',
+      'Reconstruction of the Previous MMLA Method as a Refinement.png',
       'Meeting on Planning and Revising the MMLA Method.jpeg',
-      "Training on the Implementation of the MMLA Method in the Company's Maintenance Department.jpeg",
+      'Restructuring the MMLA method used by ANTAM based on the results of the meeting held.png',
+      'Learning Materials for Implementing the MMLA Method in a Maintenance Unit.png',
+      "Training on the Implementation of the MMLA Method in the Company's Maintenance Department.png",
     ],
   },
   {
@@ -720,14 +795,21 @@ const PROJECTS = [
     tags: ['YOLO', 'OpenCV', 'Raspberry Pi', 'Fusion 360', '3D Printing'],
     folder: 'Robotika Cerdas Arm Robot',
     images: [
+      'Control Testing of Robot Manipulators.mp4',
+      /* Dua foto PROSES yang berdiri di depan hasil, dan disengaja: keduanya
+         satu rangkaian (dirancang lalu dicetak), dan yang pertama sekaligus
+         sampul kartunya — bentuk manipulatornya yang paling cepat dikenali di
+         kisi proyek, grafik metrik dan potongan hasil deteksi tidak. Sampulnya
+         ditaruh di sini, bukan lewat `cover`, supaya sampul dan foto pembuka
+         galerinya satu foto. */
       'Design Process for 3D Printing a Robot Manipulator Body.png',
       'Printing 3D Designs for Base, Elbow, and Shoulder Robot Manipulator.jpeg',
-      'Integration of Power and Communication Components for Robot Manipulator Testing.jpeg',
-      'mAP50, Loss, Precision, and Recall Results from the Training Dataset.jpeg',
-      'Organic Detection Results from Model Training.jpeg',
+      'Detection and Classification Testing of Two Objects in a Single Frame.jpeg',
       'Organic Object Detection Testing Based on Model Training Results.png',
       'Testing of Inorganic Object Detection Based on Model Training Results.png',
-      'Detection and Classification Testing of Two Objects in a Single Frame.jpeg',
+      'Organic Detection Results from Model Training.jpeg',
+      'mAP50, Loss, Precision, and Recall Results from the Training Dataset.jpeg',
+      'Integration of Power and Communication Components for Robot Manipulator Testing.jpeg',
       'Final Testing for Data Collection from Various Evaluations.jpeg',
     ],
   },
@@ -740,16 +822,17 @@ const PROJECTS = [
     tags: ['YOLO11', 'ByteTrack', 'OpenCV', 'Perspective Transform'],
     folder: 'Computer Vision & AI',
     images: [
+      'A trial using Yogyakarta City CCTV to detect vehicle speed and associated risk levels.mp4',
       'Computer Vision Based Vehicle Detection Results Us-Cover.jpg',
-      'Automation Process For Annotating Vehicle Type Objects.jpeg',
-      'Dividing the Dataset Results into Train, Valid, and Test.png',
-      'Training Results for Creating Models of Desired Objects.jpeg',
+      'Matrix of Prediction Results for Existing Objects.jpeg',
       'Results of Each Loss, Precision, and mAP value.jpeg',
       'Results After Training and the Relationship between Precision and Recall.jpeg',
       'Results After Training and the Relationship between Recall and Confidence.jpeg',
       'Results After Train and the Relationship between F1 Score and Confidence.jpeg',
+      'Automation Process For Annotating Vehicle Type Objects.jpeg',
+      'Dividing the Dataset Results into Train, Valid, and Test.png',
+      'Training Results for Creating Models of Desired Objects.jpeg',
       'Confidence Test Values on Objects During the Training Process.jpeg',
-      'Matrix of Prediction Results for Existing Objects.jpeg',
       'Project Group Members after Final Presentation.jpeg',
     ],
   },
@@ -762,16 +845,16 @@ const PROJECTS = [
     tags: ['ROS 2', 'LiDAR', 'Jetson Orin Nano', 'Foxglove', 'Python'],
     folder: 'Robotika Lanjut',
     /* Sampul kartunya foto rakitan rover-nya, bukan foto pemeriksaan komponen
-       — lihat coverOf(). Berkasnya tetap di urutan aslinya di images: yang di
-       bawah urutan kerjanya (periksa komponen dulu, baru dirakit), dan itu
-       juga urutan galerinya saat dibuka. Foto pemeriksaan komponen itu yang
-       sekarang dipakai pita foto di atas seksi ini (CHOREO_PROJECTS di
-       app/page.tsx); keduanya bertukar tempat. */
+       — lihat coverOf(). `cover` masih diperlukan meski foto itu kini juga
+       yang pertama setelah videonya: tanpanya sampulnya jatuh ke foto yang
+       sama, tapi ia jadi bergantung pada urutan images yang bisa berubah
+       lagi. Foto pemeriksaan komponen dipakai pita foto di atas seksi ini
+       (CHOREO_PROJECTS di app/page.tsx). */
     cover: 'Robot Components for Remote Control Integration and LiDAR Sensor Detection.jpeg',
     images: [
-      'Component Checking before Implementation and Control Using ROS 2.jpeg',
+      'Robot Communication Control and Testing via ROS2.mp4',
       'Robot Components for Remote Control Integration and LiDAR Sensor Detection.jpeg',
-      'Control Implementation.mp4',
+      'Component Checking before Implementation and Control Using ROS 2.jpeg',
     ],
   },
   {
@@ -782,22 +865,28 @@ const PROJECTS = [
     desc: 'Merancang sistem elektronik dan mekanik line follower otonom: PCB kustom, sasis robot di Fusion 360, integrasi 8 sensor fotodioda, multiplexer, motor driver, dan modul manajemen daya. Mengimplementasikan pembacaan sensor serta menala parameter kontrol PD untuk meningkatkan responsivitas dan kestabilan gerak. Catatan waktu tercepat 7,9 detik dengan performa yang stabil dan konsisten.',
     tags: ['PID / PD Control', 'Custom PCB', 'Fusion 360', 'Photodiode Array'],
     folder: 'P. Robotika Lanjut (SEM 5)',
+    /* Foto kelas dulu berdiri paling depan di images DAN jadi sampul kartunya.
+       Aturan urutan galeri di bawah menaruhnya paling belakang, jadi sampulnya
+       ditulis eksplisit di sini — kalau tidak, ia ikut pindah dan sampulnya
+       berubah jadi foto garis finis. */
+    cover: 'Class Photo after the Line Follower Race.jpeg',
     images: [
-      'Class Photo after the Line Follower Race.jpeg',   // pertama = sampul kartu
-      'Robot Assembly Modelling in Fusion 360.jpeg',
-      'Chassis Assembly Views from Every Angle.jpeg',
-      'Sensor Board PCB Layout in EasyEDA.jpeg',
-      'Technical Drawing with Robot Dimensions.jpeg',
-      'Soldering the Etched Sensor Board.jpeg',
-      'Soldering and Voltage Check under a Magnifier.jpeg',
-      'Robots Lined Up on the Track before a Run.jpeg',
-      'All Class Robots on the Race Track.jpeg',
-      'Team Photo with the Finished Robots.jpeg',
+      'Development and Testing of an Autonomous Line-Following Robot Using PID Control.mp4',
       'Robot Crossing the Finish Line.jpeg',
       'Final Demonstration in the Laboratory.jpeg',
-      'Sensor Calibration on the Arduino Serial Monitor.jpeg',
+      'Robots Lined Up on the Track before a Run.jpeg',
+      'Robot Assembly Modelling in Fusion 360.jpeg',
+      'Chassis Assembly Views from Every Angle.jpeg',
+      'Technical Drawing with Robot Dimensions.jpeg',
+      'Sensor Board PCB Layout in EasyEDA.jpeg',
       'Checking Component Placement on the Sensor Board.jpeg',
       '3D Preview of the Assembled Sensor Board.jpeg',
+      'Soldering the Etched Sensor Board.jpeg',
+      'Soldering and Voltage Check under a Magnifier.jpeg',
+      'Sensor Calibration on the Arduino Serial Monitor.jpeg',
+      'All Class Robots on the Race Track.jpeg',
+      'Team Photo with the Finished Robots.jpeg',
+      'Class Photo after the Line Follower Race.jpeg',
     ],
   },
   {
@@ -809,7 +898,8 @@ const PROJECTS = [
     tags: ['OpenPLC', 'Ladder Diagram', 'TON / CTU', 'Safety Interlock'],
     folder: 'P. PLC (SEM 4)',
     images: [
-      'Simple simulation when applied to conveyor logic.jpg',   // pertama = sampul kartu
+      'Logic Programming Implementation Process for Automated Systems Using OpenPLC Editor.mp4',
+      'Simple simulation when applied to conveyor logic.jpg',
       'Circuit Schematic for a Case Study of the Paint Mixing System Operational Process.jpeg',
       'Entering Variables For Project Series.jpeg',
       'The Circuit Component Responsible for Automation is That Every 4 Seconds, the Retail Valve Will Close and the Process Will Continue at the Mixing Stage.jpeg',
@@ -851,17 +941,14 @@ const PROJECTS = [
     period: 'Des 2025 – Des 2025',
     desc: 'Proyek ini menjawab tidak efisiennya pengelolaan suhu ruangan secara manual dengan membangun sistem otomasi cerdas yang mampu menjaga kenyamanan lingkungan secara real-time. Pengembangannya mengintegrasikan sensor DHT11 untuk pembacaan suhu dan kelembapan, mikrokontroler ESP32 sebagai unit pemrosesan, dan Firebase Realtime Database untuk sinkronisasi data berbasis cloud. Keluarannya sistem yang berfungsi penuh: pengguna dapat memantau kondisi ruangan dan mengendalikan kipas DC secara otomatis maupun dari jarak jauh lewat dasbor MIT App Inventor. Sistem ini terpakai untuk implementasi smart home, optimasi suhu ruang server, dan menjaga kestabilan iklim rumah kaca demi efisiensi energi sekaligus kenyamanan pengguna.',
     tags: ['ESP32', 'DHT11', 'Firebase', 'MIT App Inventor'],
-    /* Sampulnya grafik data, bukan foto pertama: yang paling mewakili proyek
-       ini pembacaan sensornya, bukan tampilan aplikasinya. */
-    cover: 'Data graph on Influxdb obtained from sensor readings.jpeg',
     folder: 'P. Komputasi Awan',
     images: [
+      'Data graph on Influxdb obtained from sensor readings.jpeg',
+      'Graph of data obtained from sensor readings.jpeg',
       'Create simple applications for control systems.jpeg',
       'Application display for monitoring reading results.jpeg',
       'Control when the light is on.jpeg',
       'Control when the lights are off.jpeg',
-      'Graph of data obtained from sensor readings.jpeg',
-      'Data graph on Influxdb obtained from sensor readings.jpeg',
     ],
   },
   {
@@ -880,14 +967,14 @@ const PROJECTS = [
     certificate: 'Training Completion Certificate from Kemnaker SkillHub.png',
     folder: 'Sertifikasi K3 Listrik',
     images: [
-      'Explanation of Material from the Supervisor.png',
       'Application of Electric K3 during Installation.png',
+      'Explanation of Material from the Supervisor.png',
       'Fire Hazard Protection for Electrical Installations.png',
     ],
   },
   {
     id: 'bpvp-ambon', cat: 'sertifikasi', isNew: true,
-    title: 'Reading & Identifying Passive Electronic Components',
+    title: 'Pembacaan & Identifikasi Komponen Elektronik Pasif',
     org: 'BPVP Ambon, Kementerian Ketenagakerjaan RI',
     period: 'Apr 2026',
     desc: 'Sertifikasi pembacaan dan identifikasi komponen elektronik pasif: pembacaan kode warna resistor, kapasitor, dan induktor, beserta fungsi dan formula keluaran masing-masing komponen.',
@@ -920,7 +1007,7 @@ const PROJECTS = [
   },
   {
     id: 'k3-ziona', cat: 'sertifikasi', isNew: true,
-    title: 'Occupational Health and Safety (K3)',
+    title: 'Keselamatan dan Kesehatan Kerja (K3)',
     org: 'PKBM & LPK ZIONA',
     period: 'Feb 2026',
     desc: 'Pelatihan keselamatan dan kesehatan kerja: identifikasi risiko di tempat kerja, penggunaan APD, prosedur tanggap darurat, dan penerapan budaya kerja aman.',
@@ -979,25 +1066,28 @@ const PROJECTS = [
   },
   {
     id: 'diskusi', cat: 'organisasi',
+    /* Naratif satu paragraf — lihat descHTML(). */
+    story: true,
     title: 'Diskusi Departemen Teknik Elektro & Elektronika',
     org: 'Himpunan Mahasiswa Vokasi Elektro dan Elektronika (HMVE UNY)',
     period: '2025',
-    desc: 'Untuk semua mahasiswa, terutama mahasiswa baru: kampus menyediakan ruang untuk menyampaikan aspirasi langsung ke departemen. Lewat forum diskusi seperti ini kita bisa memberi masukan jujur soal kendala belajar dan kebutuhan fasilitas. Masukan mahasiswa itu kunci supaya kualitas pendidikan di departemen tetap relevan dengan tantangan industri dan perkembangan teknologi hari ini.\n\nSaya senang bisa hadir di Talk Event yang diselenggarakan Departemen Teknik Elektro & Elektronika Universitas Negeri Yogyakarta (UNY) bersama HMVE UNY. Di acara itu saya berdiskusi langsung dengan dosen dan pengelola program studi soal peningkatan kualitas pembelajaran dan pembaruan infrastruktur laboratorium. Sebagai mahasiswa, itu cara nyata untuk ikut memperbaiki fasilitas praktikum kampus secara berkelanjutan.',
+    desc: 'Saya senang bisa hadir di Talk Event yang diselenggarakan Departemen Teknik Elektro & Elektronika Universitas Negeri Yogyakarta (UNY) bersama HMVE UNY. Di acara itu saya berdiskusi langsung dengan dosen dan pengelola program studi soal peningkatan kualitas pembelajaran dan pembaruan infrastruktur laboratorium. Sebagai mahasiswa, itu cara nyata untuk ikut memperbaiki fasilitas praktikum kampus secara berkelanjutan.',
     tags: ['Forum Aspirasi', 'Organisasi', 'HMVE'],
     folder: 'Diskusi Departemen Teknik Elektro & Elektronika',
     images: [
       'Event Activities Organized by the Electrical and Electronics Engineering Student Association.webp',
-      'I and the Electrical and Electronics Engineering Study Program students who want to convey aspirations to the study program.webp',
       'Lecturers Who Receive and Convey Opinions Regarding Student Aspirations.webp',
       'Participants Who Take Part in Activities.webp',
     ],
   },
   {
     id: 'studi-banding', cat: 'organisasi',
+    /* Naratif satu paragraf — lihat descHTML(). */
+    story: true,
     title: 'Studi Banding Divisi Kewirausahaan HMVE UNY & HME Polines',
     org: 'Himpunan Mahasiswa Vokasi Elektro dan Elektronika (HMVE UNY)',
     period: 'Mei 2025',
-    desc: 'Bagi mahasiswa teknik, studi banding bukan sekadar program formal yang diadakan demi jalan-jalan antarkampus. Di baliknya ada pertukaran cara pandang tentang sistem belajar, budaya akademik, dan pengembangan kemampuan mahasiswa. Yang sering luput: perbedaan ekosistem organisasi antarkampus berpengaruh besar pada kualitas lulusannya, terutama pada kesiapan menghadapi industri dan kemampuan bekerja lintas disiplin.\n\nSebagai bagian dari panitia Studi Banding HMVE UNY 2025, saya terlibat langsung dalam kegiatan yang berlangsung pada Sabtu, 17 Mei 2025 di Politeknik Negeri Semarang (POLINES) bersama HME Polines. Program ini jadi ruang diskusi terbuka bagi mahasiswa vokasi untuk bertukar pengalaman, sistem organisasi, dan strategi pengembangan kompetensi, sekaligus memperluas jejaring dan cara pandang di luar lingkungan kampus sendiri.',
+    desc: 'Sebagai bagian dari panitia Studi Banding HMVE UNY 2025, saya terlibat langsung dalam kegiatan yang berlangsung pada Sabtu, 17 Mei 2025 di Politeknik Negeri Semarang (POLINES) bersama HME Polines. Program ini jadi ruang diskusi terbuka bagi mahasiswa vokasi untuk bertukar pengalaman, sistem organisasi, dan strategi pengembangan kompetensi, sekaligus memperluas jejaring dan cara pandang di luar lingkungan kampus sendiri.',
     tags: ['Studi Banding', 'Kewirausahaan', 'Organisasi', 'HMVE'],
     folder: 'Studi Banding',
     images: [
@@ -1027,7 +1117,9 @@ const PROJECTS = [
     folder: 'Kunjungan Industri',
     images: [
       'Industrial Visit to LRT Jakarta.webp',
+      'Industrial Visit to PT LRT Jakarta at Velodrome Station.webp',
       'Explanation regarding the LRT Jakarta train operating system.webp',
+      'Discussion on how mechanical systems in trains can generate an electricity supply.jpg',
     ],
   },
   {
@@ -1037,16 +1129,16 @@ const PROJECTS = [
     period: 'Nov 2024',
     desc: 'Industri manufaktur bergerak cepat memasuki era Industri 4.0, dan robotika, otomasi, serta sistem cerdas jadi tulang punggung proses produksinya. Teknologi seperti lengan robot, Automated Guided Vehicle (AGV), dan sistem kontrol presisi membuat produksi lebih cepat, lebih akurat, dan konsisten, sekaligus menaikkan efisiensi, keselamatan, dan kualitas produk.\n\nPada 4 November 2024 saya mengikuti kunjungan industri ke PT Artifa Sukses Persada dan mengamati langsung sistem otomasi industrinya: lengan robot, AGV, dan simulator forklift. Pengalaman itu memberi gambaran nyata penerapannya di lapangan dan menyiapkan saya membaca tantangan serta peluang industri ke depan.',
     tags: ['Industri 4.0', 'Lengan Robot', 'AGV', 'ROS 2'],
-    /* Sampulnya lantai produksinya, bukan foto papan nama: yang diceritakan
-       entri ini sistem otomasinya. */
-    cover: 'Robot Control System using ROS2 in the Sorting Industry.webp',
     folder: 'Kunjungan Industri',
     images: [
       'Industrial Visit to PT Infiniti Group.webp',
+      'Industrial Visit to PT Artifa Sukses Persada.jpg',
+      'Introduction to company work safety before entering the work area.webp',
       'Explanation of material related to the development of robotics in the industrial era 4.0.webp',
       'Seeing the development and transformation of tools in the field of robotics in industry 4.0.webp',
       'Robot Control System using ROS2 in the Sorting Industry.webp',
       'Robot for sorting goods which is controlled directly from ROS2.png',
+      'Forklift Simulator as a Learning Tool and Source of Preliminary Knowledge.webp',
     ],
   },
   {
@@ -1061,10 +1153,12 @@ const PROJECTS = [
   },
   {
     id: 'expo', cat: 'organisasi',
-    title: 'National Expo of Faculty of Vocational Products',
+    /* Naratif satu paragraf — lihat descHTML(). */
+    story: true,
+    title: 'Pameran Nasional Produk Fakultas Vokasi',
     org: 'Universitas Negeri Yogyakarta (UNY)',
     period: 'Okt 2024',
-    desc: 'Bagi sesama mahasiswa dan penggemar teknologi, terutama di bidang teknik, pameran produk vokasi tempat terbaik untuk melihat bagaimana teori di kelas benar-benar diterapkan. Dari sana terlihat bagaimana lengan robot enam sumbu bekerja sebagai aktuator presisi untuk kebutuhan manufaktur industri. Begitu juga drone yang bertumpu pada kestabilan roll, pitch, dan yaw untuk terbang pada ketinggian terkendali, serta rancangan PCB kustom yang jadi otak sistem elektronikanya.\n\nSaya bersyukur mendapat kesempatan mengunjungi Pameran Nasional Produk Fakultas Vokasi Universitas Negeri Yogyakarta (UNY) pada 28 Oktober 2024. Dalam kunjungan itu saya menelusuri berbagai proyek inovatif mahasiswa Teknik Elektronika, mulai dari lengan robot, drone, sampai purwarupa skematik PCB. Terima kasih khusus untuk Dzaki Fajri Arrafi yang menyempatkan diri menjelaskan dan berbagi banyak hal tentang sistem mekanis lengan robot.',
+    desc: 'Saya bersyukur mendapat kesempatan mengunjungi Pameran Nasional Produk Fakultas Vokasi Universitas Negeri Yogyakarta (UNY) pada 28 Oktober 2024. Dalam kunjungan itu saya menelusuri berbagai proyek inovatif mahasiswa Teknik Elektronika, mulai dari lengan robot, drone, sampai purwarupa skematik PCB.',
     tags: ['Pameran', 'Produk Vokasi', 'Presentasi Teknis'],
     folder: 'National Expo of Faculty of Vocational Products at Universitas Negeri Yogyakarta (UNY)',
     images: [
@@ -1147,7 +1241,8 @@ const PROJECTS_EN = {
     desc: 'For those curious about how technology is applied in managing a modern city, Jakarta provides a real example through its smart city concept. One of its key implementations is the JAKI application, an integrated platform offering public services, city information, infrastructure reporting, and water level monitoring for flood mitigation. This system demonstrates how data, sensors, and digital technology work together to create faster, smarter, and more responsive public services.\n\nOn Monday, November 4th, 2024, I participated in an industrial visit to Jakarta Smart City. Through this activity, I gained firsthand insight into how technology supports data driven decision making and contributes to building a more efficient and sustainable urban environment.',
   },
   expo: {
-    desc: 'For fellow students and technology enthusiasts, especially those in the engineering field, the vocational product exhibition is the best place to see how classroom theory can be implemented directly. Through this experience, we can see how a six-axis robotic arm can function as a precision actuator for industrial manufacturing needs. The same applies to drones that rely on roll, pitch, and yaw stability for controlled altitude operations, as well as custom PCB designs that serve as the brains of electronic systems.\n\nI am grateful for the opportunity to visit the National Exhibition of the Faculty of Vocational Products at Yogyakarta State University (UNY) on October 28, 2024. During this visit, I explored various innovative projects by Electronic Engineering students, including robotic arms, drones, and PCB schematic prototypes. Special thanks to Dzaki Fajri Arrafi for taking the time to introduce and share valuable insights into the mechanical systems of robotic arms.',
+    title: 'National Expo of Faculty of Vocational Products',
+    desc: 'I am grateful for the opportunity to visit the National Exhibition of the Faculty of Vocational Products at Yogyakarta State University (UNY) on October 28, 2024. During this visit, I explored various innovative projects by Electronic Engineering students, including robotic arms, drones, and PCB schematic prototypes.',
   },
   'k3-listrik': {
     title: 'Awareness K3 Electricity',
@@ -1181,12 +1276,12 @@ const PROJECTS_EN = {
   diskusi: {
     title: 'Electrical & Electronics Engineering Department Forum',
     org: 'Electrical and Electronics Vocational Student Association (HMVE UNY)',
-    desc: "To all students, especially new students, our university provides a platform to voice our aspirations directly to the department. Through these discussion forums, we can provide honest feedback on learning challenges and facility needs. Student input is key to ensuring that the quality of education in our department remains relevant to today's industrial challenges and technological advancements.\n\nI am glad to have attended the Talk Event hosted by the Department of Electrical & Electronic Engineering at Yogyakarta State University (UNY) with HMVE UNY. During this event, I engaged directly with lecturers and supervisors to discuss enhancing learning quality and upgrading laboratory infrastructure. As a student, this was a tangible way for me to contribute to the continuous improvement of our campus practicum facilities.",
+    desc: "I am glad to have attended the Talk Event hosted by the Department of Electrical & Electronic Engineering at Yogyakarta State University (UNY) with HMVE UNY. During this event, I engaged directly with lecturers and supervisors to discuss enhancing learning quality and upgrading laboratory infrastructure. As a student, this was a tangible way for me to contribute to the continuous improvement of our campus practicum facilities.",
   },
   'studi-banding': {
     title: 'Comparative Study, HMVE UNY & HME Polines Entrepreneurship Divisions',
     org: 'Electrical and Electronics Vocational Student Association (HMVE UNY)',
-    desc: 'For engineering students, a comparative study is not merely a formal program organized for the sake of a campus trip. Behind it, there is a meaningful exchange of perspectives on learning systems, academic culture, and student skill development. A detail that is often overlooked is how differences in organizational ecosystems across campuses can significantly influence the quality of graduates, especially in terms of industry readiness and cross disciplinary teamwork.\n\nAs part of the organizing committee of HMVE UNY Comparative Study 2025, I was directly involved in this activity held on Saturday, May 17th, 2025 at Politeknik Negeri Semarang (POLINES) with HME Polines. This program became an open discussion platform for vocational students to share experiences, organizational systems, and competency development strategies, while also expanding networks and perspectives beyond their own campus environment.',
+    desc: 'As part of the organizing committee of HMVE UNY Comparative Study 2025, I was directly involved in this activity held on Saturday, May 17th, 2025 at Politeknik Negeri Semarang (POLINES) with HME Polines. This program became an open discussion platform for vocational students to share experiences, organizational systems, and competency development strategies, while also expanding networks and perspectives beyond their own campus environment.',
   },
 };
 
@@ -1224,11 +1319,16 @@ const thumbSrc = (p, file) => `thumbs/${encodeURIComponent(p.folder)}/${encodeUR
 
 const isVideo = (f) => /\.(mp4|webm|mov|m4v)$/i.test(f);
 
-/* Numbered files ("7.webp") get a generic caption; descriptive ones keep their name. */
+/* Numbered files ("7.webp") get a generic caption; descriptive ones keep their name.
+   Nama berkas ITU SENDIRI yang jadi keterangan bahasa Inggrisnya — semuanya
+   memang ditulis dalam bahasa Inggris — dan PHOTOS_ID di atas yang memberi
+   padanan Indonesianya. Jatuh kembali ke nama berkas kalau belum ada barisnya:
+   foto yang lupa diterjemahkan tampil apa adanya, bukan hilang. */
 const captionOf = (file, i) => {
   const name = file.replace(/\.[^.]+$/, '');
   const generic = /^\d+$/.test(name) || /^Screenshot/i.test(name);
-  return generic ? `${isVideo(file) ? T().video : T().doc} ${i + 1}` : name;
+  if (generic) return `${isVideo(file) ? T().video : T().doc} ${i + 1}`;
+  return (lang === 'id' && PHOTOS_ID[name]) || name;
 };
 
 const esc = (s) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -1237,9 +1337,15 @@ const esc = (s) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': 
    proyek di sini.
 
    Ada baris kosong di dalamnya -> ia memang bercerita, dan tiap paragrafnya
-   ditulis apa adanya sebagai <p>. Itu dipakai kunjungan industri, studi
-   banding, expo, dan forum — teks naratif yang kalau dipecah per kalimat
-   berubah jadi daftar poin yang tidak pernah dimaksudkan.
+   ditulis apa adanya sebagai <p>. Itu dipakai kunjungan industri — teks
+   naratif yang kalau dipecah per kalimat berubah jadi daftar poin yang tidak
+   pernah dimaksudkan.
+
+   `story: true` untuk naratif yang cuma SATU paragraf. Baris kosong tidak bisa
+   jadi penandanya di sana: tidak ada paragraf kedua untuk dipisahkan, jadi
+   tanpa penanda ini forum, expo, dan studi banding jatuh ke cabang butir dan
+   ceritanya pecah per kalimat. Baris kosong tetap ikut berarti naratif —
+   tugasnya kini cuma satu, memisah paragraf.
 
    Tanpa baris kosong -> satu kalimat satu butir, bentuk yang sama dengan CV,
    dan itu sebabnya `desc` proyek teknis tetap ditulis sebagai satu kalimat
@@ -1249,7 +1355,7 @@ const esc = (s) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': 
    berarti apa-apa.
 
    esc() per potongan karena jalur ini innerHTML sekarang, bukan textContent. */
-const descHTML = (s) => (s.includes('\n')
+const descHTML = (s, story) => (story || s.includes('\n')
   ? s.split(/\n+/).map(p => `<p>${esc(p)}</p>`).join('')
   : `<ul>${s.split(/(?<=\.)\s+(?=[A-Z])/).map(b => `<li>${esc(b)}</li>`).join('')}</ul>`);
 
@@ -1438,7 +1544,7 @@ function openGallery(p, card) {
   catEl.hidden = !catEl.textContent;
   document.getElementById('g-title').textContent = t(p, 'title');
   document.getElementById('g-org').textContent = `${t(p, 'org')} · ${period(p.period)}`;
-  document.getElementById('g-desc').innerHTML = descHTML(t(p, 'desc'));
+  document.getElementById('g-desc').innerHTML = descHTML(t(p, 'desc'), p.story);
 
   /* Tautan: yang spesifik dulu (halaman verifikasi proyek ini), baru bagian
      profil LinkedIn untuk kategorinya. Alamatnya konstanta kita sendiri,
@@ -1603,21 +1709,86 @@ addEventListener('keydown', (e) => { if (e.key === 'Escape' && !mobileMenu.hidde
    proyek datang dari JS, bukan dari HTML. */
 const langBtn = document.getElementById('lang-btn');
 
+/* ═══ JUDUL SEKSI BERTENGAH: SATU BARIS, SEBESAR YANG MUAT ═══
+   Judul 03-06 harus muat SATU baris dalam dua bahasa, dan satu pengali vw
+   tidak bisa memberi itu sekaligus ukuran yang pantas: pengalinya harus
+   ditakar dari judul terpanjang ("SELURUH DOKUMENTASI PENGALAMAN KERJA", 36
+   huruf), jadi judul sependek "EXPERIENCE GAINED" ikut turun ke ukuran yang
+   sama — di layar luar Galaxy Z Fold (344px) itu ~13px untuk semuanya.
+
+   Karena itu ukurannya DIUKUR, bukan ditebak: tiap judul dinaikkan sampai
+   lebar satu barisnya menyentuh kotaknya, dengan batas atas 28px (ukuran judul
+   About di HP). Tidak ada rumus dari jumlah karakter yang bisa menggantikan
+   ini — lebar teks bergantung huruf mana yang dipakai, dan judulnya berganti
+   tiap kali bahasanya ditukar.
+
+   letter-spacing -.5px TIDAK ikut mengecil bersama font, jadi penskalaannya
+   tidak persis linear: hasilnya diperiksa ulang dan diturunkan selagi masih
+   lewat, maksimal tiga kali.
+
+   Cuma menaikkan, tidak pernah menurunkan di bawah nilai CSS-nya: nilai CSS
+   sudah aman untuk judul terpanjang (lihat .sec-head--mid di portfolio.css). */
+/* Batas atasnya, bukan ukurannya: yang menentukan tetap lebar kotaknya, dan
+   angka ini cuma menahan judul PENDEK di layar lebar supaya tidak jadi lebih
+   besar dari judul hero. Naik dari 28px — pada 28 judul sependek "EXPERIENCE
+   GAINED" masih menyisakan ruang kosong di kanan-kirinya. */
+const JUDUL_MAKS = 36;
+/* Lebar TEKSNYA, bukan lebar kotaknya. scrollWidth tidak bisa dipakai di sini:
+   pada elemen blok ia mengembalikan lebar kotak selama isinya belum melimpah,
+   jadi teks yang masih longgar terbaca "sudah pas" dan tidak pernah
+   dibesarkan. Range mengukur kotak-kotak baris teksnya sendiri. */
+function lebarTeks(el) {
+  const r = document.createRange();
+  r.selectNodeContents(el);
+  return r.getBoundingClientRect().width;
+}
+function fitJudulSeksi() {
+  for (const h of document.querySelectorAll('.sec-head--mid .display-lg')) {
+    h.style.fontSize = '';                       // ukur ulang dari ukuran CSS-nya
+    if (innerWidth > 640) continue;              // di atas 640px CSS-nya sudah pas
+    const kotak = h.getBoundingClientRect().width;
+    const teks = lebarTeks(h);
+    if (!kotak || !teks) continue;
+    let ukuran = Math.min(JUDUL_MAKS, parseFloat(getComputedStyle(h).fontSize) * kotak / teks);
+    for (let i = 0; i < 3; i++) {
+      h.style.fontSize = ukuran + 'px';
+      const kini = lebarTeks(h);
+      if (kini <= kotak) break;
+      ukuran *= kotak / kini;
+    }
+  }
+}
+
+/* Tiga pemicunya, dan ketiganya mengubah salah satu dari dua angka di atas:
+   ganti bahasa (judulnya berganti), berubahnya lebar kotak, dan selesainya
+   muat huruf — sebelum itu yang terukur lebar huruf cadangan.
+
+   Lebarnya diawasi ResizeObserver, BUKAN event resize window: yang menentukan
+   ukuran judul lebar KOTAKNYA, dan kotak itu bisa berubah tanpa jendela ikut
+   berubah — dan sebaliknya, resize window berbunyi sebelum tata letaknya
+   selesai dihitung ulang. Terukur sebagai judul yang menjulur 46px di
+   tests/check-gallery.mjs, muncul-hilang tergantung waktu. Pengamat ini
+   berbunyi sesudah tata letaknya jadi, jadi yang terukur selalu lebar akhir.
+
+   requestAnimationFrame di dalamnya menahan "ResizeObserver loop" — pengamat
+   yang menulis gaya di dalam panggilannya sendiri. */
+let jadwalJudul = 0;
+const pengamatJudul = new ResizeObserver(() => {
+  if (jadwalJudul) return;
+  jadwalJudul = requestAnimationFrame(() => { jadwalJudul = 0; fitJudulSeksi(); });
+});
+document.querySelectorAll('.sec-head--mid').forEach((el) => pengamatJudul.observe(el));
+document.fonts?.ready.then(fitJudulSeksi);
+
 function applyLang(l) {
   lang = l;
-  document.documentElement.lang = l;
   langBtn.querySelectorAll('[data-lang-opt]')
     .forEach(s => s.classList.toggle('is-on', s.dataset.langOpt === l));
 
-  ID_HTML.forEach((idHtml, el) => { el.innerHTML = l === 'en' ? el.dataset.en : idHtml; });
-  ID_ATTR.forEach((idAttr, el) => {
-    for (const [attr, key] of EN_ATTRS) {
-      const en = el.dataset[key];
-      if (en != null) el.setAttribute(attr, l === 'en' ? en : idAttr[attr]);
-    }
-  });
+  tukarTeksStatis(l);   // teks + atribut statis, sekaligus <html lang>
 
   splitChars();
+  fitJudulSeksi();     // judulnya berganti panjang, ukurannya ikut diukur ulang
   buildMarquees();     // teks CTA ditulis ulang oleh data-en; salinannya harus dibangun ulang
   renderGrid();
 }

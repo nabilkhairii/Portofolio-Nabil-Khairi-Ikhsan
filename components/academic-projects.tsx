@@ -28,6 +28,8 @@
 import { Fragment, type ComponentType, type CSSProperties } from 'react';
 import { Hammer, Target } from 'lucide-react';
 
+import { captionID } from '@/components/photo-captions';
+
 /* Dipinjam dari bab magang, bukan disalin ulang: pembungkus dwibahasa,
    pembentuk jalur thumbnail, dan ikon tiga-ceklis yang ketiganya sudah
    dijelaskan panjang di sana. Menyalinnya ke sini berarti dua tempat yang
@@ -542,7 +544,11 @@ export function ShowcaseBlocks({
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={thumb(it.folder, f)} alt="" loading="lazy" />
-                  <span className="jr-act__cap">{f.replace(/\.[^.]+$/, '')}</span>
+                  {/* Judul fotonya ikut bahasa: nama berkasnya sendiri yang jadi
+                      versi Inggris, padanan Indonesianya di photo-captions.ts. */}
+                  <span className="jr-act__cap" data-en={f.replace(/\.[^.]+$/, '')}>
+                    {captionID(f)}
+                  </span>
                 </figure>
               ))}
             </div>

@@ -156,8 +156,15 @@ export default function Lanyard({
                    MENOLEH ke pusat scene alih-alih menggeser bingkainya —
                    kartunya balik ke tengah canvas dan geserannya sia-sia. */
                 camera={{position, fov, rotation: [0, 0, 0]}}
-                dpr={[1, isMobile ? 1.5 : 2]}
-                gl={{alpha: transparent, preserveDrawingBuffer: true}}
+                /* Turun dari [1,2] / [1,1.5]. Kotak canvas-nya kecil dan
+                   isinya kartu berayun, bukan teks: piksel yang dihemat di
+                   sini langsung jadi bingkai yang tidak patah saat kartunya
+                   ditarik. preserveDrawingBuffer dilepas — tidak ada satu pun
+                   pembaca canvas.toDataURL di repo ini (uji pun memotret lewat
+                   Page.captureScreenshot), dan bendera itu memaksa peramban
+                   menyalin buffer tiap frame. */
+                dpr={[1, isMobile ? 1 : 1.5]}
+                gl={{alpha: transparent}}
                 onCreated={({gl}) => gl.setClearColor(new THREE.Color(0x000000), transparent ? 0 : 1)}
             >
                 <ambientLight intensity={Math.PI}/>
@@ -271,6 +278,9 @@ function Band({maxSpeed = 50, minSpeed = 0, isMobile = false, theme = 'dark', on
             new THREE.CatmullRomCurve3([new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()])
     );
     const [dragged, drag] = useState<false | THREE.Vector3>(false);
+    /* Posisi kartu yang sedang dikejar selama diseret; null berarti genggaman
+       baru dan bingkai berikutnya menyalin sasarannya apa adanya. */
+    const grip = useRef<THREE.Vector3 | null>(null);
     const [hovered, hover] = useState(false);
     /* ref, bukan state: dibaca & ditulis tiap frame, dan yang perlu dirender
        ulang justru bukan komponen ini melainkan kotak di luar <Canvas>. */
@@ -302,11 +312,24 @@ function Band({maxSpeed = 50, minSpeed = 0, isMobile = false, theme = 'dark', on
             dir.copy(vec).sub(state.camera.position).normalize();
             vec.add(dir.multiplyScalar(state.camera.position.length()));
             [card, j1, j2, j3, fixed].forEach(ref => ref.current?.wakeUp());
-            card.current?.setNextKinematicTranslation({
-                x: vec.x - dragged.x,
-                y: vec.y - dragged.y,
-                z: vec.z - dragged.z
-            });
+
+            /* Sasarannya DIKEJAR, bukan dipatok. state.pointer cuma berubah
+               saat ada event pointer; di bingkai tanpa event kartunya diam di
+               tempat lalu meloncat ke posisi baru di bingkai berikutnya, dan
+               loncatan itulah yang terbaca patah-patah — makin terasa makin
+               rendah fps-nya.
+
+               1 - exp(-delta * k) itu lerp yang tidak bergantung fps: laju
+               kejarnya sama di 60 dan 144 Hz, tidak seperti `delta * k` yang
+               ikut berubah tiap bingkai. k = 18 kenop rasa: makin besar makin
+               lengket ke kursor, makin kecil makin berat.
+
+               Bingkai pertama menyalin, bukan melerp: tanpa itu kartunya
+               berangkat dari titik nol dunia dan melesat ke kursor. */
+            vec.sub(dragged);
+            if (!grip.current) grip.current = new THREE.Vector3().copy(vec);
+            else grip.current.lerp(vec, 1 - Math.exp(-delta * 18));
+            card.current?.setNextKinematicTranslation(grip.current);
         }
         if (fixed.current) {
             [j1, j2].forEach(ref => {
@@ -326,7 +349,10 @@ function Band({maxSpeed = 50, minSpeed = 0, isMobile = false, theme = 'dark', on
             curve.points[1].copy(j2.current.lerped);
             curve.points[2].copy(j1.current.lerped);
             curve.points[3].copy(fixed.current.translation());
-            band.current.geometry.setPoints(curve.getPoints(isMobile ? 16 : 32));
+            // 24/12, turun dari 32/16: tiap bingkai getPoints mengalokasikan
+            // Vector3 sebanyak ini dan meshline membangun ulang bufernya.
+            // Lengkung talinya cuma satu tikungan — sisanya piksel yang sama.
+            band.current.geometry.setPoints(curve.getPoints(isMobile ? 12 : 24));
             ang.copy(card.current.angvel());
             rot.copy(card.current.rotation());
             card.current.setAngvel({x: ang.x, y: ang.y - rot.y * 0.25, z: ang.z});
@@ -392,6 +418,7 @@ function Band({maxSpeed = 50, minSpeed = 0, isMobile = false, theme = 'dark', on
                         }}
                         onPointerDown={(e: any) => {
                             e.target.setPointerCapture(e.pointerId);
+                            grip.current = null;   // genggaman baru: jangan melerp dari genggaman sebelumnya
                             drag(new THREE.Vector3().copy(e.point).sub(vec.copy(card.current.translation())));
                         }}
                     >

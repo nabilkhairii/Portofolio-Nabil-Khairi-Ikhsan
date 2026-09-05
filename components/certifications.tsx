@@ -75,8 +75,8 @@ const CERTS: readonly ShowcaseItem[] = [
       [VERIFIED],
     ],
     photos: [
-      'Explanation of Material from the Supervisor.png',
       'Application of Electric K3 during Installation.png',
+      'Explanation of Material from the Supervisor.png',
       'Fire Hazard Protection for Electrical Installations.png',
     ],
   },

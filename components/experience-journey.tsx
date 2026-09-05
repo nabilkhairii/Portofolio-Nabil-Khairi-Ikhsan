@@ -27,14 +27,18 @@
 /* Ikon judul kolom Final Project. lucide-react, sama seperti Core
    Competencies di app/page.tsx — sudah terpasang untuk Dock, jadi tidak ada
    berkas baru di public/icons/ dan tidak ada dependensi baru. */
+import { type CSSProperties } from 'react';
 import {
   ArrowUp,
+  Check,
   createLucideIcon,
   FileText,
   HandHelping,
   TriangleAlert,
   Wrench,
 } from 'lucide-react';
+
+import { captionID } from '@/components/photo-captions';
 
 /* Tiga ceklis bergaris, masing-masing satu baris pekerjaan. lucide punya
    ListChecks, tapi ceklisnya cuma DUA (baris tengahnya garis polos) — jadi
@@ -224,9 +228,12 @@ const CHAPTERS: Chapter[] = [
         title: ['Preventive Maintenance', 'Preventive Maintenance'],
         photos: [
           'Carrying out Preventive Maintenance in the Factory Area.png',
+          'Documentation and Digitization Results of Preventive Maintenance Work Instructions.png',
           'Preventive Maintenance Preparation in the Smelting and Refining Section.jpeg',
           'Ensuring Normal Voltage and Current in Production Machinery Components.jpeg',
           'Performing Maintenance on the Pneumatic Components of Production Machinery.jpeg',
+          'Conducting operational testing on the HCl, NaOH, and demineralized water pumps to ensure smooth operation, the absence of excessive vibration, and stable rotation.png',
+          'Checking the conductivity value of the product water.png',
           'Vibration Check on Scrubber Motor for Work Instruction Documentation.jpeg',
         ],
         points: [
@@ -246,7 +253,13 @@ const CHAPTERS: Chapter[] = [
       },
       {
         title: ['Sistem Inventaris Gudang', 'Warehouse Inventory System'],
-        photos: ['System Placement Mapping.jpeg'],
+        photos: [
+          'System Placement Mapping.jpeg',
+          'Inventory System Wiring Diagram.png',
+          'Verifying PCB Trace Connectivity.png',
+          'Cutting the PCB according to the dimensions from the mechanical design.jpeg',
+          'Project Implementation and Testing for Equipment Stock Borrowing and Return.png',
+        ],
         points: [
           [
             'Mengembangkan sistem inventaris berbasis <strong>Raspberry Pi</strong> untuk mendigitalkan transaksi gudang.',
@@ -269,8 +282,11 @@ const CHAPTERS: Chapter[] = [
       {
         title: ['MMLA & KPI Control Board', 'MMLA & KPI Control Board'],
         photos: [
-          "Training on the Implementation of the MMLA Method in the Company's Maintenance Department.jpeg",
+          'Reconstruction of the Previous MMLA Method as a Refinement.png',
           'Meeting on Planning and Revising the MMLA Method.jpeg',
+          'Restructuring the MMLA method used by ANTAM based on the results of the meeting held.png',
+          'Learning Materials for Implementing the MMLA Method in a Maintenance Unit.png',
+          "Training on the Implementation of the MMLA Method in the Company's Maintenance Department.png",
         ],
         points: [
           [
@@ -344,8 +360,8 @@ const CHAPTERS: Chapter[] = [
         ],
       ],
       photos: [
-        'Inventory System Wiring Diagram.png',
-        'Verifying PCB Trace Connectivity.png',
+        'MTTR Target Never Achieved.jpeg',
+        'System Placement Design Following Room Mapping.png',
         'PCB Layout Result.jpeg',
       ],
     },
@@ -364,8 +380,8 @@ const CHAPTERS: Chapter[] = [
       {
         title: ['Perakitan & Validasi Kelistrikan', 'Electrical Assembly & Validation'],
         photos: [
-          'Core Parts of a Drone System.jpeg',
           'Components of the Drone that are the System Center (GPS, I2C, etc.).jpeg',
+          'Core Parts of a Drone System.jpeg',
         ],
         points: [
           [
@@ -383,8 +399,9 @@ const CHAPTERS: Chapter[] = [
         ],
       },
       {
-        title: ['Reverse Engineering PDB', 'Power Distribution Board Reverse Engineering'],
+        title: ['Reverse Engineering PDB', 'PDB Reverse Engineering'],
         photos: [
+          'Measuring the Dimensions of a PCB and the Distance between Components.jpeg',
           'the PCB part of the power drone that supplies all voltage and current to the system and propeller.jpeg',
           'Reverse Engineering (RE) Electric Drone Sprayer.jpeg',
         ],
@@ -407,8 +424,8 @@ const CHAPTERS: Chapter[] = [
         title: ['Redesain PCB 2 Layer', '2-Layer PCB Redesign'],
         photos: [
           'Conducting Research and Adjustment of Drone Components for PCB Design.jpeg',
-          'Measuring the Dimensions of a PCB and the Distance between Components.jpeg',
           'Schematic PCB PDB (Power Distribution Board) Main.png',
+          'Schematic PCB PDB (Power Distribution Board) Auxiliary.png',
           '3D PCB PDB (Power Distribution Board) Main.png',
         ],
         points: [
@@ -488,23 +505,23 @@ const CHAPTERS: Chapter[] = [
         ],
       ],
       /* Ketiganya keluaran desain proyek ini sendiri, urut seperti
-         mengerjakannya: wiring sistem, skematik papannya, lalu hasil 3D-nya.
-         "Path when Routing PCB Power Parts" sudah tidak ada di public/assets,
-         dan "PCB Layout Result" pindah ke galeri saja — hasil 3D di bawah
-         menggantikan perannya di sini.
+         mengerjakannya: wiring sistemnya, hasil layout papannya, lalu render
+         3D Auxiliary-nya.
 
          TIGA, bukan lebih: zigzag HP di app/portfolio.css menaruh order untuk
          .jr-act:nth-child(1..3) saja, dan foto keempat akan ber-order 0 — yang
          mendahului semuanya, jadi ia melompat ke depan barisan.
 
-         Rasionya dipilih yang dekat 4:3 (1,47 / 1,14 / 1,31) karena ubin di
-         sini dipatok 4:3 dan object-cover memotong sisanya. Pasangan Main
-         justru panorama (3,39 dan 2,93) — di ubin 4:3 yang tersisa cuma pita
-         tengahnya, jadi keduanya ditaruh di kartu Tanggung Jawab Utama, yang
-         popupnya memakai object-fit: contain. */
+         Ubinnya dipatok 4:3 dengan object-cover, jadi rasio fotonya menentukan
+         seberapa banyak yang terpotong. Ketiganya kini dekat 4:3 (1,47 / 1,78 /
+         1,31) dan tampil hampir utuh — 3D Main yang dulu di tengah rasionya
+         2,93 dan cuma menyisakan pita tengah papannya. Ia pindah ke popup
+         kartu Tanggung Jawab "Redesain PCB 2 Layer", tempat popupnya memakai
+         object-fit: contain sehingga papan utuhnya terlihat; "PCB Layout
+         Result" naik menggantikan posisinya di tengah. */
       photos: [
         'X-30L Drone System Wiring Diagram.png',
-        'Schematic PCB PDB (Power Distribution Board) Auxiliary.png',
+        'PCB Layout Result.jpeg',
         '3D PCB PDB (Power Distribution Board) Auxiliary.png',
       ],
     },
@@ -697,6 +714,11 @@ function FinalCols({ final, solo }: { final: Chapter['final']; solo?: boolean })
     <div className={`jr-final__cols mt-8${solo ? ' jr-final__cols--solo' : ''}`}>
       {[final.background, final.activities, final.contribution].map((list, i) => {
         const [head, Icon] = FINAL_HEADS[i];
+        /* Di bab tanpa Proyek Akhir (solo) kolom pertama tidak melatari
+           sebuah proyek — ia melatari pekerjaannya sendiri, jadi judulnya
+           ikut menyebut begitu. Dititipkan ke `solo` yang sudah ada, bukan
+           bidang baru di data: penandanya sama persis. */
+        const label = solo && i === 0 ? (['Latar Kegiatan', 'Activity Background'] as const) : head;
         /* .reveal + data-reveal-delay, BUKAN .jr-fx seperti ubin lain
            di bab ini. Keduanya sama-sama "naik sambil memudar masuk",
            tapi .jr-fx itu animation-timeline: view() — terikat posisi
@@ -719,30 +741,45 @@ function FinalCols({ final, solo }: { final: Chapter['final']; solo?: boolean })
                 di judulnya ia ikut menyapu <svg> ikonnya. */}
             <h5 className="label jr-block__h">
               <Icon aria-hidden="true" />
-              <Bil as="span" t={head} />
+              <Bil as="span" t={label} />
             </h5>
-            {/* Kolom Latar Proyek saja yang butirnya berikon, dan
-                polanya sama di ketiga bab karena isinya memang disusun
-                begitu: dua butir pertama masalah yang ditemui, butir
-                ketiga tindakan yang dituntutnya. Kotak persegi
-                .jr-block__list li::before dimatikan untuk kolom ini —
-                ikonnya YANG jadi butirnya, bukan tambahan di sampingnya. */}
-            <ul className={`jr-block__list${i === 0 ? ' jr-block__list--ico' : ''}`}>
-              {list.map((p, k) =>
-                i === 0 ? (
-                  <li key={p[0]}>
-                    {k < list.length - 1 ? (
-                      <TriangleAlert aria-hidden="true" />
+            {/* Tiga kolom, tiga bentuk butir — dan bentuknya ikut menyebut
+                isinya. Latar Proyek: ikon, dan polanya sama di ketiga bab
+                karena isinya memang disusun begitu — dua butir pertama masalah
+                yang ditemui, butir ketiga tindakan yang dituntutnya. Kegiatan
+                Utama: nomor, karena pekerjaannya berurutan. Kontribusi: ceklis,
+                karena isinya hasil yang sudah diserahkan. Kotak persegi
+                .jr-block__list li::before dimatikan di kolom berikon dan
+                bernomor — penanda barunya YANG jadi butirnya, bukan tambahan
+                di sampingnya.
+
+                <ol> untuk Kegiatan Utama, bukan <ul> yang dinomori CSS:
+                urutannya bagian dari isinya, jadi ia harus sampai juga ke
+                pembaca layar. */}
+            {(() => {
+              const List = i === 1 ? 'ol' : 'ul';
+              const mod = ['--ico', '--num', '--ok'][i];
+              return (
+                <List className={`jr-block__list jr-block__list${mod}`}>
+                  {list.map((p, k) =>
+                    i === 1 ? (
+                      <Bil key={p[0]} as="li" t={p} />
                     ) : (
-                      <Wrench aria-hidden="true" />
-                    )}
-                    <Bil as="span" t={p} />
-                  </li>
-                ) : (
-                  <Bil key={p[0]} as="li" t={p} />
-                ),
-              )}
-            </ul>
+                      <li key={p[0]}>
+                        {i === 2 ? (
+                          <Check aria-hidden="true" />
+                        ) : k < list.length - 1 ? (
+                          <TriangleAlert aria-hidden="true" />
+                        ) : (
+                          <Wrench aria-hidden="true" />
+                        )}
+                        <Bil as="span" t={p} />
+                      </li>
+                    ),
+                  )}
+                </List>
+              );
+            })()}
           </section>
         );
       })}
@@ -754,15 +791,22 @@ export function ExperienceJourney() {
   return (
     <section id="journey" className="band">
       <div className="shell">
-        <div className="sec-head">
+        {/* Jalur paku membungkus KEPALA SEKSI SEKALIGUS RELNYA, bukan relnya
+            saja: yang menempel di layar selama urutan kartu berjalan harus
+            satu panggung utuh — judul, kalimat pengantar, dan keempat kartu
+            terbaca sebagai satu layar. Dengan cuma rel yang menempel, judulnya
+            tergulir keluar layar tepat saat kartunya mulai naik. */}
+        <div className="jr-rail-pin">
+        <div className="jr-pin-stage">
+        {/* --mid: kepala seksi ini ditengahkan persis seperti keempat seksi
+            dokumentasi (04-07) — label, judul, pita M, dan paragrafnya. */}
+        <div className="sec-head sec-head--mid">
           <p className="label text-muted">03 — Internship Journey</p>
           <h2
             className="display-lg mt-4 split"
-            data-en="FOUR ROLES,<br>ONE THREAD."
+            data-en="EXPERIENCE GAINED"
           >
-            EMPAT PERAN,
-            <br />
-            SATU BENANG MERAH.
+            PENGALAMAN YANG DIDAPAT
           </h2>
           <span className="m-stripe mt-6" aria-hidden="true" />
         </div>
@@ -777,7 +821,7 @@ export function ExperienceJourney() {
             berikutnya. 120ch cukup untuk menahan kedua bahasa di DUA baris —
             versi Indonesianya ~262 huruf, yang terpanjang dari keduanya. */}
         <p
-          className="prose mt-6 max-w-[120ch]"
+          className="prose mt-6 max-w-[120ch] mx-auto text-center"
           data-en="From learning what a workplace culture is at ICON+ Makassar, to applying what I had learned at AMX UAV Technologies, to reaching the point of being trusted with a project at PT ANTAM UBPP Logam Mulia in the Maintenance division."
         >
           Dari belajar mengenai pengenalan budaya kerja di ICON+ Makassar,
@@ -793,15 +837,15 @@ export function ExperienceJourney() {
             yang cuma jadi garis. */}
         <ol className="jr-rail mt-12">
           {RAIL.map((r, i) => (
-            /* 120ms per perhentian — angka yang sama dipakai kartu pendidikan
-               dan slot lanyard. Yang membacanya observer .reveal di
-               portfolio-runtime.js: ia menyalin data-reveal-delay ke
-               --reveal-delay, dan menolkannya lagi saat elemennya keluar layar
-               supaya gulir balik memainkan kaskade yang sama sekali lagi. */
+            /* --stop-i = giliran naiknya, dibaca .jr-stop di app/portfolio.css.
+               Naiknya diikat ke GULIR (animation-timeline: view()), bukan ke
+               waktu: dengan kaskade berbasis waktu keempatnya berangkat sekali
+               observer menyala dan selesai dalam 0,4 detik — di layar lebar,
+               tempat keempatnya berdiri sebaris, itu terbaca serentak. */
             <li
               key={r.company}
-              className="jr-stop reveal"
-              data-reveal-delay={i * 120}
+              className="jr-stop"
+              style={{ '--stop-i': i } as CSSProperties}
             >
               <span className="jr-stop__node" aria-hidden="true" />
               <Bil as="span" className="caption jr-stop__when" t={r.period} />
@@ -822,6 +866,8 @@ export function ExperienceJourney() {
             </li>
           ))}
         </ol>
+        </div>
+        </div>
       </div>
 
       {/* ═══ BAB ═══ */}
@@ -1002,14 +1048,18 @@ export function ExperienceJourney() {
                             harus dijaga tetap cocok: nama-nama itu sudah frasa yang
                             bisa dibaca ("Verifying PCB Trace Connectivity"), dan
                             ganti foto = ganti judul, satu langkah. Bukan <Bil>: ini
-                            nama gambar teknis, sama di kedua bahasa — tanpa data-en,
-                            pengalih bahasa melewatinya.
+                            sisi Inggrisnya nama berkas itu sendiri, jadi
+                            cuma padanan Indonesianya yang ditulis — di
+                            photo-captions.ts, kamus yang sama dengan
+                            keterangan foto di galeri.
 
                             KONSEKUENSINYA nama berkas harus pendek: pelatnya selebar
                             teksnya, dan nama sepanjang kalimat jadi slab tiga baris
                             yang menggencet fotonya sendiri. Patokannya ±38 karakter
                             — sepanjang itu masih satu baris di ubin tiga kolom. */}
-                        <span className="jr-act__cap">{f.replace(/\.[^.]+$/, '')}</span>
+                        <span className="jr-act__cap" data-en={f.replace(/\.[^.]+$/, '')}>
+                         {captionID(f)}
+                       </span>
                       </figure>
                     ))}
                   </div>
