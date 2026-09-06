@@ -581,9 +581,19 @@ main > section { position: relative; }
 
 
 /* ═══ SPEC CELLS ═══ */
-.spec { background: var(--soft); padding: 32px 24px; }
+.spec { background: var(--soft); padding: 32px 24px; text-align: center; }
 .spec__v { display: block; font-size: clamp(28px, 3.4vw, 40px); font-weight: 700; line-height: 1; color: var(--ink); letter-spacing: -.5px; }
 .spec__l { margin-top: 10px; color: var(--muted); }
+/* Layar sempit (sampul Z Fold 5, ~344px): kisinya dua kolom, jadi tiap sel cuma
+   punya (344 - 48 padding .shell) / 2 = 148px, dan padding 24px menyisakan 99px
+   isi. Label Indonesia "TERDOKUMENTASI" butuh ~143px pada 14px + 1.5px spasi
+   huruf, jadi ia keluar kotak. Padding samping dipangkas dan ukuran hurufnya
+   diikatkan ke lebar layar; di 640px vw-nya sudah lewat 14px jadi kembali ke
+   ukuran .label biasa. */
+@media (max-width: 640px) {
+  .spec { padding: 24px 12px; }
+  .spec__l { font-size: clamp(10px, 3.1vw, 14px); letter-spacing: 1px; }
+}
 
 /* ═══ COMPETENCY GRID ═══ */
 .comp-grid {
@@ -2639,13 +2649,13 @@ a.chan:hover .chan__v { color: var(--ink); }
   /* Pasangan HP-nya, dengan selisih yang sama: ikon 12px, nomor ~9px. */
   .jr-block__list--ico li,
   .jr-block__list--ok li { padding-left: 20px; }
-  /* Butir ketiga kolom Proyek Akhir dirata kanan-kiri — di HP saja. Di sini
-     kolomnya selebar layar dan tiap butir jatuh ke tiga-empat baris, jadi tepi
-     kanan yang bergerigi terbaca lebih ramai daripada celah antar katanya. Di
-     laptop ketiganya kolom sempit berdampingan dan justify justru membuka
-     sungai putih di tengah paragraf — karena itu aturan ini di blok HP, bukan
-     di .jr-block__list langsung. */
-  .jr-block__list li { text-align: justify; }
+  /* Butir ketiga kolom Proyek Akhir rata kiri di HP. Sempat dirata kanan-kiri
+     supaya tepi kanannya rapi, lalu dikembalikan: butirnya pendek-pendek dan
+     penuh istilah panjang (MTTR, MMLA, Maintenance Maturity Level Assessment)
+     yang tidak boleh dipenggal, jadi justify melebarkan celah antar kata
+     sampai baris terakhir tiap butir jarang-jarang. Berlaku untuk ketiga bab
+     (ANTAM, AMX, ICON+) karena kotaknya komponen yang sama. */
+  .jr-block__list li { text-align: left; }
   /* Kepala seksi Kontak dan judul formulirnya TETAP rata kiri di HP — sempat
      ditengahkan menyusul seksi 03-06, lalu dikembalikan: di bawah keduanya
      langsung ada label + kotak isian yang berbaris dari tepi kiri, dan judul
@@ -2878,6 +2888,13 @@ a.chan:hover .chan__v { color: var(--ink); }
   #menu-btn { display: none; }
   /* Baris terakhir footer tidak boleh berakhir di bawah taskbar. */
   .footer { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+
+  /* Di HP kisi footer jatuh ke satu kolom, jadi Kontak berdiri sendiri jauh di
+     bawah Halaman padahal isinya sama-sama daftar tautan pendek. Dijadikan dua
+     kolom khusus untuk kedua <nav> itu; blok nama dan Lokasi tetap selebar
+     penuh karena teksnya kalimat, bukan daftar. */
+  .footer .shell.grid { grid-template-columns: 1fr 1fr; gap: 40px 24px; }
+  .footer .shell.grid > :not(nav) { grid-column: 1 / -1; }
 }
 
 /* ═══════════════════════════════════════════════════════════

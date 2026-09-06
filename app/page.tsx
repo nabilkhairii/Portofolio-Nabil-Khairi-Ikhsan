@@ -1436,7 +1436,7 @@ export default function Home() {
             aria-label="Navigasi footer"
             data-en-aria-label="Footer navigation"
           >
-            <h3 className="label text-muted" data-en="Pages">
+            <h3 className="label text-muted split split-fly" data-en="Pages">
               Halaman
             </h3>
             <ul className="mt-4 space-y-2">
@@ -1463,7 +1463,7 @@ export default function Home() {
             </ul>
           </nav>
           <nav aria-label="Kontak" data-en-aria-label="Contact">
-            <h3 className="label text-muted" data-en="Contact">
+            <h3 className="label text-muted split split-fly" data-en="Contact">
               Kontak
             </h3>
             <ul className="mt-4 space-y-2">
@@ -1506,7 +1506,7 @@ export default function Home() {
             </ul>
           </nav>
           <div>
-            <h3 className="label text-muted" data-en="Location">
+            <h3 className="label text-muted split split-fly" data-en="Location">
               Lokasi
             </h3>
             <p
