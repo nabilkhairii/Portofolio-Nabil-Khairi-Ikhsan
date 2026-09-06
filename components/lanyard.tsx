@@ -156,14 +156,25 @@ export default function Lanyard({
                    MENOLEH ke pusat scene alih-alih menggeser bingkainya —
                    kartunya balik ke tengah canvas dan geserannya sia-sia. */
                 camera={{position, fov, rotation: [0, 0, 0]}}
-                /* Turun dari [1,2] / [1,1.5]. Kotak canvas-nya kecil dan
-                   isinya kartu berayun, bukan teks: piksel yang dihemat di
-                   sini langsung jadi bingkai yang tidak patah saat kartunya
-                   ditarik. preserveDrawingBuffer dilepas — tidak ada satu pun
-                   pembaca canvas.toDataURL di repo ini (uji pun memotret lewat
+                /* Desktop turun dari [1,2] ke 1.5: kotaknya besar
+                   (clamp(480px,58vw,640px)) dan isinya kartu berayun, bukan
+                   teks, jadi piksel yang dihemat langsung jadi bingkai yang
+                   tidak patah saat kartunya ditarik.
+
+                   HP naik dari 1 ke 2. Batas 1 itu salah sasaran: layar HP
+                   ber-devicePixelRatio 2,6-3,5, jadi canvas-nya digambar
+                   sepertiga ukuran lalu diregangkan — mukanya kabur padahal
+                   teksturnya 1376x1376. Ongkosnya tidak seperti di desktop
+                   karena kotaknya di HP cuma #lanyard-slot-about 230px tinggi:
+                   di dpr 2 itu ~120 ribu piksel, seperempat beban desktop.
+                   Yang menahan frame di HP timeStep fisika 1/30 di bawah,
+                   bukan jumlah pikselnya.
+
+                   preserveDrawingBuffer dilepas — tidak ada satu pun pembaca
+                   canvas.toDataURL di repo ini (uji pun memotret lewat
                    Page.captureScreenshot), dan bendera itu memaksa peramban
                    menyalin buffer tiap frame. */
-                dpr={[1, isMobile ? 1 : 1.5]}
+                dpr={[1, isMobile ? 2 : 1.5]}
                 gl={{alpha: transparent}}
                 onCreated={({gl}) => gl.setClearColor(new THREE.Color(0x000000), transparent ? 0 : 1)}
             >
