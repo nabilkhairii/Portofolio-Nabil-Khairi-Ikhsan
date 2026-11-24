@@ -1,18 +1,15 @@
 /* Sorot foto bab Internship Journey (.jr-zoom) diperiksa di Chrome sungguhan.
 
-   Tiga hal yang diperiksa untuk tiap bentuk kotak: hover TIDAK membukanya,
-   ketukan membukanya selayar penuh, dan ketukan di luar menutupnya lagi.
+   Ubin Proyek Akhir membuka foto selayar penuh lewat ketukan dan bisa
+   ditutup dari luar. Sampul Tanggung Jawab Utama membuka galeri yang sesuai.
 
    Kenapa yang tengah perlu diuji: yang membuat fotonya melompat jadi popup
    selayar penuh cuma position: fixed — dan fixed BATAL menempel ke viewport
    begitu ada satu leluhur yang punya animasi transform aktif; leluhur itu jadi
    containing block dan popupnya terkurung di dalam kotaknya sendiri. Di bab
-   ini leluhur itu ada di mana-mana: .jr-fx memasang animasi transform lewat
-   animation-timeline: view() pada ubin Dokumentasi Kerja DAN pada .jr-card
-   Tanggung Jawab Utama. Yang membatalkannya dua baris berbeda di
-   app/portfolio.css (.jr-zoom.is-open sendiri, dan .jr-card:has(...) untuk
-   kartunya). Kalau salah satunya hilang, popupnya tetap muncul — cuma kecil,
-   di dalam kotaknya, tanpa satu pun error.
+   ini .jr-fx memasang animasi transform lewat animation-timeline: view().
+   Aturan .jr-zoom.is-open harus melepas transform saat foto terbuka agar
+   fotonya meluas ke viewport.
 
    Dilewati (bukan gagal) kalau Chrome tak ada — itu keadaan lingkungan.
    Jalankan: node tests/check-zoom.mjs   (butuh `npm run build` lebih dulu) */
@@ -103,12 +100,10 @@ for (let i = 0; i < 60 && !ready; i++) {
 }
 if (!ready) { console.error('bab ANTAM tidak pernah muncul'); done(1); }
 
-/* Dua bentuk pemakai .jr-zoom, dan keduanya memikul .jr-fx di tempat yang
-   berbeda: di ubin Dokumentasi Kerja animasinya di kotak itu sendiri, di
-   Tanggung Jawab Utama di .jr-card induknya. Justru bedanya itu yang diuji. */
+/* Ubin Proyek Akhir membuka foto di viewport. Sampul Tanggung Jawab Utama
+   membuka dialog galeri dan diuji terpisah di bawah. */
 const KOTAK = [
-  ['ubin Dokumentasi Kerja', '#jr-antam .jr-acts .jr-zoom'],
-  ['foto Tanggung Jawab Utama', '#jr-antam .jr-card__media.jr-zoom'],
+  ['ubin Proyek Akhir', '#jr-antam .jr-acts .jr-zoom'],
 ];
 
 const hasil = [];
@@ -186,16 +181,34 @@ for (const [nama, sel] of KOTAK) {
    runtime yang menjalankannya, dan itu gampang hilang tanpa terlihat. */
 const UBIN = '#jr-antam .jr-acts .jr-zoom';
 const posisi = () => ev(`JSON.stringify(getComputedStyle(document.querySelector('${UBIN} img')).position)`);
-const tekan = async (key, code) => {
-  for (const type of ['keyDown', 'keyUp']) await send('Input.dispatchKeyEvent', { type, key, code });
+const tekan = async (key, windowsVirtualKeyCode) => {
+  for (const type of ['keyDown', 'keyUp']) {
+    await send('Input.dispatchKeyEvent', { type, key, code: key, windowsVirtualKeyCode });
+  }
   await sleep(600);
 };
 
 await ev(`(() => { document.querySelector('${UBIN}').focus(); return JSON.stringify('ok'); })()`);
-await tekan('Enter', 'Enter');
+await tekan('Enter', 13);
 assert.strictEqual(await posisi(), 'fixed', 'Enter di kotak yang difokus tidak membuka sorotnya');
-await tekan('Escape', 'Escape');
+await tekan('Escape', 27);
 assert.notStrictEqual(await posisi(), 'fixed', 'Escape tidak menutup sorotnya');
+
+const sampul = '#jr-antam .jr-card__media.jr-open';
+await ev(`(() => { document.querySelector('${sampul}').focus(); return JSON.stringify('ok'); })()`);
+await tekan('Enter', 13);
+assert.ok(await ev(`(() => {
+  const cover = document.querySelector('${sampul}');
+  return JSON.stringify(document.getElementById('gallery').open &&
+    document.getElementById('g-title').textContent ===
+    cover.closest('.jr-card').querySelector('.jr-card__title').textContent.trim());
+})()`), 'sampul Tanggung Jawab Utama tidak membuka galeri yang sesuai');
+await tekan('Escape', 27);
+const galeriTerbuka = () => ev(`JSON.stringify(document.getElementById('gallery').open)`);
+const batas = Date.now() + 8000;
+while (await galeriTerbuka() && Date.now() < batas) await sleep(100);
+assert.ok(!await galeriTerbuka(),
+  'Escape tidak menutup galeri Tanggung Jawab Utama');
 
 console.log(`OK — sorot foto: hover diam, ketukan membuka ke viewport (${hasil.join(', ')}), `
   + 'ketukan di luar & Escape menutup, Enter membuka dari keyboard');

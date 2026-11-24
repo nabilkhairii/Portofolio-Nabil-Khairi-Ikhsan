@@ -26,7 +26,7 @@
    Ditinggalkan di sini sebagai rujukan efeknya — kalau angkanya diubah di
    .split-fly, ini sumber aslinya. */
 
-import { motion, useScroll, useTransform } from "motion/react";
+import { motion, useScroll, useTransform, type MotionValue } from "motion/react";
 import ReactLenis from "lenis/react";
 import React, { useRef } from "react";
 import { cn } from "@/lib/utils";
@@ -35,7 +35,7 @@ type CharacterProps = {
   char: string;
   index: number;
   centerIndex: number;
-  scrollYProgress: any;
+  scrollYProgress: MotionValue<number>;
 };
 
 

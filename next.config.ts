@@ -1,8 +1,11 @@
 import type { NextConfig } from "next";
+import { CV_ASSET_URL, CV_DOWNLOAD_URL } from "./lib/cv";
 
-/* Kosong, dan memang begitu seharusnya: halaman ini satu route statis tanpa
-   next/image, tanpa rewrite, tanpa env. Semua aset dilayani apa adanya dari
-   public/. */
-const nextConfig: NextConfig = {};
+const nextConfig: NextConfig = {
+  rewrites() {
+    // URL tanpa ekstensi menjaga unduhan dari intersepsi IDM atas tautan PDF.
+    return [{ source: CV_DOWNLOAD_URL, destination: CV_ASSET_URL }];
+  },
+};
 
 export default nextConfig;
