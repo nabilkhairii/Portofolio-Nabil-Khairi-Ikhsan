@@ -1,15 +1,19 @@
 'use client';
-import {useEffect, useRef, useState} from 'react';
-import {Canvas, extend, useFrame, useThree} from '@react-three/fiber';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Canvas, events, extend, useFrame, useThree} from '@react-three/fiber';
+import type {RootStore, ThreeEvent} from '@react-three/fiber';
 import {useGLTF, useTexture, Environment, Lightformer} from '@react-three/drei';
 import {
     BallCollider,
     CuboidCollider,
     Physics,
     RigidBody,
+    useBeforePhysicsStep,
+    useRapier,
     useRopeJoint,
     useSphericalJoint,
-    RigidBodyProps
+    type RapierRigidBody,
+    type RigidBodyProps
 } from '@react-three/rapier';
 import {MeshLineGeometry, MeshLineMaterial} from 'meshline';
 import * as THREE from 'three';
@@ -104,6 +108,50 @@ const patchBandShader = (shader: {vertexShader: string}) => {
         .replace(BAND_CURRENT, 'vec2 currentP = fix(m * vec4(position, 1.0), aspect);');
 };
 
+const PHYSICS_STEP = 1 / 60;
+const GRIP_BLEND = 1 - Math.exp(-45 * PHYSICS_STEP);
+const MAX_GRIP_STEP = 90 * PHYSICS_STEP;
+const MAX_CANVAS_PIXELS = 6_000_000;
+type PointerCapture = Pick<Element, 'setPointerCapture' | 'hasPointerCapture' | 'releasePointerCapture'>;
+
+const segmentProps = {
+    canSleep: true,
+    colliders: false,
+    angularDamping: 4,
+    linearDamping: 4,
+} satisfies RigidBodyProps;
+
+function updateBandGeometry(geometry: MeshLineGeometry, samples: THREE.Vector3[]) {
+    const attributeNames = ['position', 'previous', 'next'] as const;
+    if (geometry.getAttribute('position')?.count !== samples.length * 2) {
+        geometry.setPoints(samples);
+        for (const name of attributeNames) {
+            (geometry.getAttribute(name) as THREE.BufferAttribute).setUsage(THREE.DynamicDrawUsage);
+        }
+        return;
+    }
+
+    // Indeks, UV, dan sisi pita tetap sama. Tiga atribut ini saja yang bergerak.
+    const position = geometry.getAttribute('position');
+    const previous = geometry.getAttribute('previous');
+    const next = geometry.getAttribute('next');
+    const end = samples.length - 1;
+    const closed = samples[0].equals(samples[end]);
+    for (let i = 0; i <= end; i++) {
+        const point = samples[i];
+        const before = samples[i - 1] ?? samples[closed ? end - 1 : 0];
+        const after = samples[i + 1] ?? samples[closed ? 1 : end];
+        const vertex = i * 2;
+        position.setXYZ(vertex, point.x, point.y, point.z);
+        position.setXYZ(vertex + 1, point.x, point.y, point.z);
+        previous.setXYZ(vertex, before.x, before.y, before.z);
+        previous.setXYZ(vertex + 1, before.x, before.y, before.z);
+        next.setXYZ(vertex, after.x, after.y, after.z);
+        next.setXYZ(vertex + 1, after.x, after.y, after.z);
+    }
+    position.needsUpdate = previous.needsUpdate = next.needsUpdate = true;
+}
+
 interface LanyardProps {
     position?: [number, number, number];
     gravity?: [number, number, number];
@@ -113,6 +161,7 @@ interface LanyardProps {
     /* Tema halaman. Menentukan pasangan tekstur yang dipakai; keduanya tetap
        dimuat sekaligus, jadi menukarnya tidak memuat apa pun dari jaringan. */
     theme?: LanyardTheme;
+    running?: boolean;
     canvasRef?: React.RefObject<HTMLCanvasElement | null>;
     /* Dipanggil sekali begitu Band terpasang — artinya useGLTF/useTexture sudah
        selesai dan kartunya benar-benar berdiri, bukan sekadar konteks WebGL
@@ -133,11 +182,37 @@ export default function Lanyard({
                                     transparent = true,
                                     containerClassName,
                                     theme = 'dark',
+                                    running = true,
                                     canvasRef,
                                     onReady,
                                     onActive
                                 }: LanyardProps) {
     const [isMobile, setIsMobile] = useState<boolean>(() => typeof window !== 'undefined' && window.innerWidth < 768);
+    const wrapper = useRef<HTMLDivElement>(null);
+    const [dprCap, setDprCap] = useState(2);
+    const gripId = useRef<number | null>(null);
+    const [pointerPosition] = useState(() => new THREE.Vector2());
+
+    const canvasEvents = useCallback((store: RootStore) => {
+        const manager = events(store);
+        const handlers = manager.handlers;
+        if (!handlers) return manager;
+        return {
+            ...manager,
+            handlers: {
+                ...handlers,
+                onPointerMove(event: Event) {
+                    const pointer = event as PointerEvent;
+                    if (pointer.pointerId === gripId.current) {
+                        // Kartu sudah tertangkap. Fisika hanya perlu koordinat terbaru.
+                        pointerPosition.set(pointer.clientX, pointer.clientY);
+                    } else {
+                        handlers.onPointerMove(event);
+                    }
+                },
+            },
+        };
+    }, [pointerPosition]);
 
     useEffect(() => {
         const handleResize = (): void => setIsMobile(window.innerWidth < 768);
@@ -145,11 +220,30 @@ export default function Lanyard({
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    useEffect(() => {
+        const element = wrapper.current;
+        if (!element) return;
+        const observe = new ResizeObserver(([entry]) => {
+            const {width, height} = entry.contentRect;
+            // Kanvas melewati slot agar kartu dapat ditarik. Batasi piksel
+            // bantalan transparan pada layar besar tanpa mengubah proyeksi.
+            const budget = Math.sqrt(MAX_CANVAS_PIXELS / Math.max(1, width * height));
+            setDprCap(Math.max(1, Math.min(2, Math.floor(budget * 100) / 100)));
+        });
+        observe.observe(element);
+        return () => observe.disconnect();
+    }, []);
+
     return (
         <div
+            ref={wrapper}
             className={clsx(containerClassName || "relative z-0 w-full h-screen flex justify-center items-center transform scale-100 origin-center")}>
             <Canvas
                 ref={canvasRef}
+                events={canvasEvents}
+                /* Rapier meminta bingkai selama masih ada benda yang bergerak.
+                   Visibilitas tetap dapat menjeda seluruh adegan. */
+                frameloop={running ? 'demand' : 'never'}
                 /* rotation eksplisit, walau nilainya identitas: tanpa kunci itu
                    R3F memanggil camera.lookAt(0,0,0) sendiri, dan kamera yang
                    digeser tegak (lihat position di lanyard-mount.tsx) jadi
@@ -167,20 +261,19 @@ export default function Lanyard({
                    teksturnya 1376x1376. Ongkosnya tidak seperti di desktop
                    karena kotaknya di HP cuma #lanyard-slot-about 230px tinggi:
                    di dpr 2 itu ~120 ribu piksel, seperempat beban desktop.
-                   Yang menahan frame di HP timeStep fisika 1/30 di bawah,
-                   bukan jumlah pikselnya.
 
                    preserveDrawingBuffer dilepas — tidak ada satu pun pembaca
                    canvas.toDataURL di repo ini (uji pun memotret lewat
                    Page.captureScreenshot), dan bendera itu memaksa peramban
                    menyalin buffer tiap frame. */
-                dpr={[1, isMobile ? 2 : 1.5]}
+                dpr={[1, Math.min(dprCap, isMobile ? 2 : 1.5)]}
                 gl={{alpha: transparent}}
                 onCreated={({gl}) => gl.setClearColor(new THREE.Color(0x000000), transparent ? 0 : 1)}
             >
                 <ambientLight intensity={Math.PI}/>
-                <Physics gravity={gravity} timeStep={isMobile ? 1 / 30 : 1 / 60}>
-                    <Band isMobile={isMobile} theme={theme} onReady={onReady} onActive={onActive}/>
+                <Physics gravity={gravity} timeStep={PHYSICS_STEP} updatePriority={-1}>
+                    <Band isMobile={isMobile} theme={theme} onReady={onReady} onActive={onActive}
+                        gripId={gripId} pointerPosition={pointerPosition}/>
                 </Physics>
                 <Environment blur={0.75}>
                     <Lightformer
@@ -218,178 +311,212 @@ export default function Lanyard({
 }
 
 interface BandProps {
-    maxSpeed?: number;
-    minSpeed?: number;
     isMobile?: boolean;
     theme?: LanyardTheme;
     onReady?: () => void;
     onActive?: (active: boolean) => void;
+    gripId: React.RefObject<number | null>;
+    pointerPosition: THREE.Vector2;
 }
 
-function Band({maxSpeed = 50, minSpeed = 0, isMobile = false, theme = 'dark', onReady, onActive}: BandProps) {
-    // Using "any" for refs since the exact types depend on Rapier's internals
-    const band = useRef<any>(null);
-    const fixed = useRef<any>(null);
-    const j1 = useRef<any>(null);
-    const j2 = useRef<any>(null);
-    const j3 = useRef<any>(null);
-    const card = useRef<any>(null);
-
-    const vec = new THREE.Vector3();
-    const ang = new THREE.Vector3();
-    const rot = new THREE.Vector3();
-    const dir = new THREE.Vector3();
-
-    const segmentProps: any = {
-        type: 'dynamic' as RigidBodyProps['type'],
-        canSleep: true,
-        colliders: false,
-        angularDamping: 4,
-        linearDamping: 4
-    };
-
+function Band({isMobile = false, theme = 'dark', onReady, onActive, gripId, pointerPosition}: BandProps) {
+    const band = useRef<THREE.Mesh<MeshLineGeometry>>(null);
+    // Hook sambungan Rapier memakai tipe RefObject non-null.
+    const fixed = useRef<RapierRigidBody>(null!);
+    const j1 = useRef<RapierRigidBody>(null!);
+    const j2 = useRef<RapierRigidBody>(null!);
+    const j3 = useRef<RapierRigidBody>(null!);
+    const card = useRef<RapierRigidBody>(null!);
+    const joints = useMemo(() => [j3, j2, j1, fixed], []);
+    const {rapier, rigidBodyStates} = useRapier();
+    const getScene = useThree(state => state.get);
+    const size = useThree(state => state.size);
     const {nodes, materials} = useGLTF(cardGLB) as any;
-
-    /* Ukuran canvas sungguhan, untuk uniform `resolution` pita di bawah. */
-    const size = useThree(s => s.size);
-
     const texture = useTexture(BAND_TEXTURE) as THREE.Texture;
 
-    /* Muka kartu memakai TextureLoader, bukan useTexture: flipY harus false
-       (UV card.glb terbalik terhadap bawaan three) dan warnanya harus dibaca
-       sebagai sRGB. Kedua varian dimuat sekaligus lalu tinggal dipilih — bukan
-       dimuat ulang saat tema berganti: useTexture menangguhkan render
-       (suspense) begitu URL-nya berubah, dan penangguhan di dalam <Physics>
-       melepas Band, jadi talinya ter-reset dan kartunya terjun ulang tiap kali
-       tombol tema ditekan. */
+    // Muat kedua tekstur sekaligus agar pergantian tema tidak membongkar adegan.
     const [cardTextures, setCardTextures] = useState<Partial<Record<LanyardTheme, THREE.Texture>>>({});
-
     useEffect(() => {
         const loader = new THREE.TextureLoader();
         const loaded: Partial<Record<LanyardTheme, THREE.Texture>> = {};
         let alive = true;
-        Promise.all((Object.entries(CARD_TEXTURE) as [LanyardTheme, string][]).map(([key, url]) =>
-            new Promise<void>((done) => {
-                loader.load(url, (t) => {
-                    t.flipY = false;
-                    t.colorSpace = THREE.SRGBColorSpace;
-                    loaded[key] = t;
+        Promise.all((Object.keys(CARD_TEXTURE) as LanyardTheme[]).map(key =>
+            new Promise<void>(done => {
+                loader.load(CARD_TEXTURE[key], image => {
+                    if (alive) {
+                        image.flipY = false;
+                        image.colorSpace = THREE.SRGBColorSpace;
+                        loaded[key] = image;
+                    } else {
+                        image.dispose();
+                    }
                     done();
-                }, undefined, () => done());        // gagal muat: pakai peta bawaan card.glb
+                }, undefined, () => done());
             })
         )).then(() => { if (alive) setCardTextures(loaded); });
 
         return () => {
             alive = false;
-            Object.values(loaded).forEach(t => t.dispose());
+            Object.values(loaded).forEach(image => image.dispose());
         };
     }, []);
-    const [curve] = useState(
-        () =>
-            new THREE.CatmullRomCurve3([new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()])
+
+    const [motion] = useState(() => ({
+        curve: new THREE.CatmullRomCurve3(Array.from({length: 4}, () => new THREE.Vector3()), false, 'chordal'),
+        point: new THREE.Vector3(),
+        plane: new THREE.Plane(new THREE.Vector3(0, 0, 1)),
+        ndc: new THREE.Vector2(),
+        raycaster: new THREE.Raycaster(),
+        hit: new THREE.Vector3(),
+        offset: new THREE.Vector3(),
+        target: new THREE.Vector3(),
+        position: new THREE.Vector3(),
+        motionStep: new THREE.Vector3(),
+        angular: new THREE.Vector3(),
+    }));
+    const samples = useMemo(
+        () => Array.from({length: isMobile ? 13 : 25}, () => new THREE.Vector3()), [isMobile]
     );
-    const [dragged, drag] = useState<false | THREE.Vector3>(false);
-    /* Posisi kartu yang sedang dikejar selama diseret; null berarti genggaman
-       baru dan bingkai berikutnya menyalin sasarannya apa adanya. */
-    const grip = useRef<THREE.Vector3 | null>(null);
-    const [hovered, hover] = useState(false);
-    /* ref, bukan state: dibaca & ditulis tiap frame, dan yang perlu dirender
-       ulang justru bukan komponen ini melainkan kotak di luar <Canvas>. */
+    const hovered = useRef(false);
     const activeRef = useRef(false);
 
     useRopeJoint(fixed, j1, [[0, 0, 0], [0, 0, 0], 1]);
     useRopeJoint(j1, j2, [[0, 0, 0], [0, 0, 0], 1]);
     useRopeJoint(j2, j3, [[0, 0, 0], [0, 0, 0], 1]);
-    useSphericalJoint(j3, card, [
-        [0, 0, 0],
-        [0, 1.45, 0]
-    ]);
+    useSphericalJoint(j3, card, [[0, 0, 0], [0, 1.45, 0]]);
+
+    const release = useCallback(() => {
+        if (gripId.current === null) return;
+        gripId.current = null;
+        const body = card.current;
+        if (body) {
+            const velocity = body.linvel();
+            body.setBodyType(rapier.RigidBodyType.Dynamic, true);
+            body.setLinvel(velocity, true);
+        }
+        document.body.style.cursor = hovered.current ? 'grab' : '';
+        getScene().invalidate();
+    }, [getScene, gripId, rapier]);
 
     useEffect(() => {
-        if (hovered) {
-            document.body.style.cursor = dragged ? 'grabbing' : 'grab';
-            return () => {
-                document.body.style.cursor = 'auto';
-            };
+        const cancelPointer = (event: PointerEvent) => {
+            if (event.pointerId === gripId.current) release();
+        };
+        const hide = () => {
+            if (document.hidden) release();
+        };
+        window.addEventListener('pointercancel', cancelPointer, true);
+        window.addEventListener('lostpointercapture', cancelPointer, true);
+        window.addEventListener('blur', release);
+        document.addEventListener('visibilitychange', hide);
+        return () => {
+            window.removeEventListener('pointercancel', cancelPointer, true);
+            window.removeEventListener('lostpointercapture', cancelPointer, true);
+            window.removeEventListener('blur', release);
+            document.removeEventListener('visibilitychange', hide);
+            if (hovered.current || gripId.current !== null) document.body.style.cursor = '';
+        };
+    }, [release]);
+
+    function grab(event: ThreeEvent<PointerEvent>) {
+        const body = card.current;
+        const capture = event.target as PointerCapture | null;
+        if (!body || !capture || event.button !== 0 || gripId.current !== null) return;
+
+        // Bidang tarik melewati pusat kartu agar kedalamannya bertahan saat ditangkap.
+        motion.position.copy(body.translation());
+        motion.plane.constant = -motion.position.z;
+        if (!event.ray.intersectPlane(motion.plane, motion.hit)) return;
+        motion.offset.copy(motion.hit).sub(motion.position);
+        motion.target.copy(motion.position);
+        pointerPosition.set(event.clientX, event.clientY);
+
+        capture.setPointerCapture(event.pointerId);
+        gripId.current = event.pointerId;
+        const state = getScene();
+        // Buang delta saat kanvas tidur sebelum pegangan membangunkan fisika.
+        if (body.isSleeping()) state.clock.getDelta();
+        body.setBodyType(rapier.RigidBodyType.KinematicPositionBased, true);
+        j1.current?.wakeUp();
+        j2.current?.wakeUp();
+        j3.current?.wakeUp();
+        document.body.style.cursor = 'grabbing';
+        if (!activeRef.current) {
+            activeRef.current = true;
+            onActive?.(true);
         }
-    }, [hovered, dragged]);
+        state.invalidate();
+    }
 
-    // Kartunya sudah berdiri: aman memudarkan wadahnya masuk.
-    useEffect(() => { onReady?.(); }, []);
+    useEffect(() => {
+        getScene().clock.getDelta();
+        getScene().invalidate();
+        onReady?.();
+    }, []);
 
-    useFrame((state, delta) => {
-        if (dragged && typeof dragged !== 'boolean') {
-            vec.set(state.pointer.x, state.pointer.y, 0.5).unproject(state.camera);
-            dir.copy(vec).sub(state.camera.position).normalize();
-            vec.add(dir.multiplyScalar(state.camera.position.length()));
-            [card, j1, j2, j3, fixed].forEach(ref => ref.current?.wakeUp());
-
-            /* Sasarannya DIKEJAR, bukan dipatok. state.pointer cuma berubah
-               saat ada event pointer; di bingkai tanpa event kartunya diam di
-               tempat lalu meloncat ke posisi baru di bingkai berikutnya, dan
-               loncatan itulah yang terbaca patah-patah — makin terasa makin
-               rendah fps-nya.
-
-               1 - exp(-delta * k) itu lerp yang tidak bergantung fps: laju
-               kejarnya sama di 60 dan 144 Hz, tidak seperti `delta * k` yang
-               ikut berubah tiap bingkai. k = 18 kenop rasa: makin besar makin
-               lengket ke kursor, makin kecil makin berat.
-
-               Bingkai pertama menyalin, bukan melerp: tanpa itu kartunya
-               berangkat dari titik nol dunia dan melesat ke kursor. */
-            vec.sub(dragged);
-            if (!grip.current) grip.current = new THREE.Vector3().copy(vec);
-            else grip.current.lerp(vec, 1 - Math.exp(-delta * 18));
-            card.current?.setNextKinematicTranslation(grip.current);
+    // Satu sampel pointer terbaru per bingkai, dengan geometri kanvas saat ini.
+    useFrame(({camera, gl}) => {
+        if (gripId.current === null) return;
+        const bounds = gl.domElement.getBoundingClientRect();
+        if (!bounds.width || !bounds.height) return;
+        motion.ndc.set(
+            2 * (pointerPosition.x - bounds.left) / bounds.width - 1,
+            1 - 2 * (pointerPosition.y - bounds.top) / bounds.height,
+        );
+        motion.raycaster.setFromCamera(motion.ndc, camera);
+        if (motion.raycaster.ray.intersectPlane(motion.plane, motion.hit)) {
+            motion.target.copy(motion.hit).sub(motion.offset);
         }
-        if (fixed.current) {
-            [j1, j2].forEach(ref => {
-                if (!ref.current.lerped) ref.current.lerped = new THREE.Vector3().copy(ref.current.translation());
-                const clampedDistance = Math.max(0.1, Math.min(1, ref.current.lerped.distanceTo(ref.current.translation())));
-                // SATU-SATUNYA baris yang beda dari berkas varcellanyard: Math.min(1, ...).
-                // Aslinya faktornya delta * 50 mentah, jadi di bawah ~50 fps nilainya > 1,
-                // lerp melompati targetnya, dan frame berikutnya melompat lebih jauh lagi.
-                // Terukur di halaman ini: titik kendali tali sampai orde 1e16 dan strap-nya
-                // hilang dari layar. Alpha lerp di atas 1 memang tidak punya arti.
-                ref.current.lerped.lerp(
-                    ref.current.translation(),
-                    Math.min(1, delta * (minSpeed + clampedDistance * (maxSpeed - minSpeed)))
-                );
-            });
-            curve.points[0].copy(j3.current.translation());
-            curve.points[1].copy(j2.current.lerped);
-            curve.points[2].copy(j1.current.lerped);
-            curve.points[3].copy(fixed.current.translation());
-            // 24/12, turun dari 32/16: tiap bingkai getPoints mengalokasikan
-            // Vector3 sebanyak ini dan meshline membangun ulang bufernya.
-            // Lengkung talinya cuma satu tikungan — sisanya piksel yang sama.
-            band.current.geometry.setPoints(curve.getPoints(isMobile ? 12 : 24));
-            ang.copy(card.current.angvel());
-            rot.copy(card.current.rotation());
-            card.current.setAngvel({x: ang.x, y: ang.y - rot.y * 0.25, z: ang.z});
+    }, -2);
 
-            /* ═══ KARTUNYA SEDANG BERGERAK ═══
-               Dilaporkan dari sini, bukan dari onPointerDown/onPointerUp,
-               karena yang ditunggu bukan lepasnya genggaman melainkan diamnya
-               kartu: sesudah dilepas ia masih terlempar beberapa ratus piksel
-               sebelum menggantung tenang, dan kotak canvas yang keburu
-               menyempit akan memotongnya persis di ekor ayunan itu.
-
-               0,5 itu kuadrat laju (~0,7 satuan dunia/detik) — di bawahnya
-               geraknya tidak terlihat lagi di layar. Ini kenopnya: terlalu
-               kecil, kotaknya tetap lebar berlama-lama (dan di HP itu berarti
-               halaman tak bisa digulir di sana); terlalu besar, kartunya
-               terpotong sebelum berhenti. */
-            const v = card.current.linvel();
-            const active = dragged !== false || v.x * v.x + v.y * v.y + v.z * v.z > 0.5;
-            if (active !== activeRef.current) {
-                activeRef.current = active;
-                onActive?.(active);
-            }
+    useBeforePhysicsStep(() => {
+        const body = card.current;
+        if (!body || body.isSleeping()) return;
+        if (gripId.current !== null) {
+            motion.position.copy(body.translation());
+            motion.motionStep.copy(motion.target).sub(motion.position)
+                .multiplyScalar(GRIP_BLEND).clampLength(0, MAX_GRIP_STEP);
+            body.setNextKinematicTranslation(motion.position.add(motion.motionStep));
         }
+        motion.angular.copy(body.angvel());
+        motion.angular.y -= body.rotation().y * 0.25;
+        body.setAngvel(motion.angular, false);
     });
 
-    curve.curveType = 'chordal';
+    useFrame(state => {
+        const body = card.current;
+        const geometry = band.current?.geometry;
+        if (!body || !geometry) return;
+
+        // Tali mengikuti transformasi bergambar yang sudah diinterpolasi Rapier.
+        let changed = geometry.getAttribute('position')?.count !== samples.length * 2;
+        for (const [index, joint] of joints.entries()) {
+            const jointBody = joint.current;
+            const visual = jointBody && rigidBodyStates.get(jointBody.handle)?.object;
+            if (!visual) return;
+            visual.getWorldPosition(motion.point);
+            const point = motion.curve.points[index];
+            if (point.distanceToSquared(motion.point) > 1e-8) {
+                changed = true;
+                point.copy(motion.point);
+            }
+        }
+        if (changed) {
+            for (const [index, sample] of samples.entries()) {
+                motion.curve.getPoint(index / (samples.length - 1), sample);
+            }
+            updateBandGeometry(geometry, samples);
+        }
+
+        const held = gripId.current !== null;
+        const velocity = body.linvel();
+        const active = held || velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2 > 0.5;
+        if (active !== activeRef.current) {
+            activeRef.current = active;
+            onActive?.(active);
+        }
+        if (held) state.invalidate();
+    });
     // RepeatWrapping: petanya diulang di sepanjang tali; tanpa ini pengulangan
     // kedua dan seterusnya cuma meregangkan piksel tepi.
     // anisotropy: pita ini sempit dan hampir selalu terlihat menyerong, jadi
@@ -401,37 +528,43 @@ function Band({maxSpeed = 50, minSpeed = 0, isMobile = false, theme = 'dark', on
     return (
         <>
             <group position={[0, 4, 0]}>
-                <RigidBody ref={fixed} {...segmentProps} type={'fixed' as RigidBodyProps['type']}/>
-                <RigidBody position={[0.5, 0, 0]} ref={j1} {...segmentProps} type={'dynamic' as RigidBodyProps['type']}>
+                <RigidBody ref={fixed} {...segmentProps} type="fixed"/>
+                <RigidBody position={[0.5, 0, 0]} ref={j1} {...segmentProps} type="dynamic">
                     <BallCollider args={[0.1]}/>
                 </RigidBody>
-                <RigidBody position={[1, 0, 0]} ref={j2} {...segmentProps} type={'dynamic' as RigidBodyProps['type']}>
+                <RigidBody position={[1, 0, 0]} ref={j2} {...segmentProps} type="dynamic">
                     <BallCollider args={[0.1]}/>
                 </RigidBody>
-                <RigidBody position={[1.5, 0, 0]} ref={j3} {...segmentProps} type={'dynamic' as RigidBodyProps['type']}>
+                <RigidBody position={[1.5, 0, 0]} ref={j3} {...segmentProps} type="dynamic">
                     <BallCollider args={[0.1]}/>
                 </RigidBody>
                 <RigidBody
                     position={[2, 0, 0]}
                     ref={card}
                     {...segmentProps}
-                    type={dragged ? ('kinematicPosition' as RigidBodyProps['type']) : ('dynamic' as RigidBodyProps['type'])}
+                    type="dynamic"
                 >
                     <CuboidCollider args={[0.8, 1.125, 0.01]}/>
                     <group
                         scale={2.25}
                         position={[0, -1.2, -0.05]}
-                        onPointerOver={() => hover(true)}
-                        onPointerOut={() => hover(false)}
-                        onPointerUp={(e: any) => {
-                            e.target.releasePointerCapture(e.pointerId);
-                            drag(false);
+                        onPointerOver={() => {
+                            hovered.current = true;
+                            if (gripId.current === null) document.body.style.cursor = 'grab';
                         }}
-                        onPointerDown={(e: any) => {
-                            e.target.setPointerCapture(e.pointerId);
-                            grip.current = null;   // genggaman baru: jangan melerp dari genggaman sebelumnya
-                            drag(new THREE.Vector3().copy(e.point).sub(vec.copy(card.current.translation())));
+                        onPointerOut={() => {
+                            hovered.current = false;
+                            if (gripId.current === null) document.body.style.cursor = '';
                         }}
+                        onPointerUp={event => {
+                            if (event.pointerId !== gripId.current) return;
+                            const capture = event.target as PointerCapture | null;
+                            release();
+                            if (capture?.hasPointerCapture(event.pointerId)) {
+                                capture.releasePointerCapture(event.pointerId);
+                            }
+                        }}
+                        onPointerDown={grab}
                     >
                         <mesh geometry={nodes.card.geometry}>
                             <meshPhysicalMaterial
@@ -460,7 +593,7 @@ function Band({maxSpeed = 50, minSpeed = 0, isMobile = false, theme = 'dark', on
                 celah — pada jarak kamera 30 unit pergeseran itu ~1% dan tidak
                 mengubah ukuran talinya di layar. Bekerja hanya karena
                 depthTest di bawah menyala; keduanya satu keputusan. */}
-            <mesh ref={band} position={[0, 0, 0.3]}>
+            <mesh ref={band} position={[0, 0, 0.3]} frustumCulled={false}>
                 <meshLineGeometry/>
                 <meshLineMaterial
                     color="white"

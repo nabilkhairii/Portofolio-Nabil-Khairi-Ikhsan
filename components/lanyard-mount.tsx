@@ -48,6 +48,13 @@ const serverWebGL = () => undefined;
    didengarkan — berhenti berlangganan pun tidak melepas apa pun. */
 const langganWebGL = () => () => {};
 
+const subscribeVisibility = (listener: () => void) => {
+  document.addEventListener('visibilitychange', listener);
+  return () => document.removeEventListener('visibilitychange', listener);
+};
+const pageIsVisible = () => !document.hidden;
+const serverIsVisible = () => true;
+
 /* Berpasangan dengan blok HP di app/portfolio.css — ubah keduanya atau tidak
    sama sekali. Ditulis di JS karena posisi DOM-nya yang berbeda, bukan cuma
    gayanya: di layar lebar kartu menggantung di kolom kanan hero, di HP ia
@@ -78,42 +85,30 @@ export function LanyardMount() {
     return () => mq.removeEventListener('change', pilih);
   }, []);
 
-  /* ═══ JATUHNYA KARTU ═══
-     Kartu ini tidak dianimasikan turun — ia memang jatuh. Rig rapier di
-     lanyard.tsx memulai talinya di atas titik gantungnya, lalu gravitasi
-     [0,-40,0] yang menurunkannya sampai tali menegang dan kartunya berayun
-     berhenti. Seluruhnya terjadi dalam ~1,5 detik pertama setelah <Canvas>
-     dipasang.
-
-     Di hero itu pas: kotaknya sudah terlihat saat halaman dibuka. Di HP kartu
-     ini duduk di seksi About — jatuhnya selesai jauh sebelum ada yang menggulir
-     ke sana, dan yang ditemui pengunjung cuma kartu yang sudah diam.
-
-     Jadi yang ditunda pemasangan <Canvas>-nya, bukan animasinya: begitu kotaknya
-     masuk layar, fisikanya mulai dari nol dan jatuhnya tersaksikan. Di layar
-     lebar tak ada yang berubah — kotak hero sudah memotong viewport sejak
-     paint pertama, jadi observer langsung menyala pada pemeriksaan pertamanya.
-
-     Sekali saja: setelah jatuh, kartunya milik fisika dan tangan pengguna.
-     Menjatuhkannya ulang tiap kali seksinya lewat berarti membuang keadaan
-     yang sedang dipegang pengguna. */
+  const webgl = useSyncExternalStore(langganWebGL, snapshotWebGL, serverWebGL);
+  const pageVisible = useSyncExternalStore(subscribeVisibility, pageIsVisible, serverIsVisible);
   const kotakRef = useRef<HTMLDivElement>(null);
-  const [terlihat, setTerlihat] = useState(false);
+  // null menunggu kemunculan pertama agar jatuhnya kartu terlihat, termasuk di HP.
+  const [slotInView, setSlotInView] = useState<boolean | null>(null);
+  const [sceneInView, setSceneInView] = useState(false);
 
   useEffect(() => {
-    if (terlihat) return;
-    /* Yang diamati induknya — .lanyard-slot — bukan kotak ini sendiri: kotak
-       ini sengaja dilebarkan ±70% melewati slotnya (lihat #lanyard-3d di
-       app/portfolio.css), jadi ia menyentuh layar ratusan piksel lebih awal
-       dari kartunya. */
-    const slot = kotakRef.current?.parentElement;
-    if (!slot) return;
-    const io = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) { setTerlihat(true); io.disconnect(); }
+    const scene = kotakRef.current;
+    const slot = scene?.parentElement;
+    if (!scene || !slot) return;
+    const io = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.target === slot) {
+          setSlotInView((previous) => previous === null && !entry.isIntersecting ? null : entry.isIntersecting);
+        } else {
+          setSceneInView(entry.isIntersecting);
+        }
+      }
     });
     io.observe(slot);
+    io.observe(scene);
     return () => io.disconnect();
-  }, [terlihat, host]);
+  }, [host, webgl]);
 
   /* Tema dibaca dari <html data-theme>, yang diisi skrip di layout.tsx dan
      diubah tombol tema di portfolio-runtime.js. MutationObserver, bukan event:
@@ -138,16 +133,13 @@ export function LanyardMount() {
      aturan yang memakainya: di sana kotaknya memang sudah selebar itu. */
   const [aktif, setAktif] = useState(false);
 
-  /* undefined = belum dijawab (SSR & hidrasi); lihat WEBGL di bawah berkas. */
-  const webgl = useSyncExternalStore(langganWebGL, snapshotWebGL, serverWebGL);
-
   const kartu = (
     <div
       id="lanyard-3d"
       ref={kotakRef}
       className={[ready && 'is-ready', aktif && 'is-active'].filter(Boolean).join(' ') || undefined}
     >
-      {terlihat && webgl === true && (
+      {slotInView !== null && webgl === true && (
       <Lanyard
         /* Kamera ditarik mendekat, bukan kartunya diperbesar: fisikanya bekerja
            dalam satuan dunia, jadi menskalakan rig ikut mengubah panjang tali
@@ -175,6 +167,9 @@ export function LanyardMount() {
            tidak ikut berubah. Teksturnya dibuat tools/card-texture.mjs dan
            tools/lanyard-texture.mjs. */
         theme={theme}
+        /* Slot mengikuti posisi kartu saat tenang. Saat ditarik atau berayun,
+           ruang di luar slot juga bisa berisi kartu yang masih terlihat. */
+        running={pageVisible && (slotInView || (aktif && sceneInView))}
         onReady={() => setReady(true)}
         onActive={setAktif}
       />

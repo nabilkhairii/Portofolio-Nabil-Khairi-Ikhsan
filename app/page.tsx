@@ -24,6 +24,7 @@ import { FlowButton } from '@/components/ui/flow-button';
 import { OriginButton } from '@/components/ui/origin-button';
 import { ScrollChoreography } from '@/components/ui/scroll-choreography';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { CV_DOWNLOAD_URL, CV_FILENAME } from '@/lib/cv';
 
 /* Empat foto pita koreografi. Namanya ikut nama prop komponennya (topLeft dst),
    dan itu posisi AWAL — komponennya sendiri yang memindahkannya, dan `topRight`
@@ -149,7 +150,8 @@ const CHOREO_PROJECTS_PHONE = {
    Tiap chip tautan ke situs resmi produknya.
 
    `logo` = berkas di public/icons/: favicon resmi vendornya, berwarna,
-   diambil sekali dari domain di `href` lewat layanan favicon Google. Disimpan
+   umumnya diambil dari domain di `href` lewat layanan favicon Google.
+   PostgreSQL memakai logo Slonik dalam format SVG. Aset disimpan
    lokal, bukan dihotlink — halaman tidak memanggil pihak ketiga saat dibuka.
    Sebelumnya sebagian memakai simple-icons (hitam polos, dibalik di mode
    gelap) dan sisanya monogram huruf; keduanya dilepas supaya semua chip
@@ -161,23 +163,24 @@ const CHOREO_PROJECTS_PHONE = {
    produknya sendiri (eagle.png), dipotong ke marka "E"-nya saja: wordmark
    di bawahnya tidak terbaca pada 20px. */
 const TOOLS: { name: string; href: string; logo: string }[] = [
-  { name: 'Autodesk Fusion 360', href: 'https://www.autodesk.com/products/fusion-360/overview', logo: 'autodesk' },
-  { name: 'EasyEDA', href: 'https://easyeda.com/', logo: 'easyeda' },
-  { name: 'Autodesk EAGLE', href: 'https://www.autodesk.com/products/eagle/overview', logo: 'eagle' },
-  { name: 'Proteus', href: 'https://www.labcenter.com/', logo: 'proteus' },
-  { name: 'Falstad', href: 'https://www.falstad.com/circuit/', logo: 'falstad' },
-  { name: 'Omron CX-Programmer', href: 'https://industrial.omron.eu/en/products/cx-programmer', logo: 'omron' },
-  { name: 'OpenPLC Editor', href: 'https://autonomylogic.com/', logo: 'openplc' },
-  { name: 'Factory I/O', href: 'https://factoryio.com/', logo: 'factoryio' },
-  { name: 'ROS 2', href: 'https://www.ros.org/', logo: 'ros' },
-  { name: 'Webots', href: 'https://cyberbotics.com/', logo: 'webots' },
-  { name: 'Arduino IDE', href: 'https://www.arduino.cc/en/software/', logo: 'arduino' },
-  { name: 'Raspberry Pi OS', href: 'https://www.raspberrypi.com/software/', logo: 'raspberrypi' },
-  { name: 'Linux', href: 'https://www.kernel.org/', logo: 'linux' },
-  { name: 'Docker', href: 'https://www.docker.com/', logo: 'docker' },
-  { name: 'Firebase', href: 'https://firebase.google.com/', logo: 'firebase' },
-  { name: 'Cisco Packet Tracer', href: 'https://www.netacad.com/cisco-packet-tracer', logo: 'cisco' },
-  { name: 'Microsoft Office', href: 'https://www.microsoft.com/microsoft-365', logo: 'microsoft-office' },
+  { name: 'Autodesk Fusion 360', href: 'https://www.autodesk.com/products/fusion-360/overview', logo: 'autodesk.png' },
+  { name: 'EasyEDA', href: 'https://easyeda.com/', logo: 'easyeda.png' },
+  { name: 'Autodesk EAGLE', href: 'https://www.autodesk.com/products/eagle/overview', logo: 'eagle.png' },
+  { name: 'Proteus', href: 'https://www.labcenter.com/', logo: 'proteus.png' },
+  { name: 'Falstad', href: 'https://www.falstad.com/circuit/', logo: 'falstad.png' },
+  { name: 'Omron CX-Programmer', href: 'https://industrial.omron.eu/en/products/cx-programmer', logo: 'omron.png' },
+  { name: 'OpenPLC Editor', href: 'https://autonomylogic.com/', logo: 'openplc.png' },
+  { name: 'Factory I/O', href: 'https://factoryio.com/', logo: 'factoryio.png' },
+  { name: 'ROS 2', href: 'https://www.ros.org/', logo: 'ros.png' },
+  { name: 'Webots', href: 'https://cyberbotics.com/', logo: 'webots.png' },
+  { name: 'Arduino IDE', href: 'https://www.arduino.cc/en/software/', logo: 'arduino.png' },
+  { name: 'Raspberry Pi OS', href: 'https://www.raspberrypi.com/software/', logo: 'raspberrypi.png' },
+  { name: 'Linux', href: 'https://www.kernel.org/', logo: 'linux.png' },
+  { name: 'Docker', href: 'https://www.docker.com/', logo: 'docker.png' },
+  { name: 'PostgreSQL', href: 'https://www.postgresql.org/', logo: 'postgresql.svg' },
+  { name: 'Firebase', href: 'https://firebase.google.com/', logo: 'firebase.png' },
+  { name: 'Cisco Packet Tracer', href: 'https://www.netacad.com/cisco-packet-tracer', logo: 'cisco.png' },
+  { name: 'Microsoft Office', href: 'https://www.microsoft.com/microsoft-365', logo: 'microsoft-office.png' },
 ];
 
 /* Isi Core Competencies. Ikonnya dari lucide-react — sudah terpasang untuk
@@ -510,7 +513,8 @@ export default function Home() {
                     patah jadi "UNDUH" / "CV"; clamp cuma mengecilkannya
                     supaya larangan itu tidak berubah jadi luberan. */}
                 <FlowButton
-                  href="/Curriculum%20Vitae%20(CV)%20M.%20Nabil%20Khairi%20Ikhsan.pdf"
+                  href={CV_DOWNLOAD_URL}
+                  download={CV_FILENAME}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="whitespace-nowrap max-[640px]:px-3 max-[640px]:text-[clamp(9px,3vw,12px)] max-[640px]:tracking-[0.5px]"
@@ -906,7 +910,7 @@ export default function Home() {
               <div className="skills-col">
                 <div className="max-[640px]:order-2">
                   <h3 className="label text-muted split split-fly">Software &amp; Tools</h3>
-                  {/* Kisi dua kolom KHUSUS HP. Tujuh belas chip berlogo dengan
+                  {/* Kisi dua kolom KHUSUS HP. Chip berlogo dengan
                       nama sepanjang "Omron CX-Programmer" sampai sependek
                       "Linux": flex-wrap di kolom 342px menaruh tiga
                       chip di satu baris lalu satu di baris berikutnya, sisa
@@ -939,7 +943,7 @@ export default function Home() {
                         className="chip"
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={`/icons/${logo}.png`} alt="" loading="lazy" />
+                        <img src={`/icons/${logo}`} alt="" loading="lazy" />
                         {name}
                       </a>
                     ))}
@@ -1190,7 +1194,8 @@ export default function Home() {
                 en="Get in Touch"
               />
               <FlowButton
-                href="/Curriculum%20Vitae%20(CV)%20M.%20Nabil%20Khairi%20Ikhsan.pdf"
+                href={CV_DOWNLOAD_URL}
+                download={CV_FILENAME}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="whitespace-nowrap max-[640px]:min-h-10 max-[640px]:py-2 max-[640px]:px-3 max-[640px]:text-[clamp(9px,2.7vw,12px)] max-[640px]:tracking-[0.5px]"
@@ -1494,7 +1499,8 @@ export default function Home() {
               </li>
               <li>
                 <a
-                  href="/Curriculum%20Vitae%20(CV)%20M.%20Nabil%20Khairi%20Ikhsan.pdf"
+                  href={CV_DOWNLOAD_URL}
+                  download={CV_FILENAME}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flink"

@@ -483,6 +483,8 @@ main > section { position: relative; }
    sama sekali. Canvas-nya menyalakan lagi pointer-event untuk dirinya. */
 .lanyard-slot { position: relative; height: clamp(480px, 58vw, 640px); pointer-events: none; }
 .lanyard-slot > * { position: absolute; inset: 0; height: 100%; }
+/* Jaga tombol hero tetap di depan kanvas selama transisi .reveal. */
+.band--hero .lanyard-slot { z-index: -1; }
 /* Kotak yang memotong kartu saat ditarik itu elemen <canvas>-nya sendiri —
    WebGL tidak bisa melukis sepiksel pun di luar elemennya, dan slot ini cuma
    selebar kolom kanan. Jadi canvas-nya dilebarkan melewati slot ke empat arah.

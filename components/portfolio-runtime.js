@@ -228,12 +228,8 @@ const splitChars = () => document.querySelectorAll('.split').forEach(el => split
 splitChars();
 
 /* ═══ SOFT AURORA ════════════════════════════════════════════
-   SoftAurora (React Bits). Fragment shader-nya disalin utuh — di situlah
-   seluruh tampilannya. Yang diganti pembungkusnya: ogl + React ditukar WebGL
-   mentah, karena dari ogl cuma Renderer/Program/Mesh/Triangle yang dipakai
-   dan halaman ini tidak punya bundler untuk memuat paketnya.
-   Vertex shader dipangkas ke `position` saja: vUv di aslinya tidak pernah
-   dibaca fragment shader. */
+   SoftAurora (React Bits), digambar langsung lewat WebGL. Kedua palet
+   menggunakan gelombang yang sama dan tetap punya fase warna masing-masing. */
 (function auroraInit() {
   const canvas = document.getElementById('aurora');
   if (!canvas) return;
@@ -252,16 +248,15 @@ splitChars();
     speed: 0.8, scale: 1.5, brightness: 0.9,
     color1: '#f7f7f7',                // putih
     color2: '#e100ff',                // magenta
-    white: 0,                         // color1 sudah putih, tak perlu ditambah
     noiseFrequency: 1.5, noiseAmplitude: 1.0,
     bandHeight: 0.5, bandSpread: 1.0,
-    octaveDecay: 0.1, layerOffset: 0, colorSpeed: 1.5,
+    octaveDecay: 0.1, colorSpeed: 1.5,
     enableMouseInteraction: false, mouseInfluence: 0.5,
   };
-  /* Digambar pada setengah resolusi lalu direntang CSS. Shader ini menghitung
-     3 oktaf Perlin 3D dua kali per piksel — pada layar retina itu mahal, dan
-     cahaya selembut ini tidak punya detail yang hilang saat diperbesar. */
-  const RES = 0.5;
+  // Resolusi mengikuti piksel CSS supaya DPR tinggi tidak melipatgandakan beban shader.
+  const MAX_SCALE = 0.5;
+  const MAX_PIXELS = 960_000;
+  const MIN_DRAW_INTERVAL = 9; // Di layar 120 Hz, dua tick memberi sekitar 60 gambar/detik.
 
   const hexToVec3 = (hex) => {
     const h = hex.replace('#', '');
@@ -287,9 +282,7 @@ uniform float uNoiseAmp;
 uniform float uBandHeight;
 uniform float uBandSpread;
 uniform float uOctaveDecay;
-uniform float uLayerOffset;
 uniform float uColorSpeed;
-uniform float uWhite;
 uniform vec2 uMouse;
 uniform float uMouseInfluence;
 uniform bool uEnableMouse;
@@ -303,9 +296,10 @@ vec3 gradientHash(vec3 p) {
     dot(p, vec3(169.5, 283.3, 156.9))
   );
   vec3 h = fract(sin(p) * 43758.5453123);
-  float phi = acos(2.0 * h.x - 1.0);
+  float z = 2.0 * h.x - 1.0;
+  float sinPhi = sqrt(max(0.0, 1.0 - z * z));
   float theta = TAU * h.y;
-  return vec3(cos(theta) * sin(phi), sin(theta) * cos(phi), cos(phi));
+  return vec3(cos(theta) * sinPhi, sin(theta) * z, z);
 }
 
 float quinticSmooth(float t) {
@@ -393,18 +387,10 @@ void main() {
     shift = (uMouse - 0.5) * uMouseInfluence;
   }
 
-  // Ditahan di variabel, bukan dipanggil dua kali: auroraGlow itu 3 oktaf
-  // perlin, dan pita putih di bawah memakai nilai yang sama.
-  float glow1 = auroraGlow(t, shift);
-  float glow2 = auroraGlow(t + uLayerOffset, shift);
-
-  vec3 col = vec3(0.0);
-  col += 0.99 * glow1 * cosineGradient(uv.x + uTime * uSpeed * 0.2 * uColorSpeed, vec3(0.5), vec3(0.5), vec3(1.0), vec3(0.3, 0.20, 0.20)) * uColor1;
-  col += 0.99 * glow2 * cosineGradient(uv.x + uTime * uSpeed * 0.1 * uColorSpeed, vec3(0.5), vec3(0.5), vec3(2.0, 1.0, 0.0), vec3(0.5, 0.20, 0.25)) * uColor2;
-  // Inti pitanya diputihkan sedikit: lapis pertama SoftAurora aslinya #f7f7f7,
-  // dan palet biru+merah di atas kehilangan putih itu. Aditif, jadi cuma bagian
-  // paling terang yang memutih, tepinya tetap biru dan merah.
-  col += uWhite * (glow1 + glow2);
+  // Kedua palet memakai fase gelombang yang sama (layerOffset semula 0).
+  float glow = auroraGlow(t, shift);
+  vec3 col = 0.99 * glow * cosineGradient(uv.x + uTime * uSpeed * 0.2 * uColorSpeed, vec3(0.5), vec3(0.5), vec3(1.0), vec3(0.3, 0.20, 0.20)) * uColor1;
+  col += 0.99 * glow * cosineGradient(uv.x + uTime * uSpeed * 0.1 * uColorSpeed, vec3(0.5), vec3(0.5), vec3(2.0, 1.0, 0.0), vec3(0.5, 0.20, 0.25)) * uColor2;
 
   col *= uBrightness;
   float alpha = clamp(length(col), 0.0, 1.0);
@@ -445,9 +431,7 @@ void main() {
   gl.uniform1f(u('uBandHeight'), P.bandHeight);
   gl.uniform1f(u('uBandSpread'), P.bandSpread);
   gl.uniform1f(u('uOctaveDecay'), P.octaveDecay);
-  gl.uniform1f(u('uLayerOffset'), P.layerOffset);
   gl.uniform1f(u('uColorSpeed'), P.colorSpeed);
-  gl.uniform1f(u('uWhite'), P.white);
   gl.uniform1f(u('uMouseInfluence'), P.mouseInfluence);
   gl.uniform1i(u('uEnableMouse'), P.enableMouseInteraction ? 1 : 0);
   const uTime = u('uTime'), uRes = u('uResolution'), uMouse = u('uMouse'), uScale = u('uScale');
@@ -461,25 +445,35 @@ void main() {
      .45 gelombangnya membesar sampai satu pita menguasai layar dan menindih
      teks. Di layar 16:9 ke atas pengalinya 1: tampilan desktopnya tidak
      berubah sama sekali.
-     Dihitung di resize(), bukan sekali di awal: memutar HP mengubah rasionya.
+     Dihitung saat viewport berubah: memutar HP mengubah rasionya.
      Bobotnya juga diredam di layar sempit — lihat @media .aurora di
      app/portfolio.css; itu yang mengurus terang, ini yang mengurus ukuran. */
   const REF = 16 / 9;
   const skala = (w, h) => P.scale * Math.min(1, Math.max(0.7, (w / h) / REF));
 
-  function resize() {
-    const w = Math.max(1, Math.round(canvas.clientWidth * RES));
-    const h = Math.max(1, Math.round(canvas.clientHeight * RES));
-    if (canvas.width === w && canvas.height === h) return;
-    canvas.width = w; canvas.height = h;
+  let viewWidth = 1, viewHeight = 1;
+  let width = 0, height = 0;
+  let quality = 1;
+  let resizePending = false;
+  let lastDraw = null;
+  function resizeBuffer() {
+    resizePending = false;
+    const scale = Math.min(MAX_SCALE, Math.sqrt(MAX_PIXELS / (viewWidth * viewHeight))) * quality;
+    const w = Math.max(1, Math.round(viewWidth * scale));
+    const h = Math.max(1, Math.round(viewHeight * scale));
+    if (width === w && height === h) return;
+    canvas.width = width = w;
+    canvas.height = height = h;
+    lastDraw = null;
     gl.viewport(0, 0, w, h);
     gl.uniform3f(uRes, w, h, w / h);
-    gl.uniform1f(uScale, skala(w, h));
+    gl.uniform1f(uScale, skala(viewWidth, viewHeight));
   }
 
   // enableMouseInteraction mati: dibiarkan supaya menyalakannya kembali cukup
   // satu nilai di P, bukan menulis ulang penangannya.
   const mouse = [0.5, 0.5], target = [0.5, 0.5];
+  gl.uniform2f(uMouse, mouse[0], mouse[1]);
   if (P.enableMouseInteraction) {
     // Didengarkan di window, bukan di kanvas: kanvasnya pointer-events none,
     // jadi mousemove tidak akan pernah sampai ke sana.
@@ -490,34 +484,85 @@ void main() {
     }, { passive: true });
   }
 
-  const render = (tMs) => {
-    resize();
-    gl.uniform1f(uTime, tMs * 0.001);
-    mouse[0] += 0.05 * (target[0] - mouse[0]);
-    mouse[1] += 0.05 * (target[1] - mouse[1]);
-    gl.uniform2f(uMouse, mouse[0], mouse[1]);
-    gl.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+  let phase = 0;
+  const render = () => {
+    gl.uniform1f(uTime, phase * 0.001);
+    if (P.enableMouseInteraction) {
+      mouse[0] += 0.05 * (target[0] - mouse[0]);
+      mouse[1] += 0.05 * (target[1] - mouse[1]);
+      gl.uniform2f(uMouse, mouse[0], mouse[1]);
+    }
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   };
 
-  if (reduced) return void requestAnimationFrame(render);   // satu bingkai diam
+  let frame = null;
+  let lastFrame = null;
+  let sampledMs = 0, samples = 0, late = 0, smoothWindows = 0;
 
-  /* Tidak ada yang menghentikan loop ini: kanvasnya position: fixed, jadi ia
-     latar SEMUA seksi dari hero sampai footer. Sempat dipadamkan di bawah
-     seksi Skills dan sempat dibekukan selama kartu lanyard digenggam; dua-duanya
-     dilepas atas permintaan — cahayanya memang diminta ikut sampai bawah, dan
-     membekukannya saat kartu ditarik tidak terasa bedanya.
+  // Ubah resolusi setelah beberapa bingkai terlambat, lalu naikkan lagi perlahan.
+  // Batas 80% masih menyisakan resolusi internal efektif hingga 40% dari layar.
+  function sampleFrame(delta) {
+    if (delta > 250) return; // Jeda DevTools atau saat proses sempat ditangguhkan.
+    sampledMs += delta;
+    samples++;
+    if (delta > 19) late++;
+    if (sampledMs < 900) return;
+    const oldQuality = quality;
+    if (late / samples > 0.3) {
+      quality = Math.max(0.8, quality - 0.1);
+      smoothWindows = 0;
+    } else if (late / samples < 0.08) {
+      if (++smoothWindows >= 3) {
+        quality = Math.min(1, quality + 0.1);
+        smoothWindows = 0;
+      }
+    } else {
+      smoothWindows = 0;
+    }
+    sampledMs = samples = late = 0;
+    if (quality !== oldQuality) resizePending = true;
+  }
 
-     Yang menahan ongkosnya: setengah resolusi (RES), requestAnimationFrame yang
-     berhenti sendiri saat tabnya tidak terlihat, dan gambar tiap bingkai KEDUA
-     di bawah. Shader ini yang paling mahal di halaman (3 oktaf Perlin 3D, dua
-     kali, per piksel) sementara cahayanya bergerak dalam hitungan detik — 30
-     bingkai/detik tidak terlihat bedanya. Kalau masih terasa berat di HP, RES
-     yang berikutnya diturunkan. */
-  let gilir = 0;
-  const loop = (t) => { if ((gilir ^= 1)) render(t); requestAnimationFrame(loop); };
-  requestAnimationFrame(loop);
+  function loop(now) {
+    if (lastFrame !== null) {
+      const delta = now - lastFrame;
+      phase += delta;
+      sampleFrame(delta);
+    }
+    lastFrame = now;
+    if (resizePending) resizeBuffer();
+    if (lastDraw === null || now - lastDraw >= MIN_DRAW_INTERVAL) {
+      render();
+      lastDraw = now;
+    }
+    frame = requestAnimationFrame(loop);
+  }
+
+  function syncViewport() {
+    if (document.hidden) return;
+    viewWidth = Math.max(1, canvas.clientWidth);
+    viewHeight = Math.max(1, canvas.clientHeight);
+    resizePending = true;
+    if (frame === null) {
+      resizeBuffer();
+      render();
+    }
+  }
+
+  function syncVisibility() {
+    if (document.hidden) {
+      if (frame !== null) cancelAnimationFrame(frame);
+      frame = lastFrame = lastDraw = null;
+      sampledMs = samples = late = smoothWindows = 0;
+    } else {
+      syncViewport();
+      if (!reduced && frame === null) frame = requestAnimationFrame(loop);
+    }
+  }
+
+  syncVisibility();
+  new ResizeObserver(syncViewport).observe(canvas);
+  document.addEventListener('visibilitychange', syncVisibility);
 })();
 
 /* ScrollVelocity: marquee yang lajunya ikut kecepatan scroll.

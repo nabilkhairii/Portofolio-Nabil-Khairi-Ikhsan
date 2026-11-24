@@ -109,7 +109,18 @@ const send = (method, params = {}) =>
 await send('Page.enable');
 await send('Runtime.enable');
 await send('Network.enable');
+await send('Page.addScriptToEvaluateOnNewDocument', { source: `
+  window.lanyardDraws = 0;
+  const drawElements = WebGL2RenderingContext.prototype.drawElements;
+  WebGL2RenderingContext.prototype.drawElements = function (...args) {
+    if (this.canvas.closest?.('#lanyard-3d')) window.lanyardDraws++;
+    return drawElements.apply(this, args);
+  };
+` });
 await send('Page.navigate', { url: `http://localhost:${PORT}/` });
+
+const evaluate = async (expression) =>
+  (await send('Runtime.evaluate', { expression, returnByValue: true })).result.value;
 
 /* '#lanyard-3d canvas', bukan 'section canvas': hero juga memuat <canvas
    id="aurora"> dan ia yang lebih dulu di DOM. Dengan selektor lama checker ini
@@ -139,7 +150,6 @@ do {
   await sleep(500);
 } while (Date.now() < deadline);
 
-const shot = async () => (await send('Page.captureScreenshot', { format: 'png' })).data;
 const clip = async (x, y, width, height) =>
   (await send('Page.captureScreenshot', { format: 'png', clip: { x, y, width, height, scale: 1 } })).data;
 
@@ -151,12 +161,6 @@ try {
   const glb = glbSeen();
   assert.ok(glb, 'card.glb tidak pernah diminta — kartunya bukan dari model itu');
   assert.strictEqual(glb[1], 200, `card.glb dijawab HTTP ${glb[1]}`);
-
-  // Talinya harus bergerak sendiri karena gravitasi, bukan diam.
-  const a = await shot();
-  await sleep(600);
-  const b = await shot();
-  assert.notStrictEqual(a, b, 'dua frame identik — scene-nya diam, gravitasi/fisikanya tidak jalan');
 
   /* Talinya harus benar-benar ada di lorong antara jangkar dan kartu.
      Penjaga untuk bug yang pernah kejadian: faktor lerp penghalus tali tidak
@@ -171,11 +175,33 @@ try {
     returnByValue: true,
   })).result.value);
   const W = 150, H = 200;
-  const corridor = await clip(box.x + box.w / 2 - W / 2, box.y + box.h * 0.15, W, H);
-  const empty = await clip(box.x + box.w - W - 8, box.y + box.h * 0.15, W, H);
+  const y = box.y + box.h * 0.15;
+  const strap = () => clip(box.x + box.w / 2 - W / 2, y, W, H);
+  // Aurora juga bergerak di Home. Sembunyikan saat memeriksa piksel tali.
+  await evaluate(`document.getElementById('aurora').style.visibility = 'hidden'`);
+  const first = await strap();
+  const draws = await evaluate('window.lanyardDraws');
+  await sleep(600);
+  const corridor = await strap();
+  assert.ok(await evaluate('window.lanyardDraws') > draws, 'lanyard tidak menggambar saat talinya berayun');
+  assert.notStrictEqual(first, corridor, 'piksel tali tetap sama saat lanyard berayun');
+  const empty = await clip(box.x + box.w - W - 8, y, W, H);
   assert.ok(corridor.length > empty.length * 1.5,
     `lorong tali kosong (${corridor.length} vs latar ${empty.length} byte) — `
     + 'strap-nya tidak digambar di antara jangkar dan kartu');
+  await evaluate(`document.getElementById('aurora').style.removeProperty('visibility')`);
+
+  await evaluate(`window.lanyardCanvas = document.querySelector('#lanyard-3d canvas');
+    document.getElementById('skills').scrollIntoView({ behavior: 'instant' });`);
+  await sleep(600);
+  const pausedDraws = await evaluate('window.lanyardDraws');
+  assert.ok(pausedDraws > 0, 'hitungan draw lanyard tidak terbaca');
+  await sleep(600);
+  assert.strictEqual(await evaluate('window.lanyardDraws'), pausedDraws, 'lanyard masih dirender di luar viewport');
+  await evaluate(`scrollTo({ top: 0, behavior: 'instant' });`);
+  await sleep(600);
+  assert.ok(await evaluate(`window.lanyardCanvas === document.querySelector('#lanyard-3d canvas')
+    && window.lanyardDraws > ${pausedDraws}`), 'scene lanyard harus berlanjut tanpa membuat kanvas baru');
 
   assert.ok(state.h1, 'teks hero hilang tertimpa canvas');
   assert.deepStrictEqual(errors, [], 'konsol/jaringan tidak bersih:\n  ' + errors.join('\n  '));

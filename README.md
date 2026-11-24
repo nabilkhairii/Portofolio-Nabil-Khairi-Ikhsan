@@ -24,7 +24,7 @@ public/
   card.glb            model kartu lanyard
   card-texture-*.png  muka kartu, satu per tema
   lanyard.png         pita tali bertulisan (satu warna, kedua tema)
-  cv.pdf
+  cv-nabil-khairi-ikhsan.pdf
 tools/                generator aset (bukan bagian build)
 tests/                checker, satu berkas per hal yang diuji
 docs/                 dokumen desain

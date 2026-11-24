@@ -125,6 +125,7 @@ const baca = () => ev(`(() => new Promise((res) => {
       uScale: prog ? gl.getUniform(prog, gl.getUniformLocation(prog, 'uScale')) : null,
       uSpeed: prog ? gl.getUniform(prog, gl.getUniformLocation(prog, 'uSpeed')) : null,
       uMouse: prog ? gl.getUniform(prog, gl.getUniformLocation(prog, 'uEnableMouse')) : null,
+      phase: prog ? gl.getUniform(prog, gl.getUniformLocation(prog, 'uTime')) : null,
     };
   };
   requestAnimationFrame(tunggu);
@@ -133,8 +134,12 @@ const baca = () => ev(`(() => new Promise((res) => {
 const meja = await baca();
 assert.ok(!meja.flat, 'kanvasnya jatuh ke cadangan .is-flat — WebGL tidak dapat konteks');
 assert.strictEqual(meja.rays, 0, `masih ada ${meja.rays} kanvas .rays — LightRays belum benar-benar dilepas`);
-assert.strictEqual(meja.w, meja.mauW, `lebar buffer ${meja.w} != ${meja.mauW}; render() tidak pernah jalan`);
-assert.strictEqual(meja.h, meja.mauH, `tinggi buffer ${meja.h} != ${meja.mauH}; render() tidak pernah jalan`);
+const checkBuffer = ({ w, h, mauW, mauH }) => {
+  assert.ok(w >= mauW * .8 - 1 && w <= mauW, `lebar buffer ${w} di luar rentang adaptif`);
+  assert.ok(h >= mauH * .8 - 1 && h <= mauH, `tinggi buffer ${h} di luar rentang adaptif`);
+  assert.ok(Math.abs(w / h - mauW / mauH) < .015, 'rasio buffer berubah saat resolusi turun');
+};
+checkBuffer(meja);
 assert.strictEqual(meja.pos, 'fixed', `position ${meja.pos}: aurora harus ikut ke tiap seksi yang digulir`);
 assert.strictEqual(meja.ev, 'none', 'kanvasnya menangkap pointer — teks jadi tidak bisa diseleksi');
 assert.strictEqual(meja.opacity, '0.7', `opacity laptop ${meja.opacity}: cahayanya penuh, teks di atasnya menipis`);
@@ -144,6 +149,12 @@ assert.strictEqual(meja.uMouse, false, 'uEnableMouse menyala, padahal enableMous
 // Jendela ujinya 1440x900 dan rasio nyatanya ~1.77 setelah bilah gulir & zoom
 // body, jadi pengalinya ~1: yang dijaga di sini "praktis penuh", bukan angka pas.
 assert.ok(meja.uScale > 1.5 * 0.9, `uScale ${meja.uScale} di layar lebar, harusnya mendekati penuh 1.5`);
+const home = await baca();
+assert.ok(home.phase > meja.phase, 'aurora tidak bergerak di Home');
+
+await ev(`(() => { document.getElementById('about').scrollIntoView({ behavior: 'instant' }); return JSON.stringify(1); })()`);
+const about = await baca();
+assert.ok(about.phase > home.phase, 'fase aurora tidak berlanjut setelah memasuki About');
 
 /* Ikut tergulir: setelah sampai dasar halaman, kotaknya masih menutup layar. */
 const bawah = await ev(`(() => { scrollTo({ top: document.body.scrollHeight, behavior: 'instant' });
@@ -163,9 +174,28 @@ const padam = await ev(`(() => new Promise((res) => setTimeout(() => {
 }, 900)))()`);
 assert.ok(!padam.off, 'aurora padam di dasar halaman — ia harus jadi latar semua seksi');
 assert.strictEqual(padam.opacity, '0.7', `opacity di dasar halaman ${padam.opacity}, harusnya tetap .7`);
+const footer = await baca();
+assert.ok(footer.phase > about.phase, 'aurora berhenti setelah About');
 
 await ev(`(() => { scrollTo({ top: 0, behavior: 'instant' }); return JSON.stringify(1); })()`);
 await new Promise(r => setTimeout(r, 400));
+const resumed = await baca();
+assert.ok(resumed.phase > footer.phase, 'fase aurora kembali ke awal saat gulir ke Home');
+assert.ok((await baca()).phase > resumed.phase, 'aurora berhenti setelah kembali ke Home');
+
+await ev(`(() => {
+  Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+  document.dispatchEvent(new Event('visibilitychange'));
+  return JSON.stringify(1);
+})()`);
+const quiet = await baca();
+assert.strictEqual((await baca()).phase, quiet.phase, 'aurora masih bergerak saat tab disembunyikan');
+await ev(`(() => {
+  delete document.hidden;
+  document.dispatchEvent(new Event('visibilitychange'));
+  return JSON.stringify(1);
+})()`);
+assert.ok((await baca()).phase > quiet.phase, 'aurora tidak melanjutkan fase saat tab kembali terlihat');
 
 /* Layar HP: polanya harus TURUN skalanya, bukan sama seperti desktop. */
 await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
@@ -175,7 +205,7 @@ assert.ok(hp.uScale < meja.uScale * 0.8,
   `uScale HP ${hp.uScale} vs desktop ${meja.uScale}: polanya tidak diperbesar, di layar sempit itu terbaca bintik`);
 assert.ok(Math.abs(hp.uScale - 1.5 * 0.7) < 1e-5, `uScale HP ${hp.uScale}, lantainya .7 x 1.5 = 1.05`);
 assert.strictEqual(hp.opacity, '0.55', `opacity HP ${hp.opacity}: cahayanya tidak diredam, teksnya tertindih`);
-assert.strictEqual(hp.w, hp.mauW, `buffer HP ${hp.w} != ${hp.mauW}; resize() tidak jalan lagi saat layarnya berubah`);
+checkBuffer(hp);
 
-console.log(`OK — aurora fixed jadi latar seluruh halaman (buffer ${meja.w}x${meja.h}, tetap menutup layar di dasar halaman), prop sampai ke shader (uSpeed .8, mouse mati), opacity laptop ${meja.opacity}, skala pola turun 1.5 -> ${hp.uScale.toFixed(3)} dan opacity ${hp.opacity} di layar 390px`);
+console.log(`OK - aurora bergerak kontinu dari Home hingga dasar lalu kembali. Buffer desktop ${meja.w}x${meja.h}, opacity ${meja.opacity}, skala HP ${hp.uScale.toFixed(3)} dan opacity ${hp.opacity}`);
 done(0);

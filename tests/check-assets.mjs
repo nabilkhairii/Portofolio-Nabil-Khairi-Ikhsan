@@ -24,8 +24,7 @@ const refs = [
   ...[...page.matchAll(/(?:src|href)="(\/[^"]+)"/g)].map(m => m[1]),
   ...[...page.matchAll(/['"](\/(?:assets|thumbs)\/[^'"]+)['"]/g)].map(m => m[1]),
 ];
-/* Ambangnya 1, bukan jumlah persisnya: isinya /cv.pdf (dua tombol) dan empat
-   foto pita choreo, dan angka itu berubah tiap kali satu seksi datang atau
+/* Ambangnya 1, bukan jumlah persisnya: angka itu berubah tiap kali satu seksi datang atau
    pergi. Ini cuma kenari untuk regex di atas — kalau nanti berkurang jadi nol,
    yang rusak regexnya. Yang menjaga tiap rujukannya ada adalah baris di bawah. */
 assert.ok(refs.length > 1, 'tidak ada rujukan lokal yang terbaca — regexnya yang rusak');
@@ -34,6 +33,13 @@ assert.ok(refs.some(u => u.startsWith('/thumbs/')),
 
 const missing = refs.filter(u => !existsSync(pub(u)));
 assert.deepStrictEqual(missing, [], `dirujuk page.tsx tapi tidak ada di public/: ${missing.join(', ')}`);
+
+const cvSource = readFileSync(path.join(root, 'lib/cv.ts'), 'utf8');
+const cvAsset = cvSource.match(/^export const CV_ASSET_URL = '(\/[^']+\.pdf)'/m)?.[1];
+assert.ok(cvAsset && existsSync(pub(cvAsset)), 'PDF CV terbaru tidak ada di public/');
+const toolLogos = [...page.matchAll(/logo: '([^']+\.(?:png|svg))'/g)].map(([, name]) => `/icons/${name}`);
+assert.ok(toolLogos.includes('/icons/postgresql.svg'), 'logo PostgreSQL lepas dari pemeriksaan');
+assert.deepStrictEqual(toolLogos.filter(url => !existsSync(pub(url))), [], 'logo Software & Tools hilang');
 
 // ── 2. tiap foto/video PROJECTS ada, dan thumbnail-nya tidak lebih tua ──
 const block = runtime.slice(runtime.indexOf('const PROJECTS = ['), runtime.indexOf('const PROJECTS_EN'));

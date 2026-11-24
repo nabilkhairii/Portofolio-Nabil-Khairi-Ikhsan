@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
    Yang berbeda dari komponen aslinya, semuanya karena halaman ini:
 
    1. Bisa jadi <a>. Empat dari enam tombol di halaman ini sebenarnya tautan
-      (#contact, #experience, /cv.pdf); memaksanya jadi <button> mematikan
+      (#contact, #experience); memaksanya jadi <button> mematikan
       navigasi dan klik-kanan/buka-tab.
    2. Prop `en`. Ganti bahasa di portfolio-runtime.js menulis ulang innerHTML
       tiap elemen [data-en], jadi penanda itu harus duduk di SPAN LABEL, bukan
