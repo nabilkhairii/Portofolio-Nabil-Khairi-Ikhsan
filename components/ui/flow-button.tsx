@@ -70,7 +70,8 @@ export function FlowButton({ text, en, solid, className, ...props }: FlowButtonP
     solid
       ? 'border-[var(--ink)] bg-[var(--ink)] text-[var(--canvas)] hover:text-[var(--ink)]'
       : 'border-[var(--ink)]/40 bg-transparent text-[var(--ink)] hover:text-[var(--canvas)]',
-    'transition-all duration-[600ms] ease-[cubic-bezier(0.23,1,0.32,1)]',
+    'flow-button transition-[color,border-color,border-radius,scale] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]',
+    'motion-reduce:transition-none motion-reduce:*:transition-none',
     'hover:rounded-[12px] hover:border-transparent active:scale-[0.95]',
     'focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[var(--m-blue-dark)]',
     className
@@ -80,25 +81,25 @@ export function FlowButton({ text, en, solid, className, ...props }: FlowButtonP
     <>
       {/* panah kiri — masuk dari luar bidang */}
       <ArrowRight
-        className={cn('absolute left-[-25%] z-[9] h-4 w-4 fill-none transition-all duration-[800ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:left-4 max-[640px]:hidden', arrowTone)}
+        className={cn('absolute left-4 z-[9] h-4 w-4 -translate-x-12 fill-none transition-[translate,stroke] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:translate-x-0 max-[640px]:hidden', arrowTone)}
         aria-hidden="true"
       />
 
       <span
-        className="relative z-[1] -translate-x-3 transition-all duration-[800ms] ease-out group-hover:translate-x-3 max-[640px]:translate-x-0 max-[640px]:group-hover:translate-x-0"
+        className="relative z-[1] -translate-x-3 transition-[translate] duration-300 ease-out group-hover:translate-x-3 max-[640px]:translate-x-0 max-[640px]:group-hover:translate-x-0"
         data-en={en}
       >
         {text}
       </span>
 
       <span
-        className={cn('absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-0 transition-all duration-[800ms] ease-[cubic-bezier(0.19,1,0.22,1)] group-hover:h-[320px] group-hover:w-[320px] group-hover:opacity-100', solid ? 'bg-[var(--canvas)]' : 'bg-[var(--ink)]')}
+        className={cn('pointer-events-none absolute left-1/2 top-1/2 size-[320px] -translate-x-1/2 -translate-y-1/2 scale-[0.05] rounded-full opacity-0 transition-[scale,opacity] duration-300 ease-[cubic-bezier(0.19,1,0.22,1)] group-hover:scale-100 group-hover:opacity-100', solid ? 'bg-[var(--canvas)]' : 'bg-[var(--ink)]')}
         aria-hidden="true"
       />
 
       {/* panah kanan — keluar ke luar bidang */}
       <ArrowRight
-        className={cn('absolute right-4 z-[9] h-4 w-4 fill-none transition-all duration-[800ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:right-[-25%] max-[640px]:static', arrowTone)}
+        className={cn('absolute right-4 z-[9] h-4 w-4 fill-none transition-[translate,stroke] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:translate-x-12 max-[640px]:static max-[640px]:group-hover:translate-x-0', arrowTone)}
         aria-hidden="true"
       />
     </>

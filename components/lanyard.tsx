@@ -121,11 +121,12 @@ const segmentProps = {
     linearDamping: 4,
 } satisfies RigidBodyProps;
 
+const bandAttributes = ['position', 'previous', 'next'] as const;
+
 function updateBandGeometry(geometry: MeshLineGeometry, samples: THREE.Vector3[]) {
-    const attributeNames = ['position', 'previous', 'next'] as const;
     if (geometry.getAttribute('position')?.count !== samples.length * 2) {
         geometry.setPoints(samples);
-        for (const name of attributeNames) {
+        for (const name of bandAttributes) {
             (geometry.getAttribute(name) as THREE.BufferAttribute).setUsage(THREE.DynamicDrawUsage);
         }
         return;
@@ -490,8 +491,8 @@ function Band({isMobile = false, theme = 'dark', onReady, onActive, gripId, poin
 
         // Tali mengikuti transformasi bergambar yang sudah diinterpolasi Rapier.
         let changed = geometry.getAttribute('position')?.count !== samples.length * 2;
-        for (const [index, joint] of joints.entries()) {
-            const jointBody = joint.current;
+        for (let index = 0; index < joints.length; index++) {
+            const jointBody = joints[index].current;
             const visual = jointBody && rigidBodyStates.get(jointBody.handle)?.object;
             if (!visual) return;
             visual.getWorldPosition(motion.point);
@@ -502,8 +503,8 @@ function Band({isMobile = false, theme = 'dark', onReady, onActive, gripId, poin
             }
         }
         if (changed) {
-            for (const [index, sample] of samples.entries()) {
-                motion.curve.getPoint(index / (samples.length - 1), sample);
+            for (let index = 0; index < samples.length; index++) {
+                motion.curve.getPoint(index / (samples.length - 1), samples[index]);
             }
             updateBandGeometry(geometry, samples);
         }

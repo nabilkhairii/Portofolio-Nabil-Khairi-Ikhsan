@@ -56,9 +56,6 @@ body { zoom: var(--zoom); }
   /* Hijau sukses, satu nilai untuk kedua tema: 3.47:1 di atas --card gelap dan
      4.41:1 di atas --card terang — dua-duanya lolos ambang 3:1 ikon non-teks. */
   --m-green: #15803d;
-  /* global pointer position (spotlight-card mechanism) */
-  --px: 0.5;
-  --py: 0.5;
 
   /* ── yang berbeda antar tema (dipakai di bawah lewat var) ── */
   --nav-stuck: rgb(0 0 0 / .92);
@@ -447,11 +444,8 @@ main > section { position: relative; }
 .btn:focus-visible { outline: 2px solid var(--m-blue-dark); outline-offset: 3px; }
 
 /* ═══ HOVER TOMBOL — OriginButton (21st.dev) ═══
-   Gerakannya sendiri milik components/ui/origin-button.tsx (kelas Tailwind +
-   motion). Yang tinggal di sini cuma dua warna yang tidak bisa diketahui
-   komponen itu: warna lingkaran yang tumbuh jadi isian, dan warna label di
-   atasnya. Keduanya harus BERLAWANAN dengan latar tombolnya, jadi nilainya
-   bertukar antara solid dan outline.
+   Lingkaran tumbuh dari titik masuk pointer. Warna lingkaran dan label
+   mengikuti varian solid atau outline.
 
    "Hubungi Saya" tidak lewat sini — FlowButton punya rupa & warnanya sendiri.
 
@@ -460,9 +454,30 @@ main > section { position: relative; }
 .btn--solid   { --btn-fill: var(--canvas); --btn-fill-ink: var(--ink); }
 .btn--outline { --btn-fill: var(--ink);    --btn-fill-ink: var(--canvas); }
 
+.origin-button::before {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  left: var(--fill-x, 50%);
+  top: var(--fill-y, 50%);
+  width: calc(var(--fill-reach, 100%) + var(--fill-rise, 48px));
+  width: hypot(var(--fill-reach, 100%), var(--fill-rise, 48px));
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--btn-fill);
+  translate: -50% -50%;
+  scale: 0;
+  transition: scale .32s cubic-bezier(.22,.68,.23,1);
+}
+.btn.origin-button {
+  transition: color .28s ease, border-color .28s ease, background-color .28s ease, transform .3s, scale .18s;
+}
+.btn.origin-button:is([data-pointer-inside], :active, :focus-visible) { color: var(--btn-fill-ink); }
+.origin-button:is([data-pointer-inside], :active, :focus-visible)::before { scale: 1; }
+
 .tlink { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
-.flink { font-size: 14px; font-weight: var(--w-body); color: var(--body); }
-.flink:hover { color: var(--ink); }
+.flink { font-size: 14px; font-weight: var(--w-body); color: var(--body); transition: color .22s ease; }
+@media (hover: hover) { .flink:hover { color: var(--ink); } }
 
 /* ═══ HERO LANYARD ═══
    Kartu identitas tergantung, seluruhnya di dalam <Canvas> R3F yang dipasang
@@ -667,7 +682,7 @@ main > section { position: relative; }
   font-size: 13px; font-weight: 400; letter-spacing: .3px;
   transition: border-color .2s, color .2s, background-color .2s;
 }
-.chip:hover { border-color: var(--ink); color: var(--ink); background: var(--card); }
+@media (hover: hover) { .chip:hover { border-color: var(--ink); color: var(--ink); background: var(--card); } }
 .chip:focus-visible { outline: 2px solid var(--m-blue-dark); outline-offset: 3px; }
 
 /* Logo di dalam chip. 20px: setinggi baris teks chip, jadi tinggi chip berlogo
@@ -678,7 +693,7 @@ main > section { position: relative; }
   width: 20px; height: 20px; flex: none; object-fit: contain;
   opacity: .85;
 }
-.chip:hover img, .chip:hover svg { opacity: 1; }
+@media (hover: hover) { .chip:hover img, .chip:hover svg { opacity: 1; } }
 /* Bendera bukan bujur sangkar seperti logo chip lain: 28x14, ukuran Union
    Jack. Kedua SVG-nya sama-sama ber-viewBox 60x30, jadi kotaknya identik dan
    tidak ada yang di-letterbox. Ditulis SETELAH aturan 20x20 di atas —
@@ -841,7 +856,7 @@ main > section { position: relative; }
    enam barisnya. Baris terakhir dibiarkan kosong di sana — itu justru yang
    menjaga baris "Read the chapter" ketiga kartu lain tetap sebaris. */
 .jr-stop__link { justify-self: center; align-self: start; }
-.jr-stop:hover .jr-stop__card { border-color: var(--ink); }
+@media (hover: hover) { .jr-stop:hover .jr-stop__card { border-color: var(--ink); } }
 /* Keempatnya transparan, tanpa pelat. Tinggi yang dipatok, lebar auto:
    rasionya berjauhan (wordmark ANTAM 2,84:1 dan Icon Plus 3,13:1, sedangkan
    AMX dan UNY nyaris bujur sangkar), jadi menyamakan lebar akan menggepengkan
@@ -902,7 +917,7 @@ main > section { position: relative; }
   font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;
   color: var(--muted); text-decoration: none; transition: color .2s;
 }
-.jr-stop__link:hover { color: var(--ink); }
+@media (hover: hover) { .jr-stop__link:hover { color: var(--ink); } }
 
 /* ── Panggung pembuka bab ──
    calc(100 * var(--vh)), bukan 100vh: body di-zoom .8 dan unit viewport tidak
@@ -1149,7 +1164,7 @@ main > section { position: relative; }
 }
 /* --carbon, satu tingkat lagi: keadaan diamnya sudah memakai --elevated, jadi
    sorotan lama yang juga --elevated berubah jadi tak berefek. */
-.jr-card:hover::before { background: var(--carbon); }
+@media (hover: hover) { .jr-card:hover::before { background: var(--carbon); } }
 /* Rasio dipatok supaya ketiga foto setinggi sama berapa pun bentuk foto
    aslinya. grid-row eksplisit karena urutan DOM-nya foto dulu, baru judul —
    yang dibalik di sini, bukan di markup: fotonya milik <figure> kartu dan
@@ -1175,7 +1190,7 @@ main > section { position: relative; }
    portfolio-runtime.js bekerja pada [data-en], dan teks yang lahir dari CSS
    tak akan pernah ikut berganti. */
 .jr-card__media img { transition: transform .5s; }
-.jr-card:hover .jr-card__media img { transform: scale(1.04); }
+@media (hover: hover) { .jr-card:hover .jr-card__media img { transform: scale(1.04); } }
 /* Tirai tipis di seluruh foto plus tulisan di tengahnya. Tirainya latar
    .jr-cue sendiri, bukan elemen tambahan: kotak ini sudah inset: 0 dan sudah
    memudar bersama tulisannya, jadi satu opacity mengurus keduanya.
@@ -1269,7 +1284,7 @@ main > section { position: relative; }
   font-size: 13px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;
   text-align: center; line-height: 1.35; color: var(--ink);
 }
-.jr-card:hover .jr-card__title { background: var(--elevated); }
+@media (hover: hover) { .jr-card:hover .jr-card__title { background: var(--elevated); } }
 /* Sampul DAN judul kartu sama-sama membuka galeri foto tanggung jawab itu
    (penangannya di portfolio-runtime.js). cursor: pointer, bukan zoom-in milik
    .jr-zoom: yang dibuka daftar foto, bukan satu foto yang diperbesar.
@@ -1444,12 +1459,12 @@ main > section { position: relative; }
    isyarat sekecil ini fotonya terbaca sebagai gambar mati. Ditulis di
    .jr-zoom supaya ketiga bentuk kotaknya berperilaku sama. */
 .jr-zoom img { transition: transform .5s; }
-.jr-zoom:hover img { transform: scale(1.04); }
+@media (hover: hover) { .jr-zoom:hover img { transform: scale(1.04); } }
 /* Tumbuhnya ke bawah, bukan dari tengah: di atas foto ada baris judul yang
    BUKAN foto, dan skala dari tengah menyembulkan ~5px gambar di kiri-kanan
    pelat. Dikunci ke :hover saja supaya origin animasi sorot layar penuh
    (per kolom, di blok @media di bawah) tidak ikut tergeser. */
-.jr-acts .jr-zoom:hover img { transform-origin: top center; }
+@media (hover: hover) { .jr-acts .jr-zoom:hover img { transform-origin: top center; } }
 
 /* ── Sorot foto: sekali ketuk, fotonya muncul utuh sebesar layar ──
    Kelasnya .jr-zoom, bukan .jr-act: yang memakainya ubin Proyek Akhir dan
@@ -1994,7 +2009,7 @@ main > section { position: relative; }
 /* Sorotnya latar yang menyala, BUKAN naik seperti .pcard: di dalam panel
    bersama, yang bergerak naik menabrak isi di sebelahnya alih-alih terbaca
    sebagai kartu yang terangkat. */
-.certbox__doc:hover { background: var(--carbon); }
+@media (hover: hover) { .certbox__doc:hover { background: var(--carbon); } }
 /* offset negatif supaya cincin fokusnya jatuh DI DALAM panel: dengan offset
    positif ia menimpa tepi panel dan terbaca seperti panelnya yang terpilih,
    bukan tautan sertifikatnya. */
@@ -2003,7 +2018,7 @@ main > section { position: relative; }
    (12px dikurangi padding + border), dan sorotnya cincin di dalam — angkatan
    6px bawaan .pcard akan menariknya menembus garis pemisah di atasnya. */
 .certbox .pcard { border-radius: 8px; }
-.certbox .pcard:hover { transform: none; box-shadow: inset 0 0 0 2px var(--ink); }
+@media (hover: hover) { .certbox .pcard:hover { transform: none; box-shadow: inset 0 0 0 2px var(--ink); } }
 /* Rasio dipatok, bukan mengikuti tinggi asli tiap potret: tinggi aslinya
    meleset antar-sertifikat — yang empat dipotret lalu di-trim tepat di tepi
    isinya (isi tiap sertifikat beda beberapa baris teks), dan yang kelima
@@ -2025,7 +2040,7 @@ main > section { position: relative; }
   font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
   color: var(--body); transition: color .2s;
 }
-.certbox__doc:hover .certbox__go { color: var(--ink); }
+@media (hover: hover) { .certbox__doc:hover .certbox__go { color: var(--ink); } }
 
 .pcard {
   position: relative; display: block; overflow: hidden; cursor: pointer;
@@ -2042,8 +2057,9 @@ main > section { position: relative; }
    jarak kisi 20px, kartunya tidak pernah menyentuh yang di atasnya.
    box-shadow, bukan outline: yang pertama mengikuti bentuk kotak border —
    squircle ikut terbawa; outline tetap busur lingkaran biasa. */
-.pcard:hover, .pcard:focus-visible { transform: translateY(-6px); }
-.pcard:hover { box-shadow: 0 0 0 2px var(--ink); }
+.pcard:focus-visible { transform: translateY(-6px); }
+@media (hover: hover) { .pcard:hover { transform: translateY(-6px); } }
+@media (hover: hover) { .pcard:hover { box-shadow: 0 0 0 2px var(--ink); } }
 .pcard:focus-visible { outline: 2px solid var(--m-blue-dark); outline-offset: 3px; }
 
 .pcard__media { position: absolute; inset: 0; }
@@ -2123,11 +2139,10 @@ main > section { position: relative; }
 }
 
 /* ═══ SPOTLIGHT translation ═══
-   spotlight-card.tsx keeps one document-level pointermove writing --px/--py.
    The radial glow is off-brand here (no atmospheric decoration), so the
    cursor drives a hairline that brightens toward it instead. */
-.spotlight { --edge: color-mix(in srgb, var(--ink) calc(var(--px) * 40%), var(--hairline)); }
-.spotlight:hover { border-color: var(--edge); background: var(--elevated); }
+.spotlight { --edge: color-mix(in srgb, var(--ink) calc(var(--px, .5) * 40%), var(--hairline)); }
+@media (hover: hover) { .spotlight:hover { border-color: var(--edge); background: var(--elevated); } }
 
 /* ═══ CONTACT FORM ═══ */
 .field { display: block; }
@@ -2186,8 +2201,8 @@ main > section { position: relative; }
 .chan__k { flex: 0 0 100px; color: var(--muted); }
 .chan__v { font-size: 16px; font-weight: var(--w-body); color: var(--ink); word-break: break-word; }
 .chan__x { margin-left: auto; color: var(--muted); transition: transform .25s, color .2s; }
-a.chan:hover .chan__x { transform: translateX(5px); color: var(--ink); }
-a.chan:hover .chan__v { color: var(--ink); }
+@media (hover: hover) { a.chan:hover .chan__x { transform: translateX(5px); color: var(--ink); } }
+@media (hover: hover) { a.chan:hover .chan__v { color: var(--ink); } }
 
 /* ═══ FOOTER ═══ */
 .footer { background: var(--canvas); padding-block: 64px; }
@@ -3011,7 +3026,7 @@ a.chan:hover .chan__v { color: var(--ink); }
   background: var(--elevated); color: var(--ink); cursor: pointer;
   font-size: 16px; line-height: 1; transition: background-color .2s;
 }
-.g-close:hover { background: var(--ink); color: var(--canvas); }
+@media (hover: hover) { .g-close:hover { background: var(--ink); color: var(--canvas); } }
 
 /* DUA bentuk, dan yang memilih datanya sendiri (descHTML() di
    portfolio-runtime.js): daftar butir untuk proyek teknis — satu kalimat satu
@@ -3070,7 +3085,7 @@ a.chan:hover .chan__v { color: var(--ink); }
 }
 .g-links a span { text-decoration: underline; text-underline-offset: 3px; }
 .g-links svg { width: 15px; height: 15px; flex: none; }
-.g-links a:hover { color: var(--ink); }
+@media (hover: hover) { .g-links a:hover { color: var(--ink); } }
 .g-links a:focus-visible { outline: 2px solid var(--m-blue-dark); outline-offset: 3px; }
 
 /* The stage is the only flexible row: it takes 55vh as its basis and shrinks
@@ -3089,7 +3104,7 @@ a.chan:hover .chan__v { color: var(--ink); }
 @keyframes g-slide { from { transform: translateX(var(--dir, 0%)); } to { transform: none; } }
 .g-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: var(--canvas); z-index: 1; }
 .g-thumbs video { flex: none; width: 84px; height: 56px; object-fit: cover; cursor: pointer; opacity: .4; border: 1px solid transparent; transition: opacity .2s, border-color .2s; }
-.g-thumbs video:hover { opacity: .75; }
+@media (hover: hover) { .g-thumbs video:hover { opacity: .75; } }
 .g-thumbs video.is-active { opacity: 1; border-color: var(--ink); }
 
 .g-nav {
@@ -3098,7 +3113,7 @@ a.chan:hover .chan__v { color: var(--ink); }
   background: var(--elevated); color: var(--ink);
   font-size: 22px; line-height: 1; transition: background-color .2s;
 }
-.g-nav:hover { background: var(--ink); color: var(--canvas); }
+@media (hover: hover) { .g-nav:hover { background: var(--ink); color: var(--canvas); } }
 .g-nav--prev { left: 16px; }
 .g-nav--next { right: 16px; }
 
@@ -3136,7 +3151,7 @@ a.chan:hover .chan__v { color: var(--ink); }
   flex: none; width: 84px; height: 56px; object-fit: cover; cursor: pointer;
   opacity: .4; border: 1px solid transparent; transition: opacity .2s, border-color .2s;
 }
-.g-thumbs img:hover { opacity: .75; }
+@media (hover: hover) { .g-thumbs img:hover { opacity: .75; } }
 .g-thumbs img.is-active { opacity: 1; border-color: var(--ink); }
 
 /* 767px, turun dari 800px: galeri layar penuh ini untuk HP. Tablet punya ruang
@@ -3236,12 +3251,11 @@ a.chan:hover .chan__v { color: var(--ink); }
 /* ═══ SCROLL VELOCITY — ScrollVelocity.jsx, tanpa React ═══
    Di sana tiap baris punya useScroll + useVelocity + useSpring +
    useAnimationFrame sendiri. Di sini kecepatan scroll dihitung sekali di
-   tick() dan tiap baris cuma menerima satu --mq-x: satu transform, tak ada
-   node per huruf yang dihitung ulang saat scroll. */
+   tick() dan hanya baris yang terlihat mendapat transform baru. */
 .mq { overflow: hidden; }
 .mq__scroller {
   display: flex; width: max-content;
-  transform: translate3d(var(--mq-x, 0px), 0, 0);
+  transform: translate3d(0, 0, 0);
   will-change: transform;
 }
 .mq__copy { flex: none; white-space: nowrap; padding-inline-end: 2.5em; }
@@ -3264,10 +3278,12 @@ a.chan:hover .chan__v { color: var(--ink); }
   -webkit-backdrop-filter: blur(3px) saturate(1.6);
   backdrop-filter: blur(3px) saturate(1.6) url("#glass-warp");
   box-shadow: var(--glass-rim);
-  transition: background-color .3s, transform .3s;
+  transition: background-color .28s, color .28s, border-color .28s, transform .3s;
 }
-.glass:hover { background: var(--glass-bg-hover); color: var(--ink); transform: scale(1.05); }
-.g-nav.glass:hover { transform: translateY(-50%) scale(1.05); }   /* nav sudah punya translateY */
+@media (hover: hover) {
+  .glass:hover { background: var(--glass-bg-hover); color: var(--ink); transform: scale(1.05); }
+  .g-nav.glass:hover { transform: translateY(-50%) scale(1.05); }
+}
 
 /* .glass di atas .btn: isian putih tombol solid harus dipertahankan, kalau
    tidak teksnya (hitam) jatuh di atas latar 5% putih dan tidak terbaca.
@@ -3288,12 +3304,15 @@ a.chan:hover .chan__v { color: var(--ink); }
   font-size: 12px; font-weight: 700; letter-spacing: 1.5px;
   transition: border-color .2s, background-color .2s;
 }
-.lang-btn:hover { border-color: var(--ink); background: var(--soft); }
+@media (hover: hover) { .lang-btn:hover { border-color: var(--ink); background: var(--soft); } }
 .lang-btn:focus-visible { outline: 2px solid var(--m-blue-dark); outline-offset: 3px; }
 .lang-btn span { color: var(--muted); transition: color .2s; }
 .lang-btn span.is-on { color: var(--ink); }
 
 @media (prefers-reduced-motion: reduce) {
+  .btn.origin-button, .origin-button::before, .flink, .lang-btn, .lang-btn span {
+    transition: none;
+  }
   .shimmer { animation: none; }
   .glass { transition: none; }
   .glass:hover { transform: none; }

@@ -158,6 +158,21 @@ try {
   assert.ok(state.canvasW > 0 && state.canvasH > 0,
     `canvas lanyard tidak pernah terpasang (${state.canvasW}x${state.canvasH})`);
 
+  const spotlight = await evaluate(`(() => {
+    const target = document.querySelector('.spotlight');
+    const move = el => el.dispatchEvent(new PointerEvent('pointermove', {
+      pointerType: 'mouse', bubbles: true, clientX: innerWidth / 4
+    }));
+    const rootStyle = document.documentElement.style;
+    const before = rootStyle.cssText;
+    move(document.querySelector('#lanyard-3d canvas'));
+    move(target);
+    return { local: parseFloat(getComputedStyle(target).getPropertyValue('--px')),
+      rootUnchanged: rootStyle.cssText === before };
+  })()`);
+  assert.ok(Math.abs(spotlight.local - .25) < .002, 'tepi kartu tidak mengikuti pointer');
+  assert.ok(spotlight.rootUnchanged, 'gerak pointer mengubah style di seluruh halaman');
+
   const glb = glbSeen();
   assert.ok(glb, 'card.glb tidak pernah diminta — kartunya bukan dari model itu');
   assert.strictEqual(glb[1], 200, `card.glb dijawab HTTP ${glb[1]}`);

@@ -60,7 +60,7 @@ export function ThemeToggle({ className }: { className?: string }) {
     <button
       type="button"
       className={cn(
-        'flex w-[88px] h-11 p-1 rounded-full cursor-pointer transition-all duration-300',
+        'flex w-[88px] h-11 p-1 rounded-full cursor-pointer transition-[background-color,border-color] duration-300 motion-reduce:transition-none',
         'focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[var(--m-blue-dark)]',
         isDark
           ? 'bg-zinc-950 border border-zinc-800'

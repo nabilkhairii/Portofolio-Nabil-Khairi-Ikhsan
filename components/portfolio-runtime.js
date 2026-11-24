@@ -609,11 +609,22 @@ function buildMarquees() {
     const n = Math.ceil(el.clientWidth / w) + 1;  // satu salinan cadangan untuk sambungan
     for (let i = 1; i < n; i++) scroller.append(tpl.cloneNode(true));
 
-    marquees.push({ scroller, w, v: parseFloat(el.dataset.marquee) || 100, x: 0 });
+    marquees.push({ el, scroller, w, v: parseFloat(el.dataset.marquee) || 100, x: 0 });
   });
 }
 /* #endregion marquee */
 buildMarquees();
+
+const visibleMarquees = new Set();
+if (!reduced) {
+  const marqueeObserver = new IntersectionObserver(entries => {
+    for (const entry of entries) {
+      if (entry.isIntersecting) visibleMarquees.add(entry.target);
+      else visibleMarquees.delete(entry.target);
+    }
+  });
+  document.querySelectorAll('[data-marquee]').forEach(el => marqueeObserver.observe(el));
+}
 
 let mqT = performance.now(), mqY = scrollY, mqV = 0, mqDir = 1;
 
@@ -627,7 +638,9 @@ function stepMarquees(now) {
   for (const m of marquees) {
     m.x += mqDir * m.v * dt * (1 + Math.abs(f));
     m.x = ((m.x % m.w) - m.w) % m.w;                      // wrap(-w, 0, x)
-    m.scroller.style.setProperty('--mq-x', m.x.toFixed(2) + 'px');
+    if (visibleMarquees.has(m.el)) {
+      m.scroller.style.transform = `translate3d(${m.x.toFixed(2)}px, 0, 0)`;
+    }
   }
 }
 
@@ -652,14 +665,15 @@ function tick(now) {
 }
 if (!reduced && marquees.length) requestAnimationFrame(tick);
 
-/* Pointer position — one document listener, not one per card (as in
-   spotlight-card.tsx). Drives bevel direction, not a glow. */
-if (!reduced && matchMedia('(pointer: fine)').matches) {
-  addEventListener('pointermove', (e) => {
-    const s = document.documentElement.style;
-    s.setProperty('--px', (e.clientX / innerWidth).toFixed(3));
-    s.setProperty('--py', (e.clientY / innerHeight).toFixed(3));
-  }, { passive: true });
+/* Hanya tepi kartu pendidikan yang mengikuti pointer. */
+if (!reduced) {
+  for (const card of document.querySelectorAll('.spotlight')) {
+    card.addEventListener('pointermove', event => {
+      if (event.pointerType !== 'touch') {
+        card.style.setProperty('--px', (event.clientX / innerWidth).toFixed(3));
+      }
+    }, { passive: true });
+  }
 }
 
 /* ═══ 2. PROJECT DATA ═══════════════════════════════════════
