@@ -50,7 +50,7 @@ export function ThemeToggle({ className }: { className?: string }) {
   const toggle = () => {
     const next = isDark ? 'light' : 'dark';
     document.documentElement.dataset.theme = next;   // MutationObserver di atas yang memicu render
-    localStorage.setItem('theme', next);
+    try { localStorage.setItem('theme', next); } catch { /* The current tab still uses the selection. */ }
     document
       .querySelector('meta[name="theme-color"]')
       ?.setAttribute('content', THEME_COLOR[next]);
@@ -60,11 +60,9 @@ export function ThemeToggle({ className }: { className?: string }) {
     <button
       type="button"
       className={cn(
-        'flex w-[88px] h-11 p-1 rounded-full cursor-pointer transition-[background-color,border-color] duration-300 motion-reduce:transition-none',
+        'theme-toggle relative flex w-[88px] h-11 p-1 rounded-full cursor-pointer transition-[background-color,border-color] duration-300 motion-reduce:transition-none',
         'focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[var(--m-blue-dark)]',
-        isDark
-          ? 'bg-zinc-950 border border-zinc-800'
-          : 'bg-white border border-zinc-200',
+        'border',
         className
       )}
       onClick={toggle}
@@ -72,34 +70,11 @@ export function ThemeToggle({ className }: { className?: string }) {
       data-en-aria-label="Toggle light / dark mode"
       aria-pressed={!isDark}
     >
-      <div className="flex justify-between items-center w-full">
-        <div
-          className={cn(
-            'flex justify-center items-center w-9 h-9 rounded-full transition-transform duration-300',
-            isDark
-              ? 'transform translate-x-0 bg-zinc-800'
-              : 'transform translate-x-11 bg-gray-200'
-          )}
-        >
-          {isDark ? (
-            <Moon className="w-5 h-5 text-white" strokeWidth={1.5} />
-          ) : (
-            <Sun className="w-5 h-5 text-gray-700" strokeWidth={1.5} />
-          )}
-        </div>
-        <div
-          className={cn(
-            'flex justify-center items-center w-9 h-9 rounded-full transition-transform duration-300',
-            isDark ? 'bg-transparent' : 'transform -translate-x-11'
-          )}
-        >
-          {isDark ? (
-            <Sun className="w-5 h-5 text-gray-500" strokeWidth={1.5} />
-          ) : (
-            <Moon className="w-5 h-5 text-black" strokeWidth={1.5} />
-          )}
-        </div>
-      </div>
+      <span aria-hidden="true" className="theme-thumb absolute w-9 h-9 rounded-full transition-transform duration-300 motion-reduce:transition-none" />
+      <span className="relative flex justify-between items-center w-full" aria-hidden="true">
+        <span className="flex justify-center items-center w-9 h-9"><Moon className="w-5 h-5" strokeWidth={1.5} /></span>
+        <span className="flex justify-center items-center w-9 h-9"><Sun className="w-5 h-5" strokeWidth={1.5} /></span>
+      </span>
     </button>
   );
 }

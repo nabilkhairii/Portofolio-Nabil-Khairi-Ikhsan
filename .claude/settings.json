@@ -21,10 +21,5 @@
       }
     ]
   },
-  "enabledPlugins": {
-    "superpowers@claude-plugins-official": true,
-    "andrej-karpathy-skills@karpathy-skills": true,
-    "ponytail@ponytail": true,
-    "ui-ux-pro-max@ui-ux-pro-max-skill": true
-  }
+  "enabledPlugins": {}
 }

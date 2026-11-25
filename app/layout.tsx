@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 
 // Inter = pengganti open-source yang didokumentasikan untuk BMW Type Next
@@ -28,14 +27,23 @@ export default function RootLayout({
   return (
     // suppressHydrationWarning: skrip di bawah menulis data-theme sebelum React
     // sempat menghidrasi, dan itu memang yang diinginkan.
-    <html lang="id" className={inter.variable} suppressHydrationWarning>
+    <html lang="id" data-theme="dark" className={inter.variable} suppressHydrationWarning>
+      <head>
+        <style>{`
+          html { color-scheme: dark; background-color: #000; color: #bbb; }
+          html[data-theme="light"] { color-scheme: light; background-color: #fff; color: #3f3f46; }
+          body { background-color: inherit; }
+        `}</style>
+        <script id="theme-init" dangerouslySetInnerHTML={{__html: `
+          try {
+            if (localStorage.getItem('theme') === 'light') {
+              document.documentElement.dataset.theme = 'light';
+              document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#ffffff');
+            }
+          } catch {}
+        `}} />
+      </head>
       <body className="bg-canvas text-bodytx font-sans antialiased">
-        {/* Tema dipasang sebelum paint pertama supaya tidak ada kedip
-            putih/hitam. Default gelap: desainnya lahir di kanvas hitam, mode
-            terang itu pilihan. Tombolnya sendiri diurus portfolio-runtime.js. */}
-        <Script id="theme-init" strategy="beforeInteractive">
-          {`document.documentElement.dataset.theme = localStorage.getItem('theme') || 'dark';`}
-        </Script>
         {children}
       </body>
     </html>

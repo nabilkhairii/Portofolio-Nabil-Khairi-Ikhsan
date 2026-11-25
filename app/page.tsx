@@ -459,7 +459,7 @@ export default function Home() {
         {/* ══ HERO — photo band ══ */}
         <section id="hero" className="band band--hero">
           <div className="shell grid gap-12 lg:grid-cols-[1.1fr_.9fr] lg:gap-16 items-center">
-            <div className="reveal">
+            <div className="reveal is-visible">
               <p
                 className="label text-muted shimmer"
                 data-en="Applied Bachelor (D4) · Electronics Engineering"
@@ -471,7 +471,7 @@ export default function Home() {
                   CSS menaikkannya satu per satu saat observer .reveal menyala.
                   Tetap <h1> berisi nama utuh; splitChars memasang aria-label
                   supaya screen reader membaca kalimatnya, bukan hurufnya. */}
-              <h1 className="display-xl mt-5 split">
+              <h1 className="display-xl mt-5 split is-visible">
                 M. NABIL
                 <br />
                 KHAIRI
@@ -524,7 +524,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="reveal lanyard-slot" data-reveal-delay="140">
+            <div id="lanyard-slot-hero" className="reveal lanyard-slot" data-reveal-delay="140">
               {/* Slot memegang tinggi sendiri supaya <Canvas> R3F punya ukuran
                   sejak awal — Canvas menunggu wadahnya terukur sebelum memasang
                   isinya. Kotaknya dibiarkan transparan sampai kartunya

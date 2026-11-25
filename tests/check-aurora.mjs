@@ -111,10 +111,11 @@ const baca = () => ev(`(() => new Promise((res) => {
     const gl = c.getContext('webgl');   // konteks yang SUDAH dibuat runtime, bukan yang baru
     const prog = gl && gl.getParameter(gl.CURRENT_PROGRAM);
     const r = c.getBoundingClientRect();
+    const scale = Math.min(0.5, Math.sqrt(400_000 / (c.clientWidth * c.clientHeight)));
     return {
       w: c.width, h: c.height,
-      mauW: Math.max(1, Math.round(c.clientWidth * 0.5)),
-      mauH: Math.max(1, Math.round(c.clientHeight * 0.5)),
+      mauW: Math.max(1, Math.round(c.clientWidth * scale)),
+      mauH: Math.max(1, Math.round(c.clientHeight * scale)),
       pos: getComputedStyle(c).position,
       opacity: getComputedStyle(c).opacity,
       ev: getComputedStyle(c).pointerEvents,
@@ -198,6 +199,8 @@ await ev(`(() => {
 assert.ok((await baca()).phase > quiet.phase, 'aurora tidak melanjutkan fase saat tab kembali terlihat');
 
 /* Layar HP: polanya harus TURUN skalanya, bukan sama seperti desktop. */
+await send('Emulation.setDeviceMetricsOverride', {width: 2560, height: 1440, deviceScaleFactor: 1.5, mobile: false});
+checkBuffer(await baca());
 await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
 await sleep(600);
 const hp = await baca();

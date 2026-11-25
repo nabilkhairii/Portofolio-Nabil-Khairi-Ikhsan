@@ -255,7 +255,9 @@ splitChars();
   };
   // Resolusi mengikuti piksel CSS supaya DPR tinggi tidak melipatgandakan beban shader.
   const MAX_SCALE = 0.5;
-  const MAX_PIXELS = 960_000;
+  // The soft glow is low-frequency. Limit fragment work on wide displays
+  // while retaining the same aspect, shader coordinates and phase.
+  const MAX_PIXELS = 400_000;
   const MIN_DRAW_INTERVAL = 9; // Di layar 120 Hz, dua tick memberi sekitar 60 gambar/detik.
 
   const hexToVec3 = (hex) => {

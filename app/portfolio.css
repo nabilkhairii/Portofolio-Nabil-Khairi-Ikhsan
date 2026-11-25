@@ -248,6 +248,13 @@ main > section { position: relative; }
    (itu urusan skala() di portfolio-runtime.js). Tema terang punya angkanya
    sendiri di atas dan sudah lebih redam, jadi tidak ditimpa. */
 @media (max-width: 767px) { .aurora { opacity: .55; } }
+.theme-toggle { background: #09090b; border-color: #27272a; color: #fff; }
+.theme-toggle .theme-thumb { background: #27272a; }
+.theme-toggle .lucide-sun { color: #6b7280; }
+[data-theme="light"] .theme-toggle { background: #fff; border-color: #e4e4e7; color: #000; }
+[data-theme="light"] .theme-toggle .theme-thumb { background: #e5e7eb; transform: translateX(44px); }
+[data-theme="light"] .theme-toggle .lucide-sun { color: #374151; }
+
 .band--hero > .shell { position: relative; z-index: 1; }
 .band--tight { padding-block: 0; }
 /* Pita foto menempel ke bagian sebelumnya: jeda 96px terasa menganga karena
@@ -497,7 +504,8 @@ main > section { position: relative; }
    sendiri), setiap genggaman mendarat di slot — kartunya tidak bisa ditarik
    sama sekali. Canvas-nya menyalakan lagi pointer-event untuk dirinya. */
 .lanyard-slot { position: relative; height: clamp(480px, 58vw, 640px); pointer-events: none; }
-.lanyard-slot > * { position: absolute; inset: 0; height: 100%; }
+.lanyard-host { display: contents; }
+.lanyard-host > * { position: absolute; inset: 0; height: 100%; }
 /* Jaga tombol hero tetap di depan kanvas selama transisi .reveal. */
 .band--hero .lanyard-slot { z-index: -1; }
 /* Kotak yang memotong kartu saat ditarik itu elemen <canvas>-nya sendiri —
@@ -554,48 +562,14 @@ main > section { position: relative; }
   position: relative; z-index: 0;
   width: 100%; height: 100%;
   display: flex; justify-content: center; align-items: center;
-  touch-action: none;                 /* tarik kartu tanpa ikut men-scroll halaman */
+  touch-action: pan-y pinch-zoom;
 }
 
-/* ═══ LANYARD DI LAYAR SENTUH ═══
-   touch-action: none di atas menyerahkan SELURUH gerakan jari ke kartu. Dengan
-   tetikus itu tak berakibat apa-apa — roda gulir bukan pointer, dan mencubit
-   tidak ada. Di layar sentuh ketiganya gerakan yang sama, dan kotak canvas ini
-   sengaja dilebarkan jauh melewati slotnya: di HP ia menutupi ~750px layar
-   pertama, jadi sapuan jari di mana pun di sana tidak menggulir apa pun dan
-   halaman ini praktis tidak bisa dibuka dari hero.
-
-   Disaring lewat pointer: coarse, bukan lebar layar: yang menentukan bukan
-   sempitnya viewport melainkan alat tunjuknya. Tablet berlayar sentuh selebar
-   1024 tetap butuh ini, dan jendela desktop yang dipersempit sampai 500px
-   tidak.
-
-   pinch-zoom ikut dipertahankan, dan itu bukan pelengkap: cubitan untuk
-   membaca adalah hal pertama yang dilakukan orang di layar sentuh yang
-   kesempitan, dan hero adalah bagian pertama yang ditemui. pan-y mengembalikan
-   gulir tegak ke peramban; tarikan mendatar tetap sampai ke kartu, jadi
-   kartunya masih bisa diayun. */
-@media (pointer: coarse) {
-  .lanyard-wrapper { touch-action: pan-y pinch-zoom; }
+/* R3F also sets pointer-events on its inner wrapper. */
+#lanyard-3d[data-visual-only], #lanyard-3d[data-visual-only] * { pointer-events: none !important; }
+@media (min-width: 641px) {
+  #lanyard-3d[data-visual-only] { inset-inline: -24%; }
 }
-
-/* ...kecuali di HP, dan itu bukan pengecualian sembarangan: pan-y di atas
-   melindungi HERO, dan di ≤640px kartunya sudah tidak ada di hero. Ia pindah
-   ke seksi About (.band--hero .lanyard-slot { display: none }), jadi layar
-   pertama tidak lagi tertutup canvas apa pun dan halaman ini tetap bisa
-   dibuka dengan sapuan biasa. Yang tersisa di 641px ke atas — tablet berlayar
-   sentuh — kartunya memang masih menggantung di hero, dan di sana pan-y tetap
-   berlaku.
-
-   Ongkosnya nyata dan disengaja: sapuan tegak yang MENDARAT DI CANVAS tidak
-   lagi menggulir halaman. Yang mendarat di teks tetap menggulir — #lanyard-3d
-   duduk di z-index -1, jadi tiap paragraf di atasnya yang jadi sasaran
-   sentuhan. Tanpa ini tarikan ke bawah cuma menggulir halaman dan kartunya
-   bergeser 20px sementara halaman lari 245px. */
-@media (pointer: coarse) and (max-width: 640px) {
-  .lanyard-wrapper { touch-action: none; }
-}
-
 
 /* ═══ SPEC CELLS ═══ */
 .spec { background: var(--soft); padding: 32px 24px; text-align: center; }
@@ -2374,6 +2348,7 @@ main > section { position: relative; }
      About — sapuan di x=40 pun menggerakkan halaman 0px — sementara -30px
      menyisakan 38%, dan 58% lebar layar di sebelah kanan tetap bisa disapu. */
   #lanyard-3d { inset: -200% -30px; }
+  #lanyard-3d[data-visual-only] { inset: -100% -115px; }
 
   /* ── ...dan DILEBARKAN saat kartunya ditarik ──
      Sempit itu ongkosnya nyata: kartu selebar 84px di kotak 176px sudah

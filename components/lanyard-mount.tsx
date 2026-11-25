@@ -8,9 +8,12 @@
    benar-benar berdiri (#lanyard-3d.is-ready di app/portfolio.css), dan yang
    tahu kapan itu terjadi hanya onReady dari dalam <Canvas>. */
 
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { Component, lazy, Suspense, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import Lanyard, { type LanyardTheme } from '@/components/lanyard';
+import type { LanyardTheme } from './lanyard-assets';
+
+const loadRig = () => import('./lanyard');
+const Lanyard = lazy(loadRig);
 
 /* ═══ PERAMBAN TANPA WebGL ═══
    Bisa terjadi tanpa perambannya rusak: akselerasi grafis dimatikan di
@@ -31,7 +34,7 @@ import Lanyard, { type LanyardTheme } from '@/components/lanyard';
 const bacaWebGL = () => {
   try {
     const uji = document.createElement('canvas');
-    const gl = (uji.getContext('webgl2') || uji.getContext('webgl')) as WebGLRenderingContext | null;
+    const gl = uji.getContext('webgl2');
     gl?.getExtension('WEBGL_lose_context')?.loseContext();
     return !!gl;
   } catch {
@@ -63,27 +66,54 @@ const serverIsVisible = () => true;
    WebGL untuk satu kartu. */
 const PHONE = '(max-width: 640px)';
 
+function isHandheld() {
+  const {userAgent, platform, maxTouchPoints} = navigator;
+  if (/Android|iPhone|iPod|iPad|Mobile|Tablet/i.test(userAgent) ||
+      (platform === 'MacIntel' && maxTouchPoints > 1)) return true;
+  if (/Windows|CrOS/i.test(userAgent)) return false;
+  return maxTouchPoints > 0 && matchMedia('(pointer: coarse) and (hover: none)').matches;
+}
+
+class AssetBoundary extends Component<{children: ReactNode; fallback: ReactNode}, {failed: boolean}> {
+  state = {failed: false};
+  static getDerivedStateFromError() { return {failed: true}; }
+  retry = async () => {
+    if (this.state.failed) {
+      const {clearLanyardLoadError} = await import('./lanyard-assets');
+      clearLanyardLoadError();
+      this.setState({failed: false});
+    }
+  };
+  componentDidMount() { window.addEventListener('online', this.retry); }
+  componentWillUnmount() { window.removeEventListener('online', this.retry); }
+  render() { return this.state.failed ? this.props.fallback : this.props.children; }
+}
+
 export function LanyardMount() {
   const [ready, setReady] = useState(false);
-
-  /* undefined = breakpoint belum diketahui (render pertama & SSR, jadi
-     Canvas-nya belum dipasang sama sekali), null = biarkan di tempatnya
-     (hero), Element = pindahkan ke sana. */
-  const [host, setHost] = useState<HTMLElement | null | undefined>(undefined);
-
+  const reveal = useCallback(() => setReady(true), []);
+  const [visualOnly] = useState(() => typeof window !== 'undefined' && isHandheld());
+  const [portal] = useState(() => {
+    if (typeof document === 'undefined') return null;
+    const container = document.createElement('div');
+    container.className = 'lanyard-host';
+    return container;
+  });
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
   useEffect(() => {
+    if (!portal) return;
     const mq = matchMedia(PHONE);
-    const pilih = () => {
-      setHost(mq.matches ? document.getElementById('lanyard-slot-about') : null);
-      /* Pindah tempat = Canvas dibongkar-pasang, jadi kartunya harus berdiri
-         lagi dari nol. Tanpa ini .is-ready terlanjur menyala dan kotak yang
-         masih kosong ikut ditampilkan. */
-      setReady(false);
+    const move = () => {
+      const target = document.getElementById(mq.matches ? 'lanyard-slot-about' : 'lanyard-slot-hero');
+      if (target) {
+        target.appendChild(portal);
+        setSlot(target);
+      }
     };
-    pilih();
-    mq.addEventListener('change', pilih);
-    return () => mq.removeEventListener('change', pilih);
-  }, []);
+    move();
+    mq.addEventListener('change', move);
+    return () => { mq.removeEventListener('change', move); portal.remove(); };
+  }, [portal]);
 
   const webgl = useSyncExternalStore(langganWebGL, snapshotWebGL, serverWebGL);
   const pageVisible = useSyncExternalStore(subscribeVisibility, pageIsVisible, serverIsVisible);
@@ -94,7 +124,6 @@ export function LanyardMount() {
 
   useEffect(() => {
     const scene = kotakRef.current;
-    const slot = scene?.parentElement;
     if (!scene || !slot) return;
     const io = new IntersectionObserver((entries) => {
       for (const entry of entries) {
@@ -108,7 +137,21 @@ export function LanyardMount() {
     io.observe(slot);
     io.observe(scene);
     return () => io.disconnect();
-  }, [host, webgl]);
+  }, [slot, webgl]);
+
+  useEffect(() => {
+    if (!slot || !webgl) return;
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) {
+        // The visible scene handles load failures through its own boundary.
+        void import('./lanyard-assets').then(m => m.preloadLanyard()).catch(() => {});
+        void loadRig().catch(() => {});
+        observer.disconnect();
+      }
+    }, {rootMargin: '400px'});
+    observer.observe(slot);
+    return () => observer.disconnect();
+  }, [slot, webgl]);
 
   /* Tema dibaca dari <html data-theme>, yang diisi skrip di layout.tsx dan
      diubah tombol tema di portfolio-runtime.js. MutationObserver, bukan event:
@@ -137,10 +180,11 @@ export function LanyardMount() {
     <div
       id="lanyard-3d"
       ref={kotakRef}
+      data-visual-only={visualOnly || undefined}
       className={[ready && 'is-ready', aktif && 'is-active'].filter(Boolean).join(' ') || undefined}
     >
       {slotInView !== null && webgl === true && (
-      <Lanyard
+      <Suspense fallback={null}><Lanyard
         /* Kamera ditarik mendekat, bukan kartunya diperbesar: fisikanya bekerja
            dalam satuan dunia, jadi menskalakan rig ikut mengubah panjang tali
            dan ayunannya.
@@ -159,7 +203,7 @@ export function LanyardMount() {
            552px jadi 1150px. 29 x 2,08 = 60 mengembalikan ukuran kartunya
            persis seperti sebelum kotaknya dipanjangkan. Kedua angka itu satu
            pasang; catatan lengkapnya di #lanyard-3d, app/portfolio.css. */
-        position={[0, 0, host ? 60 : 29]}
+        position={[0, 0, slot?.id === 'lanyard-slot-about' ? 60 : 29]}
         gravity={[0, -40, 0]}
         containerClassName="lanyard-wrapper"
         /* Kartu dan talinya ikut tema supaya keduanya tetap terlihat: terang di
@@ -170,9 +214,12 @@ export function LanyardMount() {
         /* Slot mengikuti posisi kartu saat tenang. Saat ditarik atau berayun,
            ruang di luar slot juga bisa berisi kartu yang masih terlihat. */
         running={pageVisible && (slotInView || (aktif && sceneInView))}
-        onReady={() => setReady(true)}
+        ready={ready}
+        visualOnly={visualOnly}
+        frameScale={visualOnly && slot?.id === 'lanyard-slot-about' ? 3 / 5 : 1}
+        onReady={reveal}
         onActive={setAktif}
-      />
+      /></Suspense>
       )}
     </div>
   );
@@ -190,7 +237,6 @@ export function LanyardMount() {
     </div>
   );
 
-  if (host === undefined || webgl === undefined) return null;
-  const isi = webgl ? kartu : cadangan;
-  return host ? createPortal(isi, host) : isi;
+  if (!slot || !portal || webgl === undefined) return null;
+  return createPortal(webgl ? <AssetBoundary fallback={cadangan}>{kartu}</AssetBoundary> : cadangan, portal);
 }

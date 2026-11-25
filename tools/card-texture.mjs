@@ -16,7 +16,7 @@
 
    Jalankan dari akar proyek setelah tools/source/profile.png diganti:
      node tools/card-texture.mjs */
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import assert from 'node:assert';
 import sharp from 'sharp';
 
@@ -93,6 +93,25 @@ const bin = 20 + glb.readUInt32LE(12) + 8;
 assert.strictEqual(json.images?.length, 1, 'card.glb tidak lagi berisi tepat satu tekstur');
 const bv = json.bufferViews[json.images[0].bufferView];
 const base = glb.subarray(bin + (bv.byteOffset || 0), bin + (bv.byteOffset || 0) + bv.byteLength);
+
+// The embedded stock artwork is only needed to author the atlas.
+assert.equal(json.images[0].bufferView, json.bufferViews.length - 1);
+assert.equal(bv.byteOffset + bv.byteLength, json.buffers[0].byteLength);
+json.bufferViews.pop();
+json.buffers[0].byteLength = bv.byteOffset;
+delete json.materials.find(material => material.name === 'base').pbrMetallicRoughness.baseColorTexture;
+delete json.images;
+delete json.textures;
+delete json.samplers;
+const description = Buffer.from(JSON.stringify(json));
+const padded = Buffer.alloc(Math.ceil(description.length / 4) * 4, 0x20);
+description.copy(padded);
+const header = Buffer.from(glb.subarray(0, 20));
+const binaryHeader = Buffer.from(glb.subarray(bin - 8, bin));
+header.writeUInt32LE(28 + padded.length + bv.byteOffset, 8);
+header.writeUInt32LE(padded.length, 12);
+binaryHeader.writeUInt32LE(bv.byteOffset);
+await writeFile('public/card-rig.glb', Buffer.concat([header, padded, binaryHeader, glb.subarray(bin, bin + bv.byteOffset)]));
 
 const { width: W, height: H } = await sharp(base).metadata();
 
@@ -212,6 +231,8 @@ for (const v of VARIANTS) {
     .composite([{ input: photo, left: Math.round(PHOTO.cx - photoW / 2), top: PHOTO.top }])
     .png({ compressionLevel: 9 })
     .toFile(v.file);
+
+  await sharp(v.file).webp({lossless: true}).toFile(v.file.replace(/\.png$/, '.webp'));
 
   /* Fotonya benar-benar tertempel, dan latar terangnya tidak ikut terbalik.
      Diintip di pertengahan tinggi foto — di situ ada jas gelap DAN latar

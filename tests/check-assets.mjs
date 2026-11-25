@@ -110,6 +110,9 @@ assert.deepStrictEqual(thumbOrphans.map(f => f.rel), [],
    yang hilang tidak akan tertangkap pemeriksaan (1) di atas — kartunya cuma
    berubah jadi tekstur bawaan card.glb tanpa satu pun pesan. */
 for (const [hasil, sumber, tool] of [
+  ['public/card-texture-dark.webp', 'tools/source/profile.png', 'card-texture.mjs'],
+  ['public/card-texture-light.webp', 'tools/source/profile.png', 'card-texture.mjs'],
+  ['public/card-rig.glb', 'public/card.glb', 'card-texture.mjs'],
   ['public/card-texture-dark.png', 'tools/source/profile.png', 'card-texture.mjs'],
   ['public/card-texture-light.png', 'tools/source/profile.png', 'card-texture.mjs'],
   /* Potongan muka kartu, cadangan untuk peramban tanpa WebGL. Dirujuk

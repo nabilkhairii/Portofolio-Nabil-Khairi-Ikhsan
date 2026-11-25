@@ -1,8 +1,8 @@
 'use client';
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {Canvas, events, extend, useFrame, useThree} from '@react-three/fiber';
 import type {RootStore, ThreeEvent} from '@react-three/fiber';
-import {useGLTF, useTexture, Environment, Lightformer} from '@react-three/drei';
+import {useGLTF, Environment, Lightformer} from '@react-three/drei';
 import {
     BallCollider,
     CuboidCollider,
@@ -19,26 +19,7 @@ import {MeshLineGeometry, MeshLineMaterial} from 'meshline';
 import * as THREE from 'three';
 import clsx from 'clsx';
 
-// Aset dari public/, bukan static image import: card.glb dibaca lewat path
-// string oleh useGLTF, jadi teksturnya ikut di sana supaya semuanya satu
-// tempat. Model aslinya dari React Bits ada di tools/source/.
-const cardGLB = '/card.glb';
-
-/* Tali: satu tekstur untuk kedua tema (pita #BABABA bertulisan hitam, dibuat
-   tools/lanyard-texture.mjs). Abu-abu terang itu punya kontras ke dua-duanya —
-   tidak lebur di halaman gelap, tidak menyilaukan di halaman terang.
-
-   Kartu: satu tekstur per tema, dibuat tools/card-texture.mjs, sengaja
-   berlawanan dengan latar halaman — di tema gelap kartunya terang, di tema
-   terang kartunya gelap. Fotonya sendiri sama di kedua varian.
-
-   Warna kartu tidak diatur lewat prop material: peta DIKALIKAN dengan warnanya,
-   jadi menggelapkan badan kartu ikut menggelapkan fotonya. Hanya tekstur
-   berbeda yang bisa membalik kontras. */
-const BAND_TEXTURE = '/lanyard.png';
-const CARD_TEXTURE = { dark: '/card-texture-dark.png', light: '/card-texture-light.png' } as const;
-
-export type LanyardTheme = keyof typeof CARD_TEXTURE;
+import {cardModel, useLanyardMaps, type LanyardTheme} from './lanyard-assets';
 
 extend({MeshLineGeometry, MeshLineMaterial});
 
@@ -109,6 +90,11 @@ const patchBandShader = (shader: {vertexShader: string}) => {
 };
 
 const PHYSICS_STEP = 1 / 60;
+// Limit catch-up to three fixed steps on a late handheld frame.
+class MobileClock extends THREE.Clock {
+    override getDelta() { return Math.min(super.getDelta(), PHYSICS_STEP * 3); }
+}
+
 const GRIP_BLEND = 1 - Math.exp(-45 * PHYSICS_STEP);
 const MAX_GRIP_STEP = 90 * PHYSICS_STEP;
 const MAX_CANVAS_PIXELS = 6_000_000;
@@ -163,6 +149,9 @@ interface LanyardProps {
        dimuat sekaligus, jadi menukarnya tidak memuat apa pun dari jaringan. */
     theme?: LanyardTheme;
     running?: boolean;
+    ready: boolean;
+    visualOnly: boolean;
+    frameScale?: number;
     canvasRef?: React.RefObject<HTMLCanvasElement | null>;
     /* Dipanggil sekali begitu Band terpasang — artinya useGLTF/useTexture sudah
        selesai dan kartunya benar-benar berdiri, bukan sekadar konteks WebGL
@@ -184,17 +173,21 @@ export default function Lanyard({
                                     containerClassName,
                                     theme = 'dark',
                                     running = true,
+                                    ready, visualOnly, frameScale = 1,
                                     canvasRef,
                                     onReady,
                                     onActive
                                 }: LanyardProps) {
     const [isMobile, setIsMobile] = useState<boolean>(() => typeof window !== 'undefined' && window.innerWidth < 768);
+    // Crop transparent overscan. Projection and band thickness keep the same pixel scale.
+    const visibleFov = THREE.MathUtils.radToDeg(2 * Math.atan(frameScale * Math.tan(THREE.MathUtils.degToRad(fov) / 2)));
     const wrapper = useRef<HTMLDivElement>(null);
     const [dprCap, setDprCap] = useState(2);
     const gripId = useRef<number | null>(null);
     const [pointerPosition] = useState(() => new THREE.Vector2());
 
     const canvasEvents = useCallback((store: RootStore) => {
+        if (visualOnly) return {enabled: false, priority: 1};
         const manager = events(store);
         const handlers = manager.handlers;
         if (!handlers) return manager;
@@ -204,6 +197,7 @@ export default function Lanyard({
                 ...handlers,
                 onPointerMove(event: Event) {
                     const pointer = event as PointerEvent;
+                    if (pointer.pointerType === 'touch') return;
                     if (pointer.pointerId === gripId.current) {
                         // Kartu sudah tertangkap. Fisika hanya perlu koordinat terbaru.
                         pointerPosition.set(pointer.clientX, pointer.clientY);
@@ -213,7 +207,7 @@ export default function Lanyard({
                 },
             },
         };
-    }, [pointerPosition]);
+    }, [pointerPosition, visualOnly]);
 
     useEffect(() => {
         const handleResize = (): void => setIsMobile(window.innerWidth < 768);
@@ -242,6 +236,7 @@ export default function Lanyard({
             <Canvas
                 ref={canvasRef}
                 events={canvasEvents}
+                resize={{scroll: false}}
                 /* Rapier meminta bingkai selama masih ada benda yang bergerak.
                    Visibilitas tetap dapat menjeda seluruh adegan. */
                 frameloop={running ? 'demand' : 'never'}
@@ -250,7 +245,7 @@ export default function Lanyard({
                    digeser tegak (lihat position di lanyard-mount.tsx) jadi
                    MENOLEH ke pusat scene alih-alih menggeser bingkainya —
                    kartunya balik ke tengah canvas dan geserannya sia-sia. */
-                camera={{position, fov, rotation: [0, 0, 0]}}
+                camera={{position, fov: visibleFov, rotation: [0, 0, 0]}}
                 /* Desktop turun dari [1,2] ke 1.5: kotaknya besar
                    (clamp(480px,58vw,640px)) dan isinya kartu berayun, bukan
                    teks, jadi piksel yang dihemat langsung jadi bingkai yang
@@ -267,51 +262,60 @@ export default function Lanyard({
                    canvas.toDataURL di repo ini (uji pun memotret lewat
                    Page.captureScreenshot), dan bendera itu memaksa peramban
                    menyalin buffer tiap frame. */
-                dpr={[1, Math.min(dprCap, isMobile ? 2 : 1.5)]}
+                dpr={[1, Math.min(dprCap, isMobile ? (visualOnly ? 1.75 : 2) : 1.5)]}
                 gl={{alpha: transparent}}
-                onCreated={({gl}) => gl.setClearColor(new THREE.Color(0x000000), transparent ? 0 : 1)}
+                onCreated={({gl, set}) => {
+                    gl.setClearColor(0x000000, transparent ? 0 : 1);
+                    if (visualOnly) set({clock: new MobileClock()});
+                }}
             >
-                <ambientLight intensity={Math.PI}/>
-                <Physics gravity={gravity} timeStep={PHYSICS_STEP} updatePriority={-1}>
-                    <Band isMobile={isMobile} theme={theme} onReady={onReady} onActive={onActive}
-                        gripId={gripId} pointerPosition={pointerPosition}/>
-                </Physics>
-                <Environment blur={0.75}>
-                    <Lightformer
-                        intensity={2}
-                        color="white"
-                        position={[0, -1, 5]}
-                        rotation={[0, 0, Math.PI / 3]}
-                        scale={[100, 0.1, 1]}
-                    />
-                    <Lightformer
-                        intensity={3}
-                        color="white"
-                        position={[-1, -1, 1]}
-                        rotation={[0, 0, Math.PI / 3]}
-                        scale={[100, 0.1, 1]}
-                    />
-                    <Lightformer
-                        intensity={3}
-                        color="white"
-                        position={[1, 1, 1]}
-                        rotation={[0, 0, Math.PI / 3]}
-                        scale={[100, 0.1, 1]}
-                    />
-                    <Lightformer
-                        intensity={10}
-                        color="white"
-                        position={[-10, 0, 14]}
-                        rotation={[0, Math.PI / 2, Math.PI / 3]}
-                        scale={[100, 10, 1]}
-                    />
-                </Environment>
+                {/* Keep the canvas mounted while Rapier and the materials suspend. */}
+                <Suspense fallback={null}>
+                    <ambientLight intensity={Math.PI}/>
+                    <Physics paused={!ready || !running} gravity={gravity} timeStep={PHYSICS_STEP} updatePriority={-1}>
+                        <Band running={ready && running} visualOnly={visualOnly} frameScale={frameScale} isMobile={isMobile} theme={theme} onReady={onReady} onActive={onActive}
+                            gripId={gripId} pointerPosition={pointerPosition}/>
+                    </Physics>
+                    <Environment blur={0.75}>
+                        <Lightformer
+                            intensity={2}
+                            color="white"
+                            position={[0, -1, 5]}
+                            rotation={[0, 0, Math.PI / 3]}
+                            scale={[100, 0.1, 1]}
+                        />
+                        <Lightformer
+                            intensity={3}
+                            color="white"
+                            position={[-1, -1, 1]}
+                            rotation={[0, 0, Math.PI / 3]}
+                            scale={[100, 0.1, 1]}
+                        />
+                        <Lightformer
+                            intensity={3}
+                            color="white"
+                            position={[1, 1, 1]}
+                            rotation={[0, 0, Math.PI / 3]}
+                            scale={[100, 0.1, 1]}
+                        />
+                        <Lightformer
+                            intensity={10}
+                            color="white"
+                            position={[-10, 0, 14]}
+                            rotation={[0, Math.PI / 2, Math.PI / 3]}
+                            scale={[100, 10, 1]}
+                        />
+                    </Environment>
+                </Suspense>
             </Canvas>
         </div>
     );
 }
 
 interface BandProps {
+    visualOnly: boolean;
+    running: boolean;
+    frameScale: number;
     isMobile?: boolean;
     theme?: LanyardTheme;
     onReady?: () => void;
@@ -320,7 +324,7 @@ interface BandProps {
     pointerPosition: THREE.Vector2;
 }
 
-function Band({isMobile = false, theme = 'dark', onReady, onActive, gripId, pointerPosition}: BandProps) {
+function Band({visualOnly, running, frameScale, isMobile = false, theme = 'dark', onReady, onActive, gripId, pointerPosition}: BandProps) {
     const band = useRef<THREE.Mesh<MeshLineGeometry>>(null);
     // Hook sambungan Rapier memakai tipe RefObject non-null.
     const fixed = useRef<RapierRigidBody>(null!);
@@ -332,35 +336,14 @@ function Band({isMobile = false, theme = 'dark', onReady, onActive, gripId, poin
     const {rapier, rigidBodyStates} = useRapier();
     const getScene = useThree(state => state.get);
     const size = useThree(state => state.size);
-    const {nodes, materials} = useGLTF(cardGLB) as any;
-    const texture = useTexture(BAND_TEXTURE) as THREE.Texture;
-
-    // Muat kedua tekstur sekaligus agar pergantian tema tidak membongkar adegan.
-    const [cardTextures, setCardTextures] = useState<Partial<Record<LanyardTheme, THREE.Texture>>>({});
-    useEffect(() => {
-        const loader = new THREE.TextureLoader();
-        const loaded: Partial<Record<LanyardTheme, THREE.Texture>> = {};
-        let alive = true;
-        Promise.all((Object.keys(CARD_TEXTURE) as LanyardTheme[]).map(key =>
-            new Promise<void>(done => {
-                loader.load(CARD_TEXTURE[key], image => {
-                    if (alive) {
-                        image.flipY = false;
-                        image.colorSpace = THREE.SRGBColorSpace;
-                        loaded[key] = image;
-                    } else {
-                        image.dispose();
-                    }
-                    done();
-                }, undefined, () => done());
-            })
-        )).then(() => { if (alive) setCardTextures(loaded); });
-
-        return () => {
-            alive = false;
-            Object.values(loaded).forEach(image => image.dispose());
-        };
-    }, []);
+    const {nodes, materials} = useGLTF(cardModel) as any;
+    const [texture, dark, light] = useLanyardMaps();
+    const painted = useRef(false);
+    useLayoutEffect(() => {
+        const state = getScene();
+        state.clock.getDelta();
+        state.invalidate();
+    }, [getScene, running]);
 
     const [motion] = useState(() => ({
         curve: new THREE.CatmullRomCurve3(Array.from({length: 4}, () => new THREE.Vector3()), false, 'chordal'),
@@ -400,6 +383,7 @@ function Band({isMobile = false, theme = 'dark', onReady, onActive, gripId, poin
     }, [getScene, gripId, rapier]);
 
     useEffect(() => {
+        if (visualOnly) return;
         const cancelPointer = (event: PointerEvent) => {
             if (event.pointerId === gripId.current) release();
         };
@@ -417,12 +401,12 @@ function Band({isMobile = false, theme = 'dark', onReady, onActive, gripId, poin
             document.removeEventListener('visibilitychange', hide);
             if (hovered.current || gripId.current !== null) document.body.style.cursor = '';
         };
-    }, [release]);
+    }, [release, visualOnly]);
 
     function grab(event: ThreeEvent<PointerEvent>) {
         const body = card.current;
         const capture = event.target as PointerCapture | null;
-        if (!body || !capture || event.button !== 0 || gripId.current !== null) return;
+        if (visualOnly || event.pointerType === 'touch' || !body || !capture || event.button !== 0 || gripId.current !== null) return;
 
         // Bidang tarik melewati pusat kartu agar kedalamannya bertahan saat ditangkap.
         motion.position.copy(body.translation());
@@ -448,12 +432,6 @@ function Band({isMobile = false, theme = 'dark', onReady, onActive, gripId, poin
         }
         state.invalidate();
     }
-
-    useEffect(() => {
-        getScene().clock.getDelta();
-        getScene().invalidate();
-        onReady?.();
-    }, []);
 
     // Satu sampel pointer terbaru per bingkai, dengan geometri kanvas saat ini.
     useFrame(({camera, gl}) => {
@@ -488,6 +466,8 @@ function Band({isMobile = false, theme = 'dark', onReady, onActive, gripId, poin
         const body = card.current;
         const geometry = band.current?.geometry;
         if (!body || !geometry) return;
+        // Rapier can have no registered active bodies before its first complete fixed tick.
+        if (running && !body.isSleeping()) state.invalidate();
 
         // Tali mengikuti transformasi bergambar yang sudah diinterpolasi Rapier.
         let changed = geometry.getAttribute('position')?.count !== samples.length * 2;
@@ -509,6 +489,7 @@ function Band({isMobile = false, theme = 'dark', onReady, onActive, gripId, poin
             updateBandGeometry(geometry, samples);
         }
 
+        if (visualOnly) return;
         const held = gripId.current !== null;
         const velocity = body.linvel();
         const active = held || velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2 > 0.5;
@@ -516,27 +497,20 @@ function Band({isMobile = false, theme = 'dark', onReady, onActive, gripId, poin
             activeRef.current = active;
             onActive?.(active);
         }
-        if (held) state.invalidate();
-    });
-    // RepeatWrapping: petanya diulang di sepanjang tali; tanpa ini pengulangan
-    // kedua dan seterusnya cuma meregangkan piksel tepi.
-    // anisotropy: pita ini sempit dan hampir selalu terlihat menyerong, jadi
-    // tanpa penyaringan anisotropik tulisannya luntur duluan sebelum sempat
-    // terbaca — sama seperti map-anisotropy pada muka kartu di bawah.
-    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-    texture.anisotropy = 16;
 
+    });
     return (
         <>
+            {/* Mobile starts with both ends of the spherical joint aligned. */}
             <group position={[0, 4, 0]}>
                 <RigidBody ref={fixed} {...segmentProps} type="fixed"/>
-                <RigidBody position={[0.5, 0, 0]} ref={j1} {...segmentProps} type="dynamic">
+                <RigidBody position={visualOnly ? [2 / 3, 1.45 / 3, 0] : [0.5, 0, 0]} ref={j1} {...segmentProps} type="dynamic">
                     <BallCollider args={[0.1]}/>
                 </RigidBody>
-                <RigidBody position={[1, 0, 0]} ref={j2} {...segmentProps} type="dynamic">
+                <RigidBody position={visualOnly ? [4 / 3, 2.9 / 3, 0] : [1, 0, 0]} ref={j2} {...segmentProps} type="dynamic">
                     <BallCollider args={[0.1]}/>
                 </RigidBody>
-                <RigidBody position={[1.5, 0, 0]} ref={j3} {...segmentProps} type="dynamic">
+                <RigidBody position={visualOnly ? [2, 1.45, 0] : [1.5, 0, 0]} ref={j3} {...segmentProps} type="dynamic">
                     <BallCollider args={[0.1]}/>
                 </RigidBody>
                 <RigidBody
@@ -549,15 +523,16 @@ function Band({isMobile = false, theme = 'dark', onReady, onActive, gripId, poin
                     <group
                         scale={2.25}
                         position={[0, -1.2, -0.05]}
-                        onPointerOver={() => {
+                        onPointerOver={visualOnly ? undefined : event => {
+                            if (event.pointerType === 'touch') return;
                             hovered.current = true;
                             if (gripId.current === null) document.body.style.cursor = 'grab';
                         }}
-                        onPointerOut={() => {
+                        onPointerOut={visualOnly ? undefined : () => {
                             hovered.current = false;
                             if (gripId.current === null) document.body.style.cursor = '';
                         }}
-                        onPointerUp={event => {
+                        onPointerUp={visualOnly ? undefined : event => {
                             if (event.pointerId !== gripId.current) return;
                             const capture = event.target as PointerCapture | null;
                             release();
@@ -565,11 +540,16 @@ function Band({isMobile = false, theme = 'dark', onReady, onActive, gripId, poin
                                 capture.releasePointerCapture(event.pointerId);
                             }
                         }}
-                        onPointerDown={grab}
+                        onPointerDown={visualOnly ? undefined : grab}
                     >
-                        <mesh geometry={nodes.card.geometry}>
+                        <mesh geometry={nodes.card.geometry} onAfterRender={renderer => {
+                            if (!painted.current && renderer.getRenderTarget() === null) {
+                                painted.current = true;
+                                queueMicrotask(() => onReady?.());
+                            }
+                        }}>
                             <meshPhysicalMaterial
-                                map={cardTextures[theme] ?? materials.base.map}
+                                map={theme === 'dark' ? dark : light}
                                 map-anisotropy={16}
                                 clearcoat={isMobile ? 0 : 1}
                                 clearcoatRoughness={0.15}
@@ -667,7 +647,7 @@ function Band({isMobile = false, theme = 'dark', onReady, onActive, gripId, poin
                        Berpasangan dengan repeat di bawah: mengubah angka ini
                        mengubah rasio bidang pita di layar, dan tekstur harus
                        ikut (tools/lanyard-texture.mjs) atau bintangnya melar. */
-                    lineWidth={1.75}
+                    lineWidth={1.75 / frameScale}
                 />
             </mesh>
         </>
